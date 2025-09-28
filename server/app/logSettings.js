@@ -9,7 +9,7 @@ const { promisify } = require("util");
 const log4js = require("log4js");
 const logger = log4js.getLogger();
 const { logFilename, numLogFiles, maxLogSize, compressLogFile } = require("./db/db");
-const { emitAll } = require("./handlers/commUtils.js");
+const commUtils = require("./handlers/commUtils.js");
 function getLoglevel(ignoreEnv = false) {
   const wheelLoglevel = process.env.WHEEL_LOGLEVEL;
   const defaultLevel = "debug";
@@ -36,7 +36,7 @@ function socketIOAppender(layout, timezoneOffset, argEventName) {
     const projectRootDir = loggingEvent.context.projectRootDir;
     if (eventName) {
       //emitAll is async function but we did not wait here
-      emitAll(projectRootDir, eventName, layout(loggingEvent, timezoneOffset));
+      commUtils.emitAll(projectRootDir, eventName, layout(loggingEvent, timezoneOffset));
     }
   };
 }
@@ -129,5 +129,7 @@ function getLogger(projectRootDir) {
 }
 
 module.exports = {
-  getLogger
+  getLogger,
+  log4js,
+  logSettings
 };
