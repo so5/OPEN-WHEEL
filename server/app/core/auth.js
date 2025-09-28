@@ -1,8 +1,3 @@
-/*
- * Copyright (c) Center for Computational Science, RIKEN All rights reserved.
- * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
- * See License in the project root for the license information.
- */
 "use strict";
 const path = require("path");
 const crypto = require("crypto");
@@ -105,10 +100,6 @@ async function isValidUser(username, password) {
   return row;
 }
 
-/**
- * list all user in DB
- * @returns {string[]} - array of usernames
- */
 async function listUser() {
   if (!_internal.initialized) {
     await _internal.initialize();
@@ -119,11 +110,6 @@ async function listUser() {
   });
 }
 
-/**
- * delete user from DB
- * @param {string} username - user's name
- * @returns {boolean} - false if user does not exist in DB
- */
 async function delUser(username) {
   if (!_internal.initialized) {
     await _internal.initialize();
