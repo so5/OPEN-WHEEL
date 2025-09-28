@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) Center for Computational Science, RIKEN All rights reserved.
+ * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
+ * See License in the project root for the license information.
+ */
 "use strict";
 const path = require("path");
 const crypto = require("crypto");
@@ -20,11 +25,17 @@ const _internal = {
   initialized: false
 };
 
-_internal.getHashedPassword = async function(password, salt) {
+/**
+ * create hashed password from plain password and salt
+ * @param {string} password - plain text password
+ * @param {string} salt - salt string
+ * @returns {string} - hashed password
+ */
+_internal.getHashedPassword = async function (password, salt) {
   return _internal.promisify(_internal.crypto.pbkdf2)(password, salt, 210000, 32, "sha512");
 };
 
-_internal.getUserData = async function(username) {
+_internal.getUserData = async function (username) {
   const row = await _internal.db.get("SELECT * FROM users WHERE username = ?", username);
   if (!row) {
     return null;
@@ -32,7 +43,10 @@ _internal.getUserData = async function(username) {
   return username === row.username ? row : null;
 };
 
-_internal.initialize = async function() {
+/**
+ * open database and create table if not exists
+ */
+_internal.initialize = async function () {
   _internal.db = await _internal.open({
     filename: _internal.path.resolve(_internal.userDBDir, _internal.userDBFilename),
     driver: _internal.Database
@@ -47,6 +61,11 @@ _internal.initialize = async function() {
   return _internal.db;
 };
 
+/**
+ * add new user
+ * @param {string} username - new user's name
+ * @param {string} password - new user's password
+ */
 async function addUser(username, password) {
   if (!_internal.initialized) {
     await _internal.initialize();
@@ -62,6 +81,12 @@ async function addUser(username, password) {
   await _internal.db.run("INSERT OR IGNORE INTO users (id, username, hashed_password, salt) VALUES (?, ?, ?, ?)", id, username, hashedPassword, salt);
 }
 
+/**
+ * check if specified user and password pair is valid
+ * @param {string} username - user's name
+ * @param {string} password - user's password in plain text
+ * @returns {boolean | object} - return user data if valid pair, or false if invalid
+ */
 async function isValidUser(username, password) {
   if (!_internal.initialized) {
     await _internal.initialize();
@@ -80,6 +105,10 @@ async function isValidUser(username, password) {
   return row;
 }
 
+/**
+ * list all user in DB
+ * @returns {string[]} - array of usernames
+ */
 async function listUser() {
   if (!_internal.initialized) {
     await _internal.initialize();
@@ -90,6 +119,11 @@ async function listUser() {
   });
 }
 
+/**
+ * delete user from DB
+ * @param {string} username - user's name
+ * @returns {boolean} - false if user does not exist in DB
+ */
 async function delUser(username) {
   if (!_internal.initialized) {
     await _internal.initialize();
