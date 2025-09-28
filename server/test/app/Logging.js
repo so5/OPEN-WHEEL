@@ -18,23 +18,20 @@ chai.use((_chai, _)=>{
     _.flag(this, "message", msg);
   });
 });
-const rewire = require("rewire");
-
 const { logFilename } = require("../../app/db/db.js");
 const projectRootDir = path.resolve("hoge");
+const commUtils = require("../../app/handlers/commUtils.js");
 
 //testee
-const LOG = rewire("../../app/logSettings.js");
-const getLogger = LOG.__get__("getLogger");
+const { getLogger, log4js, logSettings } = require("../../app/logSettings.js");
 
 //stubs
 const emitAll = sinon.stub();
-LOG.__set__("emitAll", emitAll);
+sinon.stub(commUtils, "emitAll").callsFake(emitAll);
 
 describe("Unit test for log4js's helper functions", ()=>{
   let logger;
-  const log4js = LOG.__get__("log4js");
-  const settings = LOG.__get__("logSettings");
+  const settings = logSettings;
   before(async ()=>{
     settings.appenders.log2client.level = "debug";
     settings.appenders.filterdFile.level = "trace";

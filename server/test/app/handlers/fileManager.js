@@ -13,17 +13,16 @@ const expect = chai.expect;
 const sinon = require("sinon");
 chai.use(require("sinon-chai"));
 chai.use(require("chai-fs"));
-const rewire = require("rewire");
-
 //testee
-const fileManager = rewire("../../../app/handlers/fileManager.js");
-const onGetFileList = fileManager.__get__("onGetFileList");
-const onGetSNDContents = fileManager.__get__("onGetSNDContents");
-const onRemoveFile = fileManager.__get__("onRemoveFile");
-const onRenameFile = fileManager.__get__("onRenameFile");
-const onDownload = fileManager.__get__("onDownload");
-const onCreateNewFile = fileManager.__get__("onCreateNewFile");
-const onCreateNewDir = fileManager.__get__("onCreateNewDir");
+const {
+  onGetFileList,
+  onGetSNDContents,
+  onRemoveFile,
+  onRenameFile,
+  onDownload,
+  onCreateNewFile,
+  onCreateNewDir
+} = require("../../../app/handlers/fileManager.js");
 
 //stubs
 const emit = sinon.stub();
