@@ -35,7 +35,7 @@ echo remove entry from known_hosts to avoid error if the entry already exists
 ssh-keygen -R '['${REMOTE_HOSTNAME}']:'${REMOTE_PORT} 2>/dev/null
 
 echo "start UT"
-WHEEL_TEST_REMOTEHOST=testServer WHEEL_TEST_REMOTE_PASSWORD=passw0rd npm run test
+NODE_ENV=test WHEEL_TEST_REMOTEHOST=testServer WHEEL_TEST_REMOTE_PASSWORD=passw0rd npm run test
 echo "UT finished"
 
 docker compose down

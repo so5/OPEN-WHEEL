@@ -40,7 +40,7 @@ ssh-keygen -R 'wheel_release_test_server'
 if [ x$1 == x-d ];then
   export WHEEL_KEEP_FILES_AFTER_LAST_TEST=1
 fi
-
+NODE_ENV=test
 docker compose run -e WHEEL_KEEP_FILES_AFTER_LAST_TEST --build ${TAG}
 rt=$?
 
