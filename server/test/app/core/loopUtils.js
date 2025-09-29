@@ -10,10 +10,10 @@ const expect = chai.expect;
 chai.use(require("chai-as-promised"));
 const sinon = require("sinon");
 const fs = require("fs-extra");
+const componentJsonIO = require("../../../app/core/componentJsonIO.js");
 
 //testee
 const loopUtils = require("../../../app/core/loopUtils.js");
-const { _internal } = loopUtils;
 
 const {
   forTripCount,
@@ -34,29 +34,29 @@ const {
 
 describe("#getInstanceDirectoryName", ()=>{
   it("should build name using name & index", ()=>{
-    expect(_internal.getInstanceDirectoryName({}, 0, "dummy")).to.be.equal("dummy_0");
+    expect(loopUtils._internal.getInstanceDirectoryName({}, 0, "dummy")).to.be.equal("dummy_0");
   });
 
   it("should use component.currentIndex instead when index is undefined", ()=>{
     expect(
-      _internal.getInstanceDirectoryName({ currentIndex: 0 }, undefined, "dummy")
+      loopUtils._internal.getInstanceDirectoryName({ currentIndex: 0 }, undefined, "dummy")
     ).to.be.equal("dummy_0");
   });
 
   it("should use component.originalName instead when originalName is undefined", ()=>{
     expect(
-      _internal.getInstanceDirectoryName({ originalName: "dummy" }, 0, undefined)
+      loopUtils._internal.getInstanceDirectoryName({ originalName: "dummy" }, 0, undefined)
     ).to.be.equal("dummy_0");
   });
 
   it("should sanitize index", ()=>{
-    expect(_internal.getInstanceDirectoryName({}, "0/0", "dummy")).to.be.equal(
+    expect(loopUtils._internal.getInstanceDirectoryName({}, "0/0", "dummy")).to.be.equal(
       "dummy_0_0"
     );
   });
 
   it("should not sanitize name", ()=>{
-    expect(_internal.getInstanceDirectoryName({}, "0", "dummy/dummy")).to.be.equal(
+    expect(loopUtils._internal.getInstanceDirectoryName({}, "0", "dummy/dummy")).to.be.equal(
       "dummy/dummy_0"
     );
   });
@@ -149,7 +149,7 @@ describe("#keepLoopInstance", ()=>{
   let removeStub;
 
   beforeEach(()=>{
-    removeStub = sinon.stub(_internal.fs, "remove");
+    removeStub = sinon.stub(loopUtils._internal.fs, "remove");
   });
 
   afterEach(()=>{
@@ -172,7 +172,7 @@ describe("#keepLoopInstance", ()=>{
       keep: 1,
       step: 2
     };
-    sinon.stub(_internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 1).returns("dummy");
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 1).returns("dummy");
     await keepLoopInstance(component, "/cwdDir");
     expect(removeStub.calledWith("/cwdDir/dummy")).to.be.true;
   });
@@ -182,7 +182,7 @@ describe("#keepLoopInstance", ()=>{
       currentIndex: 3,
       keep: 1
     };
-    sinon.stub(_internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 2).returns("dummy");
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 2).returns("dummy");
     await keepLoopInstance(component, "/cwdDir");
     expect(removeStub.calledWith("/cwdDir/dummy")).to.be.true;
   });
@@ -390,7 +390,7 @@ describe("#whileIsFinished", ()=>{
   let evalConditionStub;
 
   beforeEach(()=>{
-    evalConditionStub = sinon.stub(_internal, "evalCondition");
+    evalConditionStub = sinon.stub(loopUtils._internal, "evalCondition");
   });
 
   afterEach(()=>{
@@ -561,7 +561,7 @@ describe("UT foreachKeepLoopInstance()", ()=>{
   let removeStub;
 
   beforeEach(()=>{
-    removeStub = sinon.stub(_internal.fs, "remove");
+    removeStub = sinon.stub(loopUtils._internal.fs, "remove");
   });
 
   afterEach(()=>{
@@ -588,7 +588,7 @@ describe("UT foreachKeepLoopInstance()", ()=>{
       currentIndex: 3,
       keep: 1
     };
-    sinon.stub(_internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 2).returns("dummy");
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 2).returns("dummy");
     await foreachKeepLoopInstance(component, "/cwdDir");
     expect(removeStub.calledWith("/cwdDir/dummy")).to.be.true;
   });
@@ -599,7 +599,7 @@ describe("UT foreachKeepLoopInstance()", ()=>{
       currentIndex: null,
       keep: 1
     };
-    sinon.stub(_internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 4).returns("dummy");
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 4).returns("dummy");
     await foreachKeepLoopInstance(component, "/cwdDir");
     expect(removeStub.calledWith("/cwdDir/dummy")).to.be.true;
   });
@@ -619,7 +619,7 @@ describe("#foreachSearchLatestFinishedIndex", ()=>{
   let readComponentJsonStub;
 
   beforeEach(()=>{
-    readComponentJsonStub = sinon.stub(_internal, "readComponentJson");
+    readComponentJsonStub = sinon.stub(loopUtils._internal, "readComponentJson");
   });
 
   afterEach(()=>{
@@ -634,7 +634,7 @@ describe("#foreachSearchLatestFinishedIndex", ()=>{
     const component = {
       indexList: [1]
     };
-    sinon.stub(_internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 1).returns("dummy");
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 1).returns("dummy");
     readComponentJsonStub.withArgs("/cwdDir/dummy").resolves({ state: "running" });
     expect(await foreachSearchLatestFinishedIndex(component, "/cwdDir")).to.be.null;
   });
@@ -643,7 +643,7 @@ describe("#foreachSearchLatestFinishedIndex", ()=>{
     const component = {
       indexList: [1, 2, 3]
     };
-    sinon.stub(_internal, "getInstanceDirectoryName")
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName")
       .withArgs(sinon.match(component), 1).returns("dummy1")
       .withArgs(sinon.match(component), 2).returns("dummy2")
       .withArgs(sinon.match(component), 3).returns("dummy3");
@@ -659,7 +659,7 @@ describe("#foreachSearchLatestFinishedIndex", ()=>{
     };
     const error = new Error("dummy");
     error.code = "ENOENT";
-    sinon.stub(_internal, "getInstanceDirectoryName")
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName")
       .withArgs(sinon.match(component), 1).returns("dummy1")
       .withArgs(sinon.match(component), 2).returns("dummy2")
       .withArgs(sinon.match(component), 3).returns("dummy3");
@@ -674,7 +674,7 @@ describe("#foreachSearchLatestFinishedIndex", ()=>{
       indexList: [1, 2, 3]
     };
     const error = new Error("dummy");
-    sinon.stub(_internal, "getInstanceDirectoryName")
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName")
       .withArgs(sinon.match(component), 1).returns("dummy1")
       .withArgs(sinon.match(component), 2).returns("dummy2")
       .withArgs(sinon.match(component), 3).returns("dummy3");
