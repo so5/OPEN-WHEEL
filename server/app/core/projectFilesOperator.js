@@ -178,7 +178,7 @@ async function createNewProject(argProjectRootDir, name, argDescription, user, m
   rootWorkflow.name = path.basename(projectRootDir.slice(0, -suffix.length));
   rootWorkflow.cleanupFlag = defaultCleanupRemoteRoot ? 0 : 1;
 
-  getLogger().debug(rootWorkflow);
+  _internal.getLogger().debug(rootWorkflow);
   await writeComponentJson(projectRootDir, projectRootDir, rootWorkflow);
 
   //write project JSON
@@ -195,7 +195,7 @@ async function createNewProject(argProjectRootDir, name, argDescription, user, m
   };
   projectJson.componentPath[rootWorkflow.ID] = "./";
   const projectJsonFileFullpath = path.resolve(projectRootDir, projectJsonFilename);
-  getLogger().debug(projectJson);
+  _internal.getLogger().debug(projectJson);
   await writeJsonWrapper(projectJsonFileFullpath, projectJson);
   await gitAdd(projectRootDir, "./");
   await gitCommit(projectRootDir, "create new project");
