@@ -22,7 +22,7 @@ const { setJWTServerPassphrase, removeAllJWTServerPassphrase } = require("../cor
 const { runProject, cleanProject, stopProject } = require("../core/projectController.js");
 const { isValidOutputFilename } = require("../lib/utility");
 const { checkWritePermissions, parentDirs, eventEmitters } = require("../core/global.js");
-const { sendWorkflow, sendProjectJson, sendTaskStateList, sendResultsFileDir, sendComponentTree } = require("./senders.js");
+const senders = require("./senders.js");
 const { emitAll, emitWithPromise } = require("./commUtils.js");
 const { removeTempd, getTempd } = require("../core/tempd.js");
 const { validateComponents } = require("../core/validateComponents.js");
@@ -30,7 +30,9 @@ const { writeJsonWrapper } = require("../lib/utility");
 const { checkJWTAgent, startJWTAgent } = require("../core/gfarmOperator.js");
 const allowedOperations = require("../../../common/allowedOperations.cjs");
 
-const projectOperationQueues = new Map();
+const _internal = {};
+_internal.projectOperationQueues = new Map();
+
 async function updateProjectState(projectRootDir, state) {
   const projectJson = await setProjectState(projectRootDir, state);
   if (projectJson) {
@@ -131,7 +133,7 @@ async function onGetProjectJson(projectRootDir, ack) {
     const resultDir = await getTempd(projectRootDir, "viewer");
     const filename = path.resolve(resultDir, filesJsonFilename);
     if (await fs.pathExists(filename)) {
-      sendResultsFileDir(projectRootDir, resultDir);
+      senders.sendResultsFileDir(projectRootDir, resultDir);
     }
   } catch (e) {
     getLogger(projectRootDir).warn("getProjectJson failed", e);
@@ -141,7 +143,7 @@ async function onGetProjectJson(projectRootDir, ack) {
 }
 async function onGetWorkflow(clientID, projectRootDir, componentID, ack) {
   const requestedComponentDir = await getComponentDir(projectRootDir, componentID);
-  return sendWorkflow(ack, projectRootDir, requestedComponentDir, clientID);
+  return senders.sendWorkflow(ack, projectRootDir, requestedComponentDir, clientID);
 }
 async function onUpdateProjectDescription(projectRootDir, description, ack) {
   await updateProjectDescription(projectRootDir, description);
@@ -152,7 +154,7 @@ async function onUpdateProjectROStatus(projectRootDir, isRO, ack) {
   onGetProjectJson(projectRootDir, ack);
 }
 
-async function onRunProject(clientID, projectRootDir, ack) {
+_internal.onRunProject = async function(clientID, projectRootDir, ack) {
   const logger = getLogger(projectRootDir);
   const projectState = await getProjectState(projectRootDir);
   if (projectState !== "paused") {
@@ -270,19 +272,19 @@ async function onRunProject(clientID, projectRootDir, ack) {
     eventEmitters.set(projectRootDir, ee);
     ee.on("componentStateChanged", ()=>{
       const parentDir = parentDirs.get(projectRootDir);
-      sendWorkflow(()=>{}, projectRootDir, parentDir);
+      senders.sendWorkflow(()=>{}, projectRootDir, parentDir);
     });
-    ee.on("projectStateChanged", sendProjectJson.bind(null, projectRootDir));
-    ee.on("taskDispatched", sendTaskStateList.bind(null, projectRootDir));
-    ee.on("taskCompleted", sendTaskStateList.bind(null, projectRootDir));
+    ee.on("projectStateChanged", senders.sendProjectJson.bind(null, projectRootDir));
+    ee.on("taskDispatched", senders.sendTaskStateList.bind(null, projectRootDir));
+    ee.on("taskCompleted", senders.sendTaskStateList.bind(null, projectRootDir));
     ee.on("taskStateChanged", async (task)=>{
-      await sendTaskStateList(projectRootDir);
+      await senders.sendTaskStateList(projectRootDir);
       if (task.ignoreFailure !== true && ["failed", "unknow"].includes(task.state)) {
         await stopProject(projectRootDir);
         await updateProjectState(projectRootDir, "stopped");
       }
     });
-    ee.on("resultFilesReady", sendResultsFileDir.bind(null, projectRootDir));
+    ee.on("resultFilesReady", senders.sendResultsFileDir.bind(null, projectRootDir));
 
     const { webhook } = await getProjectJson(projectRootDir);
     logger.trace(`webhook setting for ${projectRootDir} \n`, webhook);
@@ -312,14 +314,14 @@ async function onRunProject(clientID, projectRootDir, ack) {
     ack(err);
   } finally {
     emitAll(projectRootDir, "projectJson", await getProjectJson(projectRootDir));
-    await sendWorkflow(ack, projectRootDir);
+    await senders.sendWorkflow(ack, projectRootDir);
     eventEmitters.delete(projectRootDir);
     removeSsh(projectRootDir);
     removeAllJWTServerPassphrase(projectRootDir);
   }
   return;
 }
-async function onStopProject(projectRootDir) {
+_internal.onStopProject = async function(projectRootDir) {
   await stopProject(projectRootDir);
   await updateProjectState(projectRootDir, "stopped");
 }
@@ -336,13 +338,13 @@ async function onCleanComponent(clientID, projectRootDir, targetComponentID) {
   }
   await cleanProject(projectRootDir, componentDir);
   await Promise.all([
-    sendWorkflow(null, projectRootDir),
-    sendTaskStateList(projectRootDir),
-    sendComponentTree(projectRootDir)
+    senders.sendWorkflow(null, projectRootDir),
+    senders.sendTaskStateList(projectRootDir),
+    senders.sendComponentTree(projectRootDir)
   ]);
 }
 
-async function onCleanProject(clientID, projectRootDir) {
+_internal.onCleanProject = async function(clientID, projectRootDir) {
   try {
     await askUnsavedFiles(clientID, projectRootDir);
   } catch (err) {
@@ -357,7 +359,7 @@ async function onCleanProject(clientID, projectRootDir) {
     removeTempd(projectRootDir, "download")
   ]);
 }
-async function onRevertProject(clientID, projectRootDir) {
+_internal.onRevertProject = async function(clientID, projectRootDir) {
   try {
     await askUnsavedFiles(clientID, projectRootDir);
   } catch (err) {
@@ -372,7 +374,7 @@ async function onRevertProject(clientID, projectRootDir) {
     removeTempd(projectRootDir, "download")
   ]);
 }
-async function onSaveProject(projectRootDir, ack) {
+_internal.onSaveProject = async function(projectRootDir, ack) {
   const projectJson = await getProjectJson(projectRootDir);
   const { readOnly, state: projectState } = projectJson;
   if (readOnly) {
@@ -406,19 +408,19 @@ async function projectOperator({ clientID, projectRootDir, ack, operation }) {
     switch (operation) {
       case "runProject":
         //do not wait onRunProject
-        onRunProject(clientID, projectRootDir, ack);
+        _internal.onRunProject(clientID, projectRootDir, ack);
         break;
       case "stopProject":
-        await onStopProject(projectRootDir, ack);
+        await _internal.onStopProject(projectRootDir, ack);
         break;
       case "cleanProject":
-        await onCleanProject(clientID, projectRootDir, ack);
+        await _internal.onCleanProject(clientID, projectRootDir, ack);
         break;
       case "revertProject":
-        await onRevertProject(clientID, projectRootDir, ack);
+        await _internal.onRevertProject(clientID, projectRootDir, ack);
         break;
       case "saveProject":
-        await onSaveProject(projectRootDir, ack);
+        await _internal.onSaveProject(projectRootDir, ack);
         break;
     }
   } catch (e) {
@@ -427,10 +429,10 @@ async function projectOperator({ clientID, projectRootDir, ack, operation }) {
   } finally {
     if (operation !== "runProject") {
       await Promise.all([
-        sendWorkflow(null, projectRootDir),
-        sendTaskStateList(projectRootDir),
-        sendProjectJson(projectRootDir),
-        sendComponentTree(projectRootDir)
+        senders.sendWorkflow(null, projectRootDir),
+        senders.sendTaskStateList(projectRootDir),
+        senders.sendProjectJson(projectRootDir),
+        senders.sendComponentTree(projectRootDir)
       ]);
     }
   }
@@ -438,7 +440,7 @@ async function projectOperator({ clientID, projectRootDir, ack, operation }) {
   return ack(true);
 }
 function getProjectOperationQueue(projectRootDir) {
-  if (!projectOperationQueues.has(projectRootDir)) {
+  if (!_internal.projectOperationQueues.has(projectRootDir)) {
     const tmp = new SBS({
       name: "projectOperator",
       exec: projectOperator,
@@ -455,9 +457,9 @@ function getProjectOperationQueue(projectRootDir) {
         return true;
       }
     });
-    projectOperationQueues.set(projectRootDir, tmp);
+    _internal.projectOperationQueues.set(projectRootDir, tmp);
   }
-  return projectOperationQueues.get(projectRootDir);
+  return _internal.projectOperationQueues.get(projectRootDir);
 }
 async function onProjectOperation(clientID, projectRootDir, operation, ack) {
   const queue = getProjectOperationQueue(projectRootDir);
@@ -465,7 +467,7 @@ async function onProjectOperation(clientID, projectRootDir, operation, ack) {
   return rt;
 }
 
-module.exports = {
+const main = {
   onGetProjectJson,
   onGetWorkflow,
   onCleanComponent,
@@ -473,3 +475,9 @@ module.exports = {
   onUpdateProjectROStatus,
   onProjectOperation
 };
+
+if (process.env.NODE_ENV === "test") {
+  main._internal = _internal;
+}
+
+module.exports = main;
