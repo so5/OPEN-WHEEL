@@ -19,8 +19,13 @@ const { replacePathsep, convertPathSep } = require("./pathUtils");
 const { readJsonGreedy } = require("./fileUtils");
 const { gitInit, gitAdd, gitCommit, gitRm } = require("./gitOperator2");
 const { hasChild, isLocalComponent } = require("./workflowComponent");
-const { getLogger } = require("../logSettings");
+const { getLogger: actualGetLogger } = require("../logSettings");
 const { getSsh } = require("./sshManager.js");
+
+const _internal = {
+  projectList,
+  getLogger: actualGetLogger
+};
 
 /**
  * check feather given token is surrounded by { and }
@@ -335,7 +340,7 @@ async function rewriteIncludeExclude(projectRootDir, filename, changed) {
   let needToWrite = false;
   const componentJson = await readJsonGreedy(filename);
   if (typeof componentJson.include === "string" && !Array.isArray(componentJson.include)) {
-    getLogger().info("convert include property", filename);
+    _internal.getLogger().info("convert include property", filename);
     componentJson.include = glob2Array(componentJson.include).map((e)=>{
       return { name: e };
     });
@@ -346,7 +351,7 @@ async function rewriteIncludeExclude(projectRootDir, filename, changed) {
     needToWrite = true;
   }
   if (typeof componentJson.exclude === "string" && !Array.isArray(componentJson.exclude)) {
-    getLogger().info("convert exclude property", filename);
+    _internal.getLogger().info("convert exclude property", filename);
     componentJson.exclude = glob2Array(componentJson.exclude).map((e)=>{
       return { name: e };
     });
@@ -390,7 +395,7 @@ async function readProject(projectRootDir) {
     projectJson.version = 2.1;
   }
   //skip following import process if project is already on projectList
-  if (projectList.query("path", projectRootDir)) {
+  if (_internal.projectList.query("path", projectRootDir)) {
     return projectRootDir;
   }
 
@@ -412,7 +417,7 @@ async function readProject(projectRootDir) {
       await gitAdd(projectRootDir, "./");
       await gitCommit(projectRootDir, "import project");
     } catch (e) {
-      getLogger().error("can not access to git repository", e);
+      _internal.getLogger().error("can not access to git repository", e);
       return null;
     }
   } else {
@@ -426,7 +431,7 @@ async function readProject(projectRootDir) {
     }));
     await gitCommit(projectRootDir, "import project", ["--", ".gitignore", ...toBeCommited]);
   }
-  projectList.unshift({ path: projectRootDir });
+  _internal.projectList.unshift({ path: projectRootDir });
   return projectRootDir;
 }
 
@@ -1804,3 +1809,7 @@ module.exports = {
   isLocal,
   isSameRemoteHost
 };
+
+if (process.env.NODE_ENV === "test") {
+  module.exports._internal = _internal;
+}

@@ -6,7 +6,11 @@
 "use strict";
 const uuid = require("uuid");
 const { defaultPSconfigFilename } = require("../db/db.js");
-const { readComponentJsonByID } = require("./componentJsonIO.js");
+const { readComponentJsonByID: actualReadComponentJsonByID } = require("./componentJsonIO.js");
+
+const _internal = {
+  readComponentJsonByID: actualReadComponentJsonByID
+};
 
 class BaseWorkflowComponent {
   constructor(pos, parent) {
@@ -435,7 +439,7 @@ async function isBehindIfComponent(projectRootDir, component) {
 
   if (hasPrevious) {
     for (const previous of component.previous) {
-      const previousComponent = await readComponentJsonByID(projectRootDir, previous);
+      const previousComponent = await _internal.readComponentJsonByID(projectRootDir, previous);
 
       if (previousComponent.type === "if") {
         return true;
@@ -451,7 +455,7 @@ async function isBehindIfComponent(projectRootDir, component) {
   if (hasConnectedInputFiles) {
     for (const inputFile of component.inputFiles) {
       for (const src of inputFile.src) {
-        const srcComponent = await readComponentJsonByID(projectRootDir, src.srcNode);
+        const srcComponent = await _internal.readComponentJsonByID(projectRootDir, src.srcNode);
 
         if (srcComponent.type === "if") {
           return true;
@@ -466,6 +470,7 @@ async function isBehindIfComponent(projectRootDir, component) {
   }
   return false;
 }
+_internal.isBehindIfComponent = isBehindIfComponent;
 
 /**
  * determine if component has outputfile which will be used by other components
@@ -502,7 +507,7 @@ async function hasConnecteddInputFiles(projectRootDir, component) {
  * @returns  {boolean} -
  */
 async function isInitialComponent(projectRootDir, component) {
-  if (await isBehindIfComponent(projectRootDir, component)) {
+  if (await _internal.isBehindIfComponent(projectRootDir, component)) {
     return false;
   }
   if (["storage", "hpciss", "hpcisstar"].includes(component.type)) {
@@ -589,5 +594,10 @@ module.exports = {
   removeDuplicatedComponent,
   getComponentDefaultName,
   hasNeededOutputFiles,
-  hasStoragePath
+  hasStoragePath,
+  isBehindIfComponent
 };
+
+if (process.env.NODE_ENV === "test") {
+  module.exports._internal = _internal;
+}

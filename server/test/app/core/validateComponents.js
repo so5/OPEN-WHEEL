@@ -8,7 +8,6 @@ const path = require("path");
 const fs = require("fs-extra");
 
 //setup test framework
-const rewire = require("rewire");
 const chai = require("chai");
 const expect = chai.expect;
 chai.use(require("sinon-chai"));
@@ -19,55 +18,54 @@ chai.use(require("chai-as-promised"));
 const { createNewProject, createNewComponent } = require("../../../app/core/projectFilesOperator");
 
 //testee
-const validateComponents = rewire("../../../app/core/validateComponents.js");
-const validateTask = validateComponents.__get__("validateTask");
-const validateStepjobTask = validateComponents.__get__("validateStepjobTask");
-const validateStepjob = validateComponents.__get__("validateStepjob");
-const validateBulkjobTask = validateComponents.__get__("validateBulkjobTask");
-const validateConditionalCheck = validateComponents.__get__("validateConditionalCheck");
-const validateKeepProp = validateComponents.__get__("validateKeepProp");
-const validateForLoop = validateComponents.__get__("validateForLoop");
-const validateParameterStudy = validateComponents.__get__("validateParameterStudy");
-const validateForeach = validateComponents.__get__("validateForeach");
-const validateStorage = validateComponents.__get__("validateStorage");
-const validateInputFiles = validateComponents.__get__("validateInputFiles");
-const validateOutputFiles = validateComponents.__get__("validateOutputFiles");
-const getCycleGraph = validateComponents.__get__("getCycleGraph");
-const isCycleGraph = validateComponents.__get__("isCycleGraph");
-const getNextComponents = validateComponents.__get__("getNextComponents");
-const getComponentIDsInCycle = validateComponents.__get__("getComponentIDsInCycle");
-const validateComponent = validateComponents.__get__("validateComponent");
-const checkComponentDependency = validateComponents.__get__("checkComponentDependency");
-const recursiveValidateComponents = validateComponents.__get__("recursiveValidateComponents");
-const checkScript = validateComponents.__get__("checkScript");
-const checkPSSettingFile = validateComponents.__get__("checkPSSettingFile");
+const {
+  validateComponents,
+  checkScript,
+  checkPSSettingFile,
+  validateTask,
+  validateStepjobTask,
+  validateStepjob,
+  validateBulkjobTask,
+  validateConditionalCheck,
+  validateKeepProp,
+  validateForLoop,
+  validateParameterStudy,
+  validateForeach,
+  validateStorage,
+  validateInputFiles,
+  validateOutputFiles,
+  getCycleGraph,
+  isCycleGraph,
+  getNextComponents,
+  getComponentIDsInCycle,
+  validateComponent,
+  checkComponentDependency,
+  recursiveValidateComponents,
+  _internal
+} = require("../../../app/core/validateComponents.js");
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";
-validateComponents.__set__("remoteHost", {
-  query: (name, hostname)=>{
-    if (hostname === "OK") {
-      return { name: "dummy" };
-    } else if (hostname === "jobOK") {
-      return { name: "dummy", jobScheduler: "hoge" };
-    } else if (hostname === "stepjobNG") {
-      return { name: "dummy", jobScheduler: "huga" };
-    } else if (hostname === "stepjobOK") {
-      return { name: "dummy", jobScheduler: "huga", useStepjob: true };
-    } else if (hostname === "bulkjobNG") {
-      return { name: "dummy", jobScheduler: "hige" };
-    } else if (hostname === "bulkjobOK") {
-      return { name: "dummy", jobScheduler: "hige", useBulkjob: true };
-    }
-    return undefined;
+_internal.remoteHost.query = (name, hostname)=>{
+  if (hostname === "OK") {
+    return { name: "dummy" };
+  } else if (hostname === "jobOK") {
+    return { name: "dummy", jobScheduler: "hoge" };
+  } else if (hostname === "stepjobNG") {
+    return { name: "dummy", jobScheduler: "huga" };
+  } else if (hostname === "stepjobOK") {
+    return { name: "dummy", jobScheduler: "huga", useStepjob: true };
+  } else if (hostname === "bulkjobNG") {
+    return { name: "dummy", jobScheduler: "hige" };
+  } else if (hostname === "bulkjobOK") {
+    return { name: "dummy", jobScheduler: "hige", useBulkjob: true };
   }
-});
+  return undefined;
+};
 
-validateComponents.__set__("jobScheduler", {
-  hoge: { queueOpt: "-q" },
-  huga: { queueOpt: "-q", supportStepjob: true },
-  hige: { queueOpt: "-q", supportBulkjob: true }
-});
+_internal.jobScheduler.hoge = { queueOpt: "-q" };
+_internal.jobScheduler.huga = { queueOpt: "-q", supportStepjob: true };
+_internal.jobScheduler.hige = { queueOpt: "-q", supportBulkjob: true };
 
 const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 describe("validation component UT", function () {
@@ -295,9 +293,8 @@ describe("validation component UT", function () {
       const scriptPath = path.resolve(projectRootDir, testStepjobTask.name, "script.sh");
       await fs.writeFile(scriptPath, "#!/bin/bash\necho 'Hello'");
 
-      //isInitialComponentをモック化して非初期コンポーネントとして扱う
-      const originalIsInitialComponent = validateComponents.__get__("isInitialComponent");
-      validateComponents.__set__("isInitialComponent", async ()=>false);
+      const originalIsInitialComponent = _internal.isInitialComponent;
+      _internal.isInitialComponent = async ()=>false;
 
       //useDependencyを設定
       testStepjobTask.useDependency = "afterok";
@@ -306,7 +303,7 @@ describe("validation component UT", function () {
       const result = await validateStepjobTask(projectRootDir, testStepjobTask);
 
       //元の関数に戻す
-      validateComponents.__set__("isInitialComponent", originalIsInitialComponent);
+      _internal.isInitialComponent = originalIsInitialComponent;
 
       //非初期コンポーネントの場合、useDependencyが設定されていても拒否されないことを確認
       expect(result).to.be.true;
@@ -890,21 +887,17 @@ describe("validation component UT", function () {
 
       fs.writeJsonSync(path.resolve(projectRootDir, testPS.name, "invalid_params.json"), invalidParams);
 
-      //validateを直接モック化して、エラーを返すようにする
-      const originalValidate = validateComponents.__get__("validate");
-      validateComponents.__set__("validate", ()=>{
-        //validateがfalseを返すようにする
+      const originalValidate = _internal.validate;
+      _internal.validate = ()=>{
         return false;
-      });
-
-      //validateのerrorsプロパティを設定
-      validateComponents.__set__("validate.errors", [{ message: "should have required property 'targetFiles'" }]);
+      };
+      _internal.validate.errors = [{ message: "should have required property 'targetFiles'" }];
 
       //テスト実行
       await expect(validateParameterStudy(projectRootDir, testPS)).to.be.rejectedWith("parameter setting file does not have valid JSON data");
 
       //元の関数に戻す
-      validateComponents.__set__("validate", originalValidate);
+      _internal.validate = originalValidate;
     });
 
     it("should be rejected if parameter file has incorrect property types", async function () {
@@ -927,21 +920,17 @@ describe("validation component UT", function () {
 
       fs.writeJsonSync(path.resolve(projectRootDir, testPS.name, "wrong_types.json"), wrongTypeParams);
 
-      //validateを直接モック化して、エラーを返すようにする
-      const originalValidate = validateComponents.__get__("validate");
-      validateComponents.__set__("validate", ()=>{
-        //validateがfalseを返すようにする
+      const originalValidate = _internal.validate;
+      _internal.validate = ()=>{
         return false;
-      });
-
-      //validateのerrorsプロパティを設定
-      validateComponents.__set__("validate.errors", [{ message: "should be number" }]);
+      };
+      _internal.validate.errors = [{ message: "should be number" }];
 
       //テスト実行
       await expect(validateParameterStudy(projectRootDir, testPS)).to.be.rejectedWith("parameter setting file does not have valid JSON data");
 
       //元の関数に戻す
-      validateComponents.__set__("validate", originalValidate);
+      _internal.validate = originalValidate;
     });
 
     it("should be rejected if parameter file has incorrect version", async function () {
@@ -964,21 +953,17 @@ describe("validation component UT", function () {
 
       fs.writeJsonSync(path.resolve(projectRootDir, testPS.name, "wrong_version.json"), wrongVersionParams);
 
-      //validateを直接モック化して、エラーを返すようにする
-      const originalValidate = validateComponents.__get__("validate");
-      validateComponents.__set__("validate", ()=>{
-        //validateがfalseを返すようにする
+      const originalValidate = _internal.validate;
+      _internal.validate = ()=>{
         return false;
-      });
-
-      //validateのerrorsプロパティを設定
-      validateComponents.__set__("validate.errors", [{ message: "should be equal to constant" }]);
+      };
+      _internal.validate.errors = [{ message: "should be equal to constant" }];
 
       //テスト実行
       await expect(validateParameterStudy(projectRootDir, testPS)).to.be.rejectedWith("parameter setting file does not have valid JSON data");
 
       //元の関数に戻す
-      validateComponents.__set__("validate", originalValidate);
+      _internal.validate = originalValidate;
     });
   });
   describe("validateStorage", ()=>{
@@ -1151,16 +1136,15 @@ describe("validateComponents function", function () {
       throw e;
     }
 
-    //getComponentDirをモック化
-    const originalGetComponentDir = validateComponents.__get__("getComponentDir");
-    validateComponents.__set__("getComponentDir", async (projectRootDir, ID, isAbsolute)=>{
+    const originalGetComponentDir = _internal.getComponentDir;
+    _internal.getComponentDir = async (projectRootDir, ID, isAbsolute)=>{
       //テスト用のコンポーネントディレクトリを返す
       if (ID === "test-ps") {
         return path.resolve(projectRootDir, "test-ps");
       }
       //それ以外のIDの場合は元の関数を呼び出す
       return originalGetComponentDir(projectRootDir, ID, isAbsolute);
-    });
+    };
   });
   after(async function () {
     if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {
@@ -1178,9 +1162,8 @@ describe("validateComponents function", function () {
     const conditionPath = path.resolve(projectRootDir, ifComponent.name, "condition.js");
     await fs.writeFile(conditionPath, "module.exports = function() { return true; }");
 
-    //getNextComponentsをモック化してelse分岐を処理するようにする
-    const originalGetNextComponents = validateComponents.__get__("getNextComponents");
-    validateComponents.__set__("getNextComponents", (components, component)=>{
+    const originalGetNextComponents = _internal.getNextComponents;
+    _internal.getNextComponents = (components, component)=>{
       const nextComponentIDs = [];
       if (component.next) {
         nextComponentIDs.push(...component.next);
@@ -1189,13 +1172,13 @@ describe("validateComponents function", function () {
         nextComponentIDs.push(...component.else);
       }
       return components.filter((c)=>nextComponentIDs.includes(c.ID));
-    });
+    };
 
     //validateComponentを実行
     const error = await validateComponent(projectRootDir, ifComponent);
 
     //元の関数に戻す
-    validateComponents.__set__("getNextComponents", originalGetNextComponents);
+    _internal.getNextComponents = originalGetNextComponents;
 
     //エラーがないことを確認
     expect(error).to.be.null;
@@ -1246,9 +1229,8 @@ describe("validateComponents function", function () {
     const scriptPath = path.resolve(projectRootDir, task.name, "script.sh");
     await fs.writeFile(scriptPath, "#!/bin/bash\necho 'Hello'");
 
-    //getNextComponentsをモック化して出力先を処理するようにする
-    const originalGetNextComponents = validateComponents.__get__("getNextComponents");
-    validateComponents.__set__("getNextComponents", (components, component)=>{
+    const originalGetNextComponents = _internal.getNextComponents;
+    _internal.getNextComponents = (components, component)=>{
       const nextComponentIDs = [];
       if (component.outputFiles) {
         component.outputFiles.forEach((outputFile)=>{
@@ -1260,13 +1242,13 @@ describe("validateComponents function", function () {
         });
       }
       return components.filter((c)=>nextComponentIDs.includes(c.ID));
-    });
+    };
 
     //validateComponentを実行
     const error = await validateComponent(projectRootDir, task);
 
     //元の関数に戻す
-    validateComponents.__set__("getNextComponents", originalGetNextComponents);
+    _internal.getNextComponents = originalGetNextComponents;
 
     //エラーがないことを確認
     expect(error).to.be.null;
@@ -1610,8 +1592,7 @@ describe("recursiveValidateComponents", function () {
     expect(report).to.be.an("array").that.is.empty;
   });
   it("should detect invalid component", async function () {
-    //モックを設定して無効なコンポーネントを返すようにする
-    validateComponents.__set__("getChildren", async ()=>{
+    _internal.getChildren = async ()=>{
       return [
         {
           type: "task",
@@ -1620,15 +1601,15 @@ describe("recursiveValidateComponents", function () {
           //scriptが指定されていない
         }
       ];
-    });
+    };
 
-    validateComponents.__set__("getComponentFullName", async (projectRootDir, ID)=>{
+    _internal.getComponentFullName = async (projectRootDir, ID)=>{
       return `Component ${ID}`;
-    });
+    };
 
-    validateComponents.__set__("isInitialComponent", async ()=>{
+    _internal.isInitialComponent = async ()=>{
       return true; //初期コンポーネントが存在するとする
-    });
+    };
 
     //空のレポート配列を作成
     const report = [];
@@ -1640,8 +1621,7 @@ describe("recursiveValidateComponents", function () {
     expect(report[0]).to.have.property("error").that.includes("script is not specified");
   });
   it("should detect missing initial component", async function () {
-    //モックを設定して子コンポーネントを返すようにする
-    validateComponents.__set__("getChildren", async ()=>{
+    _internal.getChildren = async ()=>{
       return [
         {
           type: "task",
@@ -1650,15 +1630,15 @@ describe("recursiveValidateComponents", function () {
           script: "script.sh"
         }
       ];
-    });
+    };
 
-    validateComponents.__set__("getComponentFullName", async (projectRootDir, ID)=>{
+    _internal.getComponentFullName = async (projectRootDir, ID)=>{
       return `Component ${ID}`;
-    });
+    };
 
-    validateComponents.__set__("isInitialComponent", async ()=>{
+    _internal.isInitialComponent = async ()=>{
       return false; //初期コンポーネントが存在しないとする
-    });
+    };
 
     //空のレポート配列を作成
     const report = [];
@@ -1669,8 +1649,7 @@ describe("recursiveValidateComponents", function () {
     expect(report.some((item)=>item.ID === "parent" && item.error.includes("no initial component in children"))).to.be.true;
   });
   it("should validate components recursively", async function () {
-    //モックを設定して有効なコンポーネントを返すようにする
-    validateComponents.__set__("getChildren", async ()=>{
+    _internal.getChildren = async ()=>{
       return [
         {
           type: "task",
@@ -1679,21 +1658,20 @@ describe("recursiveValidateComponents", function () {
           script: "script.sh"
         }
       ];
-    });
+    };
 
-    validateComponents.__set__("getComponentFullName", async (projectRootDir, ID)=>{
+    _internal.getComponentFullName = async (projectRootDir, ID)=>{
       return `Component ${ID}`;
-    });
+    };
 
-    validateComponents.__set__("isInitialComponent", async ()=>{
+    _internal.isInitialComponent = async ()=>{
       return true; //初期コンポーネントが存在するとする
-    });
+    };
 
-    //validateComponentをモック化して常にnullを返すようにする
-    const originalValidateComponent = validateComponents.__get__("validateComponent");
-    validateComponents.__set__("validateComponent", async ()=>{
+    const originalValidateComponent = validateComponent;
+    _internal.validateComponent = async ()=>{
       return null; //エラーなし
-    });
+    };
 
     //空のレポート配列を作成
     const report = [];
@@ -1703,25 +1681,24 @@ describe("recursiveValidateComponents", function () {
     expect(report).to.be.an("array").that.is.empty;
 
     //元の関数に戻す
-    validateComponents.__set__("validateComponent", originalValidateComponent);
+    _internal.validateComponent = originalValidateComponent;
   });
   it("should detect cycle graph", async function () {
-    //モックの循環依存関係を持つコンポーネントを作成
-    validateComponents.__set__("getChildren", async ()=>{
+    _internal.getChildren = async ()=>{
       return [
         { ID: "comp1", name: "comp1", parent: "root", next: ["comp2"] },
         { ID: "comp2", name: "comp2", parent: "root", next: ["comp3"] },
         { ID: "comp3", name: "comp3", parent: "root", next: ["comp1"] } //循環依存
       ];
-    });
+    };
 
-    validateComponents.__set__("getComponentFullName", async (projectRootDir, ID)=>{
+    _internal.getComponentFullName = async (projectRootDir, ID)=>{
       return `Component ${ID}`;
-    });
+    };
 
-    validateComponents.__set__("isInitialComponent", async ()=>{
+    _internal.isInitialComponent = async ()=>{
       return true; //初期コンポーネントが存在するとする
-    });
+    };
 
     //空のレポート配列を作成
     const report = [];
@@ -1752,13 +1729,12 @@ describe("checkComponentDependency", function () {
   });
 
   it("should return empty array when no dependencies exist", async function () {
-    //モックを設定して依存関係のないコンポーネントを返すようにする
-    validateComponents.__set__("getChildren", async ()=>{
+      _internal.getChildren = async ()=>{
       return [
         { ID: "comp1", name: "comp1", parent: "root", next: [] },
         { ID: "comp2", name: "comp2", parent: "root", next: [] }
       ];
-    });
+      };
 
     //checkComponentDependencyを実行
     const result = await checkComponentDependency(projectRootDir, "root");
@@ -1767,14 +1743,13 @@ describe("checkComponentDependency", function () {
   });
 
   it("should return empty array for valid dependencies", async function () {
-    //モックを設定して正常な依存関係を持つコンポーネントを返すようにする
-    validateComponents.__set__("getChildren", async ()=>{
+      _internal.getChildren = async ()=>{
       return [
         { ID: "comp1", name: "comp1", parent: "root", next: ["comp2"] },
         { ID: "comp2", name: "comp2", parent: "root", next: ["comp3"] },
         { ID: "comp3", name: "comp3", parent: "root", next: [] }
       ];
-    });
+      };
 
     //checkComponentDependencyを実行
     const result = await checkComponentDependency(projectRootDir, "root");
@@ -1783,14 +1758,13 @@ describe("checkComponentDependency", function () {
   });
 
   it("should detect cycle dependencies", async function () {
-    //モックを設定して循環依存関係を持つコンポーネントを返すようにする
-    validateComponents.__set__("getChildren", async ()=>{
+      _internal.getChildren = async ()=>{
       return [
         { ID: "comp1", name: "comp1", parent: "root", next: ["comp2"] },
         { ID: "comp2", name: "comp2", parent: "root", next: ["comp3"] },
         { ID: "comp3", name: "comp3", parent: "root", next: ["comp1"] } //循環依存
       ];
-    });
+      };
 
     //checkComponentDependencyを実行
     const result = await checkComponentDependency(projectRootDir, "root");
@@ -1802,8 +1776,7 @@ describe("checkComponentDependency", function () {
   });
 
   it("should handle complex dependencies", async function () {
-    //モックを設定して複雑な依存関係を持つコンポーネントを返すようにする
-    validateComponents.__set__("getChildren", async ()=>{
+      _internal.getChildren = async ()=>{
       return [
         { ID: "comp1", name: "comp1", parent: "root", next: ["comp2", "comp3"] },
         { ID: "comp2", name: "comp2", parent: "root", next: ["comp4"] },
@@ -1811,7 +1784,7 @@ describe("checkComponentDependency", function () {
         { ID: "comp4", name: "comp4", parent: "root", next: [] },
         { ID: "comp5", name: "comp5", parent: "root", next: [] }
       ];
-    });
+      };
 
     //checkComponentDependencyを実行
     const result = await checkComponentDependency(projectRootDir, "root");
@@ -1820,8 +1793,7 @@ describe("checkComponentDependency", function () {
   });
 
   it("should detect cycle in complex dependencies", async function () {
-    //モックを設定して複雑な循環依存関係を持つコンポーネントを返すようにする
-    validateComponents.__set__("getChildren", async ()=>{
+      _internal.getChildren = async ()=>{
       return [
         { ID: "comp1", name: "comp1", parent: "root", next: ["comp2", "comp3"] },
         { ID: "comp2", name: "comp2", parent: "root", next: ["comp4"] },
@@ -1830,7 +1802,7 @@ describe("checkComponentDependency", function () {
         { ID: "comp5", name: "comp5", parent: "root", next: [] },
         { ID: "comp6", name: "comp6", parent: "root", next: ["comp2"] } //循環依存
       ];
-    });
+      };
 
     //checkComponentDependencyを実行
     const result = await checkComponentDependency(projectRootDir, "root");
@@ -1986,16 +1958,15 @@ describe("isCycleGraph", function () {
       }
     ];
 
-    //getNextComponentsをモック化して出力ファイルの依存関係を考慮するようにする
-    const originalGetNextComponents = validateComponents.__get__("getNextComponents");
-    validateComponents.__set__("getNextComponents", (components, component)=>{
+    const originalGetNextComponents = _internal.getNextComponents;
+    _internal.getNextComponents = (components, component)=>{
       if (component.ID === "comp1") {
         return [components.find((c)=>c.ID === "comp2")];
       } else if (component.ID === "comp2") {
         return [components.find((c)=>c.ID === "comp1")];
       }
       return [];
-    });
+    };
 
     //探索の開始コンポーネント
     const startComponent = components[0];
@@ -2020,7 +1991,7 @@ describe("isCycleGraph", function () {
     expect(cyclePath).to.include("comp2");
 
     //元の関数に戻す
-    validateComponents.__set__("getNextComponents", originalGetNextComponents);
+    _internal.getNextComponents = originalGetNextComponents;
   });
 });
 

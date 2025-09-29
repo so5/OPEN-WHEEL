@@ -18,8 +18,26 @@ const { isValidInputFilename, isValidOutputFilename } = require("../lib/utility"
 const { remoteHost } = require("../db/db.js");
 const getSchema = require("../db/jsonSchemas.js");
 
-const logger = getLogger();
-const ajv = new Ajv({
+const _internal = {
+  fs,
+  Ajv,
+  getLogger,
+  hasChild,
+  isInitialComponent,
+  isLocalComponent,
+  getComponentFullName,
+  jobScheduler,
+  readComponentJson,
+  getComponentDir,
+  readJsonGreedy,
+  getChildren,
+  remoteHost,
+  getSchema,
+  validate: null
+};
+
+const logger = _internal.getLogger();
+const ajv = new _internal.Ajv({
   allErrors: true,
   removeAdditional: false,
   useDefaults: false,
@@ -30,8 +48,8 @@ const ajv = new Ajv({
     error: logger.warn.bind(logger)
   }
 });
-const schema = getSchema("psSettingFile");
-const validate = ajv.compile(schema);
+const schema = _internal.getSchema("psSettingFile");
+_internal.validate = ajv.compile(schema);
 
 /**
  * check if script property has valid value
@@ -42,12 +60,12 @@ async function checkScript(projectRootDir, component) {
   if (typeof component.script !== "string") {
     return Promise.reject(new Error("script is not specified"));
   }
-  const componentDir = await getComponentDir(projectRootDir, component.ID, true);
+  const componentDir = await _internal.getComponentDir(projectRootDir, component.ID, true);
   const filename = path.resolve(componentDir, component.script);
 
   let stat;
   try {
-    stat = await fs.stat(filename);
+    stat = await _internal.fs.stat(filename);
   } catch (e) {
     if (e.code !== "ENOENT") {
       throw e;
@@ -69,11 +87,11 @@ async function checkPSSettingFile(projectRootDir, component) {
   if (typeof component.parameterFile !== "string") {
     return Promise.reject(new Error("parameter setting file is not specified"));
   }
-  const componentDir = await getComponentDir(projectRootDir, component.ID, true);
+  const componentDir = await _internal.getComponentDir(projectRootDir, component.ID, true);
   const filename = path.resolve(componentDir, component.parameterFile);
   let stat;
   try {
-    stat = await fs.stat(filename);
+    stat = await _internal.fs.stat(filename);
   } catch (e) {
     if (e.code !== "ENOENT") {
       throw e;
@@ -85,17 +103,17 @@ async function checkPSSettingFile(projectRootDir, component) {
   }
   try {
     const retry = typeof process.env.WHEEL_RUNNING_TEST !== "undefined" ? 0 : undefined;
-    const PSSetting = await readJsonGreedy(filename, retry);
-    validate(PSSetting);
+    const PSSetting = await _internal.readJsonGreedy(filename, retry);
+    _internal.validate(PSSetting);
   } catch (e) {
     if (e.message.startsWith("Unexpected token")) {
       return Promise.reject(new Error(`parameter setting file is not JSON file ${filename}`));
     }
   }
-  if (validate !== null && Array.isArray(validate.errors)) {
+  if (_internal.validate !== null && Array.isArray(_internal.validate.errors)) {
     const err = new Error("parameter setting file does not have valid JSON data");
-    logger.debug(`validation error for ${component.name} (${component.ID}) :\n`, validate.errors);
-    err.errors = validate.errors;
+    logger.debug(`validation error for ${component.name} (${component.ID}) :\n`, _internal.validate.errors);
+    err.errors = _internal.validate.errors;
     return Promise.reject(err);
   }
   return true;
@@ -112,11 +130,11 @@ async function validateConditionalCheck(projectRootDir, component) {
   if (typeof component.condition !== "string") {
     return Promise.reject(new Error(`condition is not specified`));
   }
-  const componentDir = await getComponentDir(projectRootDir, component.ID, true);
+  const componentDir = await _internal.getComponentDir(projectRootDir, component.ID, true);
   let stat;
   try {
     const filename = path.resolve(componentDir, component.condition);
-    stat = await fs.stat(filename);
+    stat = await _internal.fs.stat(filename);
   } catch (e) {
     if (e.code !== "ENOENT") {
       throw e;
@@ -143,24 +161,24 @@ async function validateTask(projectRootDir, component) {
     return Promise.reject(new Error(`illegal path`));
   }
   //if (typeof component.host === "string" && component.host !== "localhost") {
-  if (!isLocalComponent(component)) {
-    const hostinfo = remoteHost.query("name", component.host);
+  if (!_internal.isLocalComponent(component)) {
+    const hostinfo = _internal.remoteHost.query("name", component.host);
     if (typeof hostinfo === "undefined") {
       //local job is not implemented
       return Promise.reject(new Error(`remote host setting for ${component.host} not found`));
     }
     if (component.useJobScheduler) {
-      if (!Object.keys(jobScheduler).includes(hostinfo.jobScheduler)) {
+      if (!Object.keys(_internal.jobScheduler).includes(hostinfo.jobScheduler)) {
         return Promise.reject(new Error(`job scheduler for ${hostinfo.name} (${hostinfo.jobScheduler}) is not supported`));
       }
       if (component.submitOption) {
-        const optList = String(jobScheduler[hostinfo.jobScheduler].queueOpt).split(" ");
+        const optList = String(_internal.jobScheduler[hostinfo.jobScheduler].queueOpt).split(" ");
         if (optList.map((opt)=>{
           return component.submitOption.indexOf(opt);
         }).every((i)=>{
           return i >= 0;
         })) {
-          return Promise.reject(new Error(`submit option duplicate queue option : ${jobScheduler[hostinfo.jobScheduler].queueOpt}`));
+          return Promise.reject(new Error(`submit option duplicate queue option : ${_internal.jobScheduler[hostinfo.jobScheduler].queueOpt}`));
         }
       }
     }
@@ -174,7 +192,7 @@ async function validateTask(projectRootDir, component) {
  * @param {object} component - component which will be tested
  */
 async function validateStepjobTask(projectRootDir, component) {
-  const isInitial = await isInitialComponent(projectRootDir, component);
+  const isInitial = await _internal.isInitialComponent(projectRootDir, component);
   if (component.name === null) {
     return Promise.reject(new Error(`illegal path`));
   }
@@ -193,19 +211,19 @@ async function validateStepjob(projectRootDir, component) {
   if (!component.useJobScheduler) {
     return Promise.reject(new Error(`useJobScheduler must be set`));
   }
-  if (isLocalComponent(component)) {
+  if (_internal.isLocalComponent(component)) {
     return Promise.reject(new Error("stepjob is only supported on remotehost"));
   }
 
-  const hostinfo = remoteHost.query("name", component.host);
+  const hostinfo = _internal.remoteHost.query("name", component.host);
   if (typeof hostinfo === "undefined") {
     //local job is not implemented
     return Promise.reject(new Error(`remote host setting for ${component.host} not found`));
   }
-  if (!Object.keys(jobScheduler).includes(hostinfo.jobScheduler)) {
+  if (!Object.keys(_internal.jobScheduler).includes(hostinfo.jobScheduler)) {
     return Promise.reject(new Error(`job scheduler for ${hostinfo.name} (${hostinfo.jobScheduler}) is not supported`));
   }
-  const setJobScheduler = jobScheduler[hostinfo.jobScheduler];
+  const setJobScheduler = _internal.jobScheduler[hostinfo.jobScheduler];
   if (!setJobScheduler.supportStepjob) {
     return Promise.reject(new Error(`job scheduler (${hostinfo.jobScheduler}) does not support stepjob`));
   }
@@ -227,18 +245,18 @@ async function validateBulkjobTask(projectRootDir, component) {
   if (!component.useJobScheduler) {
     return Promise.reject(new Error(`useJobScheduler must be set`));
   }
-  if (isLocalComponent(component)) {
+  if (_internal.isLocalComponent(component)) {
     return Promise.reject(new Error("bulkjobTask is only supported on remotehost"));
   }
-  const hostinfo = remoteHost.query("name", component.host);
+  const hostinfo = _internal.remoteHost.query("name", component.host);
   if (typeof hostinfo === "undefined") {
     //local job is not implemented
     return Promise.reject(new Error(`remote host setting for ${component.host} not found`));
   }
-  if (!Object.keys(jobScheduler).includes(hostinfo.jobScheduler)) {
+  if (!Object.keys(_internal.jobScheduler).includes(hostinfo.jobScheduler)) {
     return Promise.reject(new Error(`job scheduler for ${hostinfo.name} (${hostinfo.jobScheduler}) is not supported`));
   }
-  const setJobScheduler = jobScheduler[hostinfo.jobScheduler];
+  const setJobScheduler = _internal.jobScheduler[hostinfo.jobScheduler];
   if (!setJobScheduler.supportBulkjob) {
     return Promise.reject(new Error(`job scheduler (${hostinfo.jobScheduler}) does not support bulkjob`));
   }
@@ -330,9 +348,9 @@ async function validateStorage(component) {
   if (typeof component.storagePath !== "string") {
     return Promise.reject(new Error("storagePath is not set"));
   }
-  if (isLocalComponent(component)) {
+  if (_internal.isLocalComponent(component)) {
     try {
-      const stats = await fs.stat(component.storagePath);
+      const stats = await _internal.fs.stat(component.storagePath);
       if (!stats.isDirectory()) {
         return Promise.reject(new Error("specified path is not directory"));
       }
@@ -342,7 +360,7 @@ async function validateStorage(component) {
       }
     }
   } else {
-    const hostinfo = remoteHost.query("name", component.host);
+    const hostinfo = _internal.remoteHost.query("name", component.host);
     if (typeof hostinfo === "undefined") {
       //local job is not implemented
       return Promise.reject(new Error(`remote host setting for ${component.host} not found`));
@@ -502,6 +520,7 @@ function getNextComponents(components, component) {
   });
   return nextComponents;
 }
+_internal.getNextComponents = getNextComponents;
 
 /**
  * DFS to detect cycle
@@ -513,7 +532,7 @@ function getNextComponents(components, component) {
  * @returns {boolean} - found circuler path or not
  */
 function isCycleGraph(projectRootDir, components, startComponent, results, cyclePath) {
-  const nextComponents = getNextComponents(components, startComponent);
+  const nextComponents = _internal.getNextComponents(components, startComponent);
   results[startComponent.ID] = "gray";
   cyclePath.push(startComponent.ID);
   if (nextComponents === null) {
@@ -526,7 +545,7 @@ function isCycleGraph(projectRootDir, components, startComponent, results, cycle
     }
     if (results[component.ID] === "gray") {
       cyclePath.push(component.ID);
-      getLogger(projectRootDir).debug("cycle graph found!!", component.name, cyclePath);
+      _internal.getLogger(projectRootDir).debug("cycle graph found!!", component.name, cyclePath);
       return true;
     }
     const found = isCycleGraph(projectRootDir, components, component, results, cyclePath);
@@ -570,11 +589,11 @@ function getCycleGraph(projectRootDir, components) {
  * @returns {object[]} - array of components in cycle graph
  */
 async function checkComponentDependency(projectRootDir, parentComponentID) {
-  const children = await getChildren(projectRootDir, parentComponentID);
+  const children = await _internal.getChildren(projectRootDir, parentComponentID);
   const rt = getCycleGraph(projectRootDir, children);
   if (rt.length > 0) {
-    const cycleComponents = await Promise.all(rt.map(getComponentFullName.bind(null, projectRootDir)));
-    getLogger(projectRootDir).debug("cycle graph found \n", cycleComponents);
+    const cycleComponents = await Promise.all(rt.map(_internal.getComponentFullName.bind(null, projectRootDir)));
+    _internal.getLogger(projectRootDir).debug("cycle graph found \n", cycleComponents);
   }
   return rt;
 }
@@ -587,7 +606,7 @@ async function checkComponentDependency(projectRootDir, parentComponentID) {
  * @returns {string []} - array of invalid component's ID
  */
 async function recursiveValidateComponents(projectRootDir, parentID, report) {
-  const children = await getChildren(projectRootDir, parentID);
+  const children = await _internal.getChildren(projectRootDir, parentID);
   if (children.length === 0) {
     return;
   }
@@ -598,17 +617,17 @@ async function recursiveValidateComponents(projectRootDir, parentID, report) {
     }
     const error = await validateComponent(projectRootDir, component);
     if (error !== null) {
-      const name = await getComponentFullName(projectRootDir, component.ID);
+      const name = await _internal.getComponentFullName(projectRootDir, component.ID);
       report.push({ ID: component.ID, name, error });
     }
-    if (hasChild(component)) {
+    if (_internal.hasChild(component)) {
       promises.push(recursiveValidateComponents(projectRootDir, component.ID, report));
     }
   }
 
   let hasInitialNode = false;
   for (const component of children) {
-    const rt = await isInitialComponent(projectRootDir, component);
+    const rt = await _internal.isInitialComponent(projectRootDir, component);
     if (rt) {
       hasInitialNode = true;
       break;
@@ -616,7 +635,7 @@ async function recursiveValidateComponents(projectRootDir, parentID, report) {
   }
 
   if (!hasInitialNode) {
-    const name = await getComponentFullName(projectRootDir, parentID);
+    const name = await _internal.getComponentFullName(projectRootDir, parentID);
     report.push({ ID: parentID, name, error: "no initial component in children" });
   }
   const invalidComponentIDs = await checkComponentDependency(projectRootDir, parentID);
@@ -624,7 +643,7 @@ async function recursiveValidateComponents(projectRootDir, parentID, report) {
   if (invalidComponentIDs.length > 0) {
     const tmp = await Promise.all(
       invalidComponentIDs.map(async (ID)=>{
-        const name = await getComponentFullName(projectRootDir, ID);
+        const name = await _internal.getComponentFullName(projectRootDir, ID);
         return { ID, name, error: "cycle graph detected" };
       })
     );
@@ -643,7 +662,7 @@ async function recursiveValidateComponents(projectRootDir, parentID, report) {
 async function validateComponents(projectRootDir, startComponentID) {
   let parentID;
   if (typeof startComponentID !== "string") {
-    const rootWF = await readComponentJson(projectRootDir);
+    const rootWF = await _internal.readComponentJson(projectRootDir);
     parentID = rootWF.ID;
   } else {
     parentID = startComponentID;
@@ -652,11 +671,36 @@ async function validateComponents(projectRootDir, startComponentID) {
   const report = [];
   await recursiveValidateComponents(projectRootDir, parentID, report);
   if (report.length > 0) {
-    getLogger(projectRootDir).info("validation error detected\n", report);
+    _internal.getLogger(projectRootDir).info("validation error detected\n", report);
   }
   return report;
 }
 
 module.exports = {
-  validateComponents
+  validateComponents,
+  checkScript,
+  checkPSSettingFile,
+  validateParameterStudy,
+  validateConditionalCheck,
+  validateTask,
+  validateStepjobTask,
+  validateStepjob,
+  validateBulkjobTask,
+  validateKeepProp,
+  validateForLoop,
+  validateForeach,
+  validateStorage,
+  validateInputFiles,
+  validateOutputFiles,
+  validateComponent,
+  getComponentIDsInCycle,
+  getNextComponents,
+  isCycleGraph,
+  getCycleGraph,
+  checkComponentDependency,
+  recursiveValidateComponents
 };
+
+if (process.env.NODE_ENV === "test") {
+  module.exports._internal = _internal;
+}

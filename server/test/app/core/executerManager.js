@@ -12,26 +12,28 @@ const path = require("path");
 const sinon = require("sinon");
 const fs = require("fs-extra");
 const { expect } = require("chai");
-const rewire = require("rewire");
 const { EventEmitter } = require("events");
 
-const executerManager = rewire("../../../app/core/executerManager");
-const executers = executerManager.__get__("executers");
-const removeExecuters = executerManager.__get__("removeExecuters");
-const isExceededLimit = executerManager.__get__("isExceededLimit");
-const makeQueueOpt = executerManager.__get__("makeQueueOpt");
-const makeEnv = executerManager.__get__("makeEnv");
-const makeStepOpt = executerManager.__get__("makeStepOpt");
-const makeBulkOpt = executerManager.__get__("makeBulkOpt");
-const decideFinishState = executerManager.__get__("decideFinishState");
-const needsRetry = executerManager.__get__("needsRetry");
-const promisifiedSpawn = executerManager.__get__("promisifiedSpawn");
-const getExecutersKey = executerManager.__get__("getExecutersKey");
-const getMaxNumJob = executerManager.__get__("getMaxNumJob");
-const createExecuter = executerManager.__get__("createExecuter");
-const register = executerManager.__get__("register");
+const executerManager = require("../../../app/core/executerManager");
+const {
+  removeExecuters,
+  isExceededLimit,
+  makeQueueOpt,
+  makeEnv,
+  makeStepOpt,
+  makeBulkOpt,
+  decideFinishState,
+  needsRetry,
+  promisifiedSpawn,
+  getExecutersKey,
+  getMaxNumJob,
+  createExecuter,
+  register,
+  _internal
+} = executerManager;
+
+const { executers } = _internal;
 const testDirRoot = "WHEEL_TEST_TMP";
-let evalConditionMock;
 let loggerMock;
 
 describe("UT for executerManager class", function () {
@@ -267,58 +269,38 @@ describe("UT for executerManager class", function () {
       ID: "mockID"
     };
     beforeEach(()=>{
-      //`evalCondition` モックを設定
-      evalConditionMock = async ()=>true;
-      executerManager.__set__("evalCondition", evalConditionMock);
-      //`getLogger` モックを設定
+      _internal.evalCondition = async ()=>true;
       loggerMock = {
-        info: ()=>{}
+        info: sinon.stub()
       };
-      executerManager.__set__("getLogger", ()=>loggerMock);
+      _internal.getLogger = ()=>loggerMock;
     });
     it("should return true if evalCondition returns true", async function () {
-      evalConditionMock = async ()=>true; //evalCondition が true を返す
-      executerManager.__set__("evalCondition", evalConditionMock);
+      _internal.evalCondition = async ()=>true;
       const result = await decideFinishState(mockTask);
       expect(result).to.be.true;
     });
     it("should return false if evalCondition returns false", async function () {
-      evalConditionMock = async ()=>false; //evalCondition が false を返す
-      executerManager.__set__("evalCondition", evalConditionMock);
+      _internal.evalCondition = async ()=>false;
       const result = await decideFinishState(mockTask);
       expect(result).to.be.false;
     });
     it("should return false if evalCondition throws an error", async function () {
-      let logCalled = false;
-      //evalCondition がエラーをスロー
-      evalConditionMock = async ()=>{
+      _internal.evalCondition = async ()=>{
         throw new Error("Mock error");
       };
-      executerManager.__set__("evalCondition", evalConditionMock);
-      //loggerMock の info メソッドを監視
-      loggerMock.info = (message)=>{
-        logCalled = true;
-        expect(message).to.include(`manualFinishCondition of ${mockTask.name}(${mockTask.ID}) is set but exception occurred while evaluting it.`);
-      };
-      executerManager.__set__("getLogger", ()=>loggerMock);
       const result = await decideFinishState(mockTask);
       expect(result).to.be.false;
-      expect(logCalled).to.be.true;
+      expect(loggerMock.info).to.have.been.calledWith(`manualFinishCondition of ${mockTask.name}(${mockTask.ID}) is set but exception occurred while evaluting it.`);
     });
     it("should handle missing task properties gracefully", async function () {
       const incompleteTask = { projectRootDir: "/mock/project" }; //必須プロパティ不足
-      evalConditionMock = async ()=>{
+      _internal.evalCondition = async ()=>{
         throw new Error("Mock error");
       };
-      executerManager.__set__("evalCondition", evalConditionMock);
-      let logCalled = false;
-      loggerMock.info = ()=>{
-        logCalled = true;
-      };
-      executerManager.__set__("getLogger", ()=>loggerMock);
       const result = await decideFinishState(incompleteTask);
       expect(result).to.be.false;
-      expect(logCalled).to.be.true;
+      expect(loggerMock.info).to.have.been.called;
     });
   });
   describe("needsRetry", function () {
@@ -330,13 +312,11 @@ describe("UT for executerManager class", function () {
       ID: "mockID"
     };
     beforeEach(()=>{
-      //`evalCondition` と `getLogger` のモックを初期化
-      evalConditionMock = async ()=>false;
-      executerManager.__set__("evalCondition", evalConditionMock);
+      _internal.evalCondition = async ()=>false;
       loggerMock = {
-        info: ()=>{}
+        info: sinon.stub()
       };
-      executerManager.__set__("getLogger", ()=>loggerMock);
+      _internal.getLogger = ()=>loggerMock;
     });
     it("should return false if neither retry nor retryCondition is defined", async function () {
       const result = await needsRetry(mockTask);
@@ -353,48 +333,32 @@ describe("UT for executerManager class", function () {
       expect(result).to.be.false;
     });
     it("should return true if retryCondition is defined and evalCondition returns true", async function () {
-      evalConditionMock = async ()=>true;
-      executerManager.__set__("evalCondition", evalConditionMock);
+      _internal.evalCondition = async ()=>true;
       const taskWithCondition = { ...mockTask, retryCondition: "mock condition" };
       const result = await needsRetry(taskWithCondition);
       expect(result).to.be.true;
     });
     it("should return false if retryCondition is defined and evalCondition returns false", async function () {
-      evalConditionMock = async ()=>false;
-      executerManager.__set__("evalCondition", evalConditionMock);
+      _internal.evalCondition = async ()=>false;
       const taskWithCondition = { ...mockTask, retryCondition: "mock condition" };
       const result = await needsRetry(taskWithCondition);
       expect(result).to.be.false;
     });
     it("should return false and log an error if evalCondition throws an error", async function () {
-      let logCalled = false;
-      evalConditionMock = async ()=>{
+      _internal.evalCondition = async ()=>{
         throw new Error("Mock error");
       };
-      executerManager.__set__("evalCondition", evalConditionMock);
-      loggerMock.info = (message)=>{
-        logCalled = true;
-        expect(message).to.include(`retryCondition of ${mockTask.name}(${mockTask.ID}) is set but exception occurred while evaluting it. so give up retring`);
-      };
-      executerManager.__set__("getLogger", ()=>loggerMock);
       const taskWithCondition = { ...mockTask, retryCondition: "mock condition" };
       const result = await needsRetry(taskWithCondition);
       expect(result).to.be.false;
-      expect(logCalled).to.be.true;
+      expect(loggerMock.info).to.have.been.calledWith(`retryCondition of ${mockTask.name}(${mockTask.ID}) is set but exception occurred while evaluting it. so give up retring`);
     });
     it("should log a message if evalCondition returns true and task is retried", async function () {
-      let logCalled = false;
-      evalConditionMock = async ()=>true;
-      executerManager.__set__("evalCondition", evalConditionMock);
-      loggerMock.info = (message)=>{
-        logCalled = true;
-        expect(message).to.include(`${mockTask.name}(${mockTask.ID}) failed but retring`);
-      };
-      executerManager.__set__("getLogger", ()=>loggerMock);
+      _internal.evalCondition = async ()=>true;
       const taskWithCondition = { ...mockTask, retryCondition: "mock condition" };
       const result = await needsRetry(taskWithCondition);
       expect(result).to.be.true;
-      expect(logCalled).to.be.true;
+      expect(loggerMock.info).to.have.been.calledWith(`${mockTask.name}(${mockTask.ID}) failed but retring`);
     });
   });
   describe("promisifiedSpawn", function () {
@@ -405,15 +369,15 @@ describe("UT for executerManager class", function () {
       spawnMock.stdout = new EventEmitter();
       spawnMock.stderr = new EventEmitter();
 
-      executerManager.__set__("childProcess", {
+      _internal.childProcess = {
         spawn: ()=>spawnMock
-      });
-      loggerMock = {
-        stdout: ()=>{},
-        stderr: ()=>{},
-        debug: ()=>{}
       };
-      executerManager.__set__("getLogger", ()=>loggerMock);
+      loggerMock = {
+        stdout: sinon.stub(),
+        stderr: sinon.stub(),
+        debug: sinon.stub()
+      };
+      _internal.getLogger = ()=>loggerMock;
     });
     it("should resolve with the exit code when the script finishes successfully", async function () {
       const task = { projectRootDir: "/mock/project", name: "mockTask" };
@@ -428,7 +392,6 @@ describe("UT for executerManager class", function () {
         expect(data).to.equal("mock stdout data\n");
         done();
       };
-      executerManager.__set__("getLogger", ()=>loggerMock);
       promisifiedSpawn({ projectRootDir: "/mock/project" }, "mockScript.sh", {});
       spawnMock.stdout.emit("data", "mock stdout data\n");
     });
@@ -437,12 +400,10 @@ describe("UT for executerManager class", function () {
         expect(data).to.equal("mock stderr data\n");
         done();
       };
-      executerManager.__set__("getLogger", ()=>loggerMock);
       promisifiedSpawn({ projectRootDir: "/mock/project" }, "mockScript.sh", {});
       spawnMock.stderr.emit("data", "mock stderr data\n");
     });
     it("should reject the promise if an error occurs", async function () {
-      const promisifiedSpawn = executerManager.__get__("promisifiedSpawn");
       setTimeout(()=>{
         spawnMock.emit("error", new Error("Mock error"));
       }, 100);
@@ -455,7 +416,6 @@ describe("UT for executerManager class", function () {
       }
     });
     it("should reject the promise if the process emits an error event", async function () {
-      const promisifiedSpawn = executerManager.__get__("promisifiedSpawn");
       setTimeout(()=>{
         spawnMock.emit("error", new Error("Mock error"));
       }, 100);
@@ -498,11 +458,11 @@ describe("UT for executerManager class", function () {
   describe("getMaxNumJob", function () {
     let originalNumJobOnLocal;
     beforeEach(()=>{
-      originalNumJobOnLocal = executerManager.__get__("numJobOnLocal");
-      executerManager.__set__("numJobOnLocal", 5);
+      originalNumJobOnLocal = _internal.numJobOnLocal;
+      _internal.numJobOnLocal = 5;
     });
     afterEach(()=>{
-      executerManager.__set__("numJobOnLocal", originalNumJobOnLocal);
+      _internal.numJobOnLocal = originalNumJobOnLocal;
     });
     it("should return numJobOnLocal if hostinfo is null", function () {
       const result = getMaxNumJob(null);
