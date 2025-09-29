@@ -6,6 +6,7 @@
 "use strict";
 const path = require("path");
 const fs = require("fs-extra");
+const sinon = require("sinon");
 
 //setup test framework
 const chai = require("chai");
@@ -46,22 +47,27 @@ const {
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";
-_internal.remoteHost.query = (name, hostname)=>{
+sinon.stub(_internal.remoteHost, "query").callsFake((name, hostname)=>{
   if (hostname === "OK") {
     return { name: "dummy" };
-  } else if (hostname === "jobOK") {
+  }
+  if (hostname === "jobOK") {
     return { name: "dummy", jobScheduler: "hoge" };
-  } else if (hostname === "stepjobNG") {
+  }
+  if (hostname === "stepjobNG") {
     return { name: "dummy", jobScheduler: "huga" };
-  } else if (hostname === "stepjobOK") {
+  }
+  if (hostname === "stepjobOK") {
     return { name: "dummy", jobScheduler: "huga", useStepjob: true };
-  } else if (hostname === "bulkjobNG") {
+  }
+  if (hostname === "bulkjobNG") {
     return { name: "dummy", jobScheduler: "hige" };
-  } else if (hostname === "bulkjobOK") {
+  }
+  if (hostname === "bulkjobOK") {
     return { name: "dummy", jobScheduler: "hige", useBulkjob: true };
   }
   return undefined;
-};
+});
 
 _internal.jobScheduler.hoge = { queueOpt: "-q" };
 _internal.jobScheduler.huga = { queueOpt: "-q", supportStepjob: true };
