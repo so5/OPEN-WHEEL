@@ -324,7 +324,7 @@ async function checkRunningJobs(projectRootDir) {
         tasks.push(...taskInJmFile);
       }
     } catch (e) {
-      getLogger(projectRootDir).warn("read job manager file failed", e);
+      _internal.getLogger(projectRootDir).warn("read job manager file failed", e);
     }
   }
   return { tasks, jmFiles };
@@ -515,11 +515,11 @@ async function addProject(projectDir, description) {
 
   const projectName = path.basename(projectRootDir.slice(0, -suffix.length));
   if (!isValidName(projectName)) {
-    getLogger().error(projectName, "is not allowed for project name");
+    _internal.getLogger().error(projectName, "is not allowed for project name");
     throw (new Error("illegal project name"));
   }
   projectRootDir = await createNewProject(projectRootDir, projectName, description, "wheel", "wheel@example.com");
-  projectList.unshift({ path: projectRootDir });
+  _internal.projectList.unshift({ path: projectRootDir });
 }
 
 /**
@@ -531,12 +531,12 @@ async function addProject(projectDir, description) {
 async function renameProject(id, argNewName, oldDir) {
   const newName = argNewName.endsWith(suffix) ? argNewName.slice(0, -suffix.length) : argNewName;
   if (!isValidName(newName)) {
-    getLogger().error(newName, "is not allowed for project name");
+    _internal.getLogger().error(newName, "is not allowed for project name");
     throw (new Error("illegal project name"));
   }
   const newDir = path.resolve(path.dirname(oldDir), `${newName}${suffix}`);
   if (await fs.pathExists(newDir)) {
-    getLogger().error(newName, "directory is already exists");
+    _internal.getLogger().error(newName, "directory is already exists");
     throw (new Error("already exists"));
   }
 
@@ -553,9 +553,9 @@ async function renameProject(id, argNewName, oldDir) {
   await gitCommit(newDir);
 
   //rewrite path in project List entry
-  const target = projectList.get(id);
+  const target = _internal.projectList.get(id);
   target.path = newDir;
-  await projectList.update(target);
+  await _internal.projectList.update(target);
 }
 
 /**
