@@ -10,6 +10,8 @@ const { sanitizePath } = require("./pathUtils");
 const { evalCondition } = require("./dispatchUtils");
 const { readComponentJson } = require("./componentJsonIO.js");
 
+const _internal = {};
+
 /**
  * return instance directory name
  * @param {object} component - component object
@@ -17,7 +19,7 @@ const { readComponentJson } = require("./componentJsonIO.js");
  * @param {string} originalName - template component's name (default component.originalName);
  * @returns {string} - instance directory's name
  */
-function getInstanceDirectoryName(component, index, originalName) {
+_internal.getInstanceDirectoryName = (component, index, originalName)=>{
   const suffix = typeof index !== "undefined" ? index : component.currentIndex;
   const name = typeof originalName === "string" ? originalName : component.originalName;
   return `${name}_${sanitizePath(suffix)}`;
@@ -54,7 +56,7 @@ async function keepLoopInstance(component, cwfDir) {
   const step = component.step || 1;
   const deleteComponentInstance = component.currentIndex - (component.keep * step);
   if (deleteComponentInstance >= 0) {
-    const target = path.resolve(cwfDir, getInstanceDirectoryName(component, deleteComponentInstance));
+    const target = path.resolve(cwfDir, _internal.getInstanceDirectoryName(component, deleteComponentInstance));
     return fs.remove(target);
   }
 }
@@ -186,7 +188,7 @@ async function foreachKeepLoopInstance(component, cwfDir) {
 
   const currentIndexNumber = component.currentIndex !== null ? component.indexList.indexOf(component.currentIndex) : component.indexList.length;
   const deleteComponentNumber = currentIndexNumber - component.keep;
-  const deleteComponentName = deleteComponentNumber >= 0 ? getInstanceDirectoryName(component, component.indexList[deleteComponentNumber]) : "";
+  const deleteComponentName = deleteComponentNumber >= 0 ? _internal.getInstanceDirectoryName(component, component.indexList[deleteComponentNumber]) : "";
   if (deleteComponentName) {
     return fs.remove(path.resolve(cwfDir, deleteComponentName));
   }
@@ -201,7 +203,7 @@ async function foreachKeepLoopInstance(component, cwfDir) {
 async function foreachSearchLatestFinishedIndex(component, cwfDir) {
   let rt = null;
   for (const index of component.indexList) {
-    const dir = path.resolve(cwfDir, getInstanceDirectoryName(component, index));
+    const dir = path.resolve(cwfDir, _internal.getInstanceDirectoryName(component, index));
     try {
       const { state } = await readComponentJson(dir);
       if (state === "finished") {
@@ -259,9 +261,9 @@ function loopInitialize(component, getTripCount) {
   component.initialized = true;
 }
 
-module.exports = {
+const loopUtils = {
   getPrevIndex,
-  getInstanceDirectoryName,
+  getInstanceDirectoryName: _internal.getInstanceDirectoryName,
   keepLoopInstance,
   forGetNextIndex,
   forIsFinished,
@@ -276,3 +278,9 @@ module.exports = {
   foreachSearchLatestFinishedIndex,
   loopInitialize
 };
+
+if (process.env.NODE_ENV === "test") {
+  loopUtils._internal = _internal;
+}
+
+module.exports = loopUtils;

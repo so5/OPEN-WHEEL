@@ -8,10 +8,14 @@
 const chai = require("chai");
 const expect = chai.expect;
 chai.use(require("chai-as-promised"));
-const rewire = require("rewire");
 const sinon = require("sinon");
+const fs = require("fs-extra");
+const dispatchUtils = require("../../../app/core/dispatchUtils");
+const componentJsonIO = require("../../../app/core/componentJsonIO");
 
 //testee
+const loopUtils = require("../../../app/core/loopUtils.js");
+
 const {
   forTripCount,
   loopInitialize,
@@ -23,8 +27,12 @@ const {
   forIsFinished,
   forGetNextIndex,
   getPrevIndex,
-  getInstanceDirectoryName
-} = require("../../../app/core/loopUtils.js");
+  getInstanceDirectoryName,
+  keepLoopInstance,
+  whileIsFinished,
+  foreachKeepLoopInstance,
+  foreachSearchLatestFinishedIndex
+} = loopUtils;
 
 describe("#getInstanceDirectoryName", ()=>{
   it("should build name using name & index", ()=>{
@@ -140,19 +148,12 @@ describe("#getPrevIndex", ()=>{
 });
 
 describe("#keepLoopInstance", ()=>{
-  let keepLoopInstance;
   let getInstanceDirectoryNameStub;
   let removeStub;
 
   beforeEach(()=>{
-    const loopUtils = rewire("../../../app/core/loopUtils.js");
-    keepLoopInstance = loopUtils.keepLoopInstance;
-    getInstanceDirectoryNameStub = sinon.stub();
-    removeStub = sinon.stub();
-    loopUtils.__set__({
-      getInstanceDirectoryName: getInstanceDirectoryNameStub,
-      fs: { remove: removeStub }
-    });
+    getInstanceDirectoryNameStub = sinon.stub(loopUtils._internal, "getInstanceDirectoryName");
+    removeStub = sinon.stub(fs, "remove");
   });
 
   afterEach(()=>{
@@ -390,16 +391,10 @@ describe("#whileGetNextIndex", ()=>{
 });
 
 describe("#whileIsFinished", ()=>{
-  let whileIsFinished;
   let evalConditionStub;
 
   beforeEach(()=>{
-    const loopUtils = rewire("../../../app/core/loopUtils.js");
-    whileIsFinished = loopUtils.whileIsFinished;
-    evalConditionStub = sinon.stub();
-    loopUtils.__set__({
-      evalCondition: evalConditionStub
-    });
+    evalConditionStub = sinon.stub(dispatchUtils, "evalCondition");
   });
 
   afterEach(()=>{
@@ -567,19 +562,12 @@ describe("#foreachTripCount()", ()=>{
 });
 
 describe("UT foreachKeepLoopInstance()", ()=>{
-  let foreachKeepLoopInstance;
   let getInstanceDirectoryNameStub;
   let removeStub;
 
   beforeEach(()=>{
-    const loopUtils = rewire("../../../app/core/loopUtils.js");
-    foreachKeepLoopInstance = loopUtils.foreachKeepLoopInstance;
-    getInstanceDirectoryNameStub = sinon.stub();
-    removeStub = sinon.stub();
-    loopUtils.__set__({
-      getInstanceDirectoryName: getInstanceDirectoryNameStub,
-      fs: { remove: removeStub }
-    });
+    getInstanceDirectoryNameStub = sinon.stub(loopUtils._internal, "getInstanceDirectoryName");
+    removeStub = sinon.stub(fs, "remove");
   });
 
   afterEach(()=>{
@@ -638,19 +626,12 @@ describe("UT foreachKeepLoopInstance()", ()=>{
 });
 
 describe("#foreachSearchLatestFinishedIndex", ()=>{
-  let foreachSearchLatestFinishedIndex;
   let getInstanceDirectoryNameStub;
   let readComponentJsonStub;
 
   beforeEach(()=>{
-    const loopUtils = rewire("../../../app/core/loopUtils.js");
-    foreachSearchLatestFinishedIndex = loopUtils.foreachSearchLatestFinishedIndex;
-    getInstanceDirectoryNameStub = sinon.stub();
-    readComponentJsonStub = sinon.stub();
-    loopUtils.__set__({
-      getInstanceDirectoryName: getInstanceDirectoryNameStub,
-      readComponentJson: readComponentJsonStub
-    });
+    getInstanceDirectoryNameStub = sinon.stub(loopUtils._internal, "getInstanceDirectoryName");
+    readComponentJsonStub = sinon.stub(componentJsonIO, "readComponentJson");
   });
 
   afterEach(()=>{
