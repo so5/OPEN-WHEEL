@@ -16,21 +16,7 @@ chai.use(require("chai-fs"));
 chai.use(require("chai-json-schema"));
 chai.use(require("chai-as-promised"));
 
-const rewire = require("rewire");
-const GFO = rewire("../../../app/core/gfarmOperator.js");
-
-//testee
-const checkJWTAgent = GFO.__get__("checkJWTAgent");
-const startJWTAgent = GFO.__get__("startJWTAgent");
-const stopJWTAgent = GFO.__get__("stopJWTAgent");
-const gfcp = GFO.__get__("gfcp");
-const gfpcopy = GFO.__get__("gfpcopy");
-const gfptarCreate = GFO.__get__("gfptarCreate ");
-const gfptarExtract = GFO.__get__("gfptarExtract ");
-const gfptarList = GFO.__get__("gfptarList ");
-const gfls = GFO.__get__("gfls");
-const gfrm = GFO.__get__("gfrm");
-const gfmkdir = GFO.__get__("gfmkdir");
+const { checkJWTAgent, startJWTAgent, stopJWTAgent, gfcp, gfpcopy, gfptarCreate, gfptarExtract, gfptarList, gfls, gfrm, gfmkdir, _internal } = require("../../../app/core/gfarmOperator.js");
 
 function checkEnv() {
   ["WHEEL_GFARMTEST_HOST",
@@ -47,7 +33,7 @@ function checkEnv() {
   });
 }
 
-describe("UT for gfarmOperator", function () {
+describe("UT for gfarmOperator", function() {
   this.timeout(0);
   const host = process.env.WHEEL_GFARMTEST_HOST;
   let JWTServerPassphrase = process.env.WHEEL_GFARMTEST_PASSPHRASE;
@@ -62,12 +48,10 @@ describe("UT for gfarmOperator", function () {
       JWTServerURL: "https://elpis.hpci.nii.ac.jp/"
     };
   });
-  GFO.__set__("getSshHostinfo", getSshHostinfo);
   const getJWTServerPassphrase = sinon.spy(()=>{
     return JWTServerPassphrase;
   });
-  GFO.__set__("getJWTServerPassphrase", getJWTServerPassphrase);
-  before(function () {
+  before(function() {
     if (checkEnv()) {
       this.skip();
     }
@@ -75,7 +59,9 @@ describe("UT for gfarmOperator", function () {
     getSsh = sinon.spy(()=>{
       return ssh;
     });
-    GFO.__set__("getSsh", getSsh);
+    _internal.getSsh = getSsh;
+    _internal.getSshHostinfo = getSshHostinfo;
+    _internal.getJWTServerPassphrase = getJWTServerPassphrase;
   });
   after(()=>{
     ssh.disconnect();
@@ -142,7 +128,7 @@ describe("UT for gfarmOperator", function () {
       }
     });
     beforeEach(async ()=>{
-      await gfrm (null, "dummyHostID", target);
+      await gfrm(null, "dummyHostID", target);
       await gfmkdir(null, "dummyHostID", target);
     });
     after(async ()=>{
@@ -196,13 +182,13 @@ describe("UT for gfarmOperator", function () {
           expect(result[0]).to.match(/^drwxr-xr-x .* foo$/);
         });
         it("should remove existing directory", async ()=>{
-          await gfrm (null, "dummyHostID", path.join(target, "foo"));
+          await gfrm(null, "dummyHostID", path.join(target, "foo"));
           const result = await gfls(null, "dummyHostID", target);
           expect(result).to.be.an("array").and.empty;
         });
         it("should remove directory recursively", async ()=>{
           await gfmkdir(null, "dummyHostID", path.join(target, "foo", "bar", "baz", "qux"));
-          await gfrm (null, "dummyHostID", path.join(target, "foo"));
+          await gfrm(null, "dummyHostID", path.join(target, "foo"));
           const result = await gfls(null, "dummyHostID", target);
           expect(result).to.be.an("array").and.empty;
         });

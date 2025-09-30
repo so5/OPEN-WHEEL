@@ -6,25 +6,17 @@
 "use strict";
 
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const rewire = require("rewire");
+const { setTaskState, needDownload, formatSrcFilename, makeDownloadRecipe, createStatusFile, createBulkStatusFile, _internal } = require("../../../app/core/execUtils.js");
 
 describe("#setTaskState", ()=>{
-  let rewireExecUtils;
-  let setTaskState;
   let getLoggerMock;
   let writeComponentJsonMock;
   let eventEmittersMock;
   let eeMock;
 
   beforeEach(()=>{
-    //execUtils.js を rewireで読み込み
-    rewireExecUtils = rewire("../../../app/core/execUtils.js");
-
-    //テスト対象関数の取得
-    setTaskState = rewireExecUtils.__get__("setTaskState");
-
     //getLogger のモック。trace メソッドを持つオブジェクトを返すようにする
     getLoggerMock = sinon.stub().returns({
       trace: sinon.stub()
@@ -43,14 +35,11 @@ describe("#setTaskState", ()=>{
     //テスト用に "testProjectRootDir" をキーに eeMock をセット
     eventEmittersMock.set("testProjectRootDir", eeMock);
 
-    //rewire で依存を差し替える
-    rewireExecUtils.__set__("getLogger", getLoggerMock);
-    rewireExecUtils.__set__("writeComponentJson", writeComponentJsonMock);
-
-    //eventEmitters は 直接 Map ではなく { get: function } の形を取る
-    rewireExecUtils.__set__("eventEmitters", {
+    _internal.getLogger = getLoggerMock;
+    _internal.writeComponentJson = writeComponentJsonMock;
+    _internal.eventEmitters = {
       get: sinon.stub().callsFake((key)=>eventEmittersMock.get(key))
-    });
+    };
   });
 
   afterEach(()=>{
@@ -95,22 +84,12 @@ describe("#setTaskState", ()=>{
 });
 
 describe("#needDownload", ()=>{
-  let rewireExecUtils;
-  let needDownload;
   let isSameRemoteHostMock;
 
   beforeEach(()=>{
-    //execUtils.js を rewireで読み込む
-    rewireExecUtils = rewire("../../../app/core/execUtils.js");
-
-    //テスト対象関数を __get__ で取得
-    needDownload = rewireExecUtils.__get__("needDownload");
-
     //isSameRemoteHost を sinon.stub() でモック化
     isSameRemoteHostMock = sinon.stub();
-
-    //rewireでオリジナルの isSameRemoteHost を差し替える
-    rewireExecUtils.__set__("isSameRemoteHost", isSameRemoteHostMock);
+    _internal.isSameRemoteHost = isSameRemoteHostMock;
   });
 
   afterEach(()=>{
@@ -190,20 +169,13 @@ describe("#needDownload", ()=>{
 });
 
 describe("#formatSrcFilename", ()=>{
-  let rewireExecUtils; //rewireで読み込んだexecUtils
-  let formatSrcFilename; //テスト対象の関数
   let replacePathsepMock; //replacePathsepをStub化する
 
   beforeEach(()=>{
-    //execUtils.js を再取得
-    rewireExecUtils = rewire("../../../app/core/execUtils.js");
-
-    //テスト対象関数を取得
-    formatSrcFilename = rewireExecUtils.__get__("formatSrcFilename");
-
     //replacePathsep をsinon.stub()でモック化し、execUtils内部のreplacePathsepを差し替える
     replacePathsepMock = sinon.stub();
-    rewireExecUtils.__set__("replacePathsep", replacePathsepMock);
+    _internal.replacePathsep = replacePathsepMock;
+    _internal.path = require("path");
   });
 
   afterEach(()=>{
@@ -241,26 +213,17 @@ describe("#formatSrcFilename", ()=>{
 });
 
 describe("#makeDownloadRecipe", ()=>{
-  let rewireExecUtils;
-  let makeDownloadRecipe;
   let getLoggerMock; //getLogger を Stub 化
   let traceMock; //getLogger(...).trace を Stub 化
 
   beforeEach(()=>{
-    //execUtils.js を rewireで読み込む
-    rewireExecUtils = rewire("../../../app/core/execUtils.js");
-
-    //テスト対象関数を rewire で取得
-    makeDownloadRecipe = rewireExecUtils.__get__("makeDownloadRecipe");
-
     //logger.trace() をモック化する
     traceMock = sinon.stub();
 
     //getLogger をモック化し、trace() をさらにモックとして差し替える
     getLoggerMock = sinon.stub().returns({ trace: traceMock });
 
-    //rewire で execUtils 内の getLogger をモックに差し替える
-    rewireExecUtils.__set__("getLogger", getLoggerMock);
+    _internal.getLogger = getLoggerMock;
   });
 
   afterEach(()=>{
@@ -329,21 +292,16 @@ describe("#makeDownloadRecipe", ()=>{
 });
 
 describe("#createStatusFile", ()=>{
-  let rewireExecUtils;
-  let createStatusFile;
   let fsMock; //fs.writeFileをstub化
 
   beforeEach(()=>{
-    //execUtils.js を rewire で読み込み
-    rewireExecUtils = rewire("../../../app/core/execUtils.js");
-    //テスト対象の関数を取得
-    createStatusFile = rewireExecUtils.__get__("createStatusFile");
-
     //fs.writeFile を stub 化して置き換え
     fsMock = {
       writeFile: sinon.stub().resolves()
     };
-    rewireExecUtils.__set__("fs", fsMock);
+    _internal.fs = fsMock;
+    _internal.path = require("path");
+    _internal.statusFilename = "status.wheel.txt";
   });
 
   afterEach(()=>{
@@ -393,17 +351,10 @@ describe("#createStatusFile", ()=>{
 });
 
 describe("#createBulkStatusFile", ()=>{
-  let rewireExecUtils;
-  let createBulkStatusFile;
   let fsMock;
   let pathMock;
 
   beforeEach(()=>{
-    //execUtils.js を rewire で読み込み
-    rewireExecUtils = rewire("../../../app/core/execUtils.js");
-    //テスト対象関数を取得
-    createBulkStatusFile = rewireExecUtils.__get__("createBulkStatusFile");
-
     //fs, path を Stub 化
     fsMock = {
       writeFile: sinon.stub().resolves()
@@ -412,9 +363,9 @@ describe("#createBulkStatusFile", ()=>{
       resolve: sinon.stub()
     };
 
-    //rewire を使って execUtils.js 内の fs と path を Stub に差し替え
-    rewireExecUtils.__set__("fs", fsMock);
-    rewireExecUtils.__set__("path", pathMock);
+    _internal.fs = fsMock;
+    _internal.path = pathMock;
+    _internal.statusFilename = "status.wheel.txt";
   });
 
   afterEach(()=>{

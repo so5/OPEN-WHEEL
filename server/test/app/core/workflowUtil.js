@@ -6,34 +6,24 @@
 "use strict";
 
 const { expect } = require("chai");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const rewire = require("rewire");
+const { getThreeGenerationFamily, getChildren, _internal } = require("../../../app/core/workflowUtil.js");
 
 describe("#getThreeGenerationFamily", ()=>{
-  let rewireWorkflowUtil;
-  let getThreeGenerationFamily;
   let readComponentJsonMock;
   let getChildrenMock;
   let hasChildMock;
 
   beforeEach(()=>{
-    //workflowUtil.js をリワイヤ
-    rewireWorkflowUtil = rewire("../../../app/core/workflowUtil.js");
-
-    //テスト対象の関数を取得
-    getThreeGenerationFamily = rewireWorkflowUtil.__get__("getThreeGenerationFamily");
-
     //依存関数をSinon.stub() でモック化
     readComponentJsonMock = sinon.stub();
     getChildrenMock = sinon.stub();
     hasChildMock = sinon.stub();
 
-    //rewire で内部の依存を差し替え
-    rewireWorkflowUtil.__set__({
-      readComponentJson: readComponentJsonMock,
-      getChildren: getChildrenMock,
-      hasChild: hasChildMock
-    });
+    _internal.readComponentJson = readComponentJsonMock;
+    _internal.getChildren = getChildrenMock;
+    _internal.hasChild = hasChildMock;
   });
 
   afterEach(()=>{
@@ -154,8 +144,6 @@ describe("#getThreeGenerationFamily", ()=>{
 });
 
 describe("#getChildren", ()=>{
-  let rewireWorkflowUtil;
-  let getChildren;
   let getComponentDirMock; //getComponentDir を Stub 化
   let readJsonGreedyMock; //readJsonGreedy を Stub 化
   let promisifyMock; //promisify を Stub 化
@@ -163,12 +151,6 @@ describe("#getChildren", ()=>{
   let componentJsonFilename; //componentJsonFilename の値を取得し検証に利用する
 
   beforeEach(()=>{
-    //テスト対象モジュールを rewire で読み込む
-    rewireWorkflowUtil = rewire("../../../app/core/workflowUtil.js");
-
-    //テスト対象関数を取得
-    getChildren = rewireWorkflowUtil.__get__("getChildren");
-
     //各依存関数を Stub 化
     getComponentDirMock = sinon.stub();
     readJsonGreedyMock = sinon.stub();
@@ -177,15 +159,13 @@ describe("#getChildren", ()=>{
     //promisify(...) が globMock を返すようにする
     promisifyMock = sinon.stub().returns(globMock);
 
-    //依存を rewire で差し替え
-    rewireWorkflowUtil.__set__({
-      getComponentDir: getComponentDirMock,
-      readJsonGreedy: readJsonGreedyMock,
-      promisify: promisifyMock
-    });
-
-    //componentJsonFilename の実際の値を取得 (デフォルトでは "component.json" など)
-    componentJsonFilename = rewireWorkflowUtil.__get__("componentJsonFilename");
+    _internal.getComponentDir = getComponentDirMock;
+    _internal.readJsonGreedy = readJsonGreedyMock;
+    _internal.promisify = promisifyMock;
+    _internal.glob = glob;
+    _internal.path = require("path");
+    componentJsonFilename = "component.json";
+    _internal.componentJsonFilename = componentJsonFilename;
   });
 
   afterEach(()=>{

@@ -9,21 +9,21 @@ const chaiIterator = require("chai-iterator");
 chai.use(chaiIterator);
 const fs = require("fs-extra");
 const path = require("path");
-const rewire = require("rewire");
 
 //testee
-const { paramVecGenerator } = require("../../../app/core/parameterParser");
-const { getParamSpacev2 } = require("../../../app/core/parameterParser");
-const { getFilenames } = require("../../../app/core/parameterParser");
-const { getParamSize } = require("../../../app/core/parameterParser");
-const rewParameterParser = rewire("../../../app/core/parameterParser");
-const getNthParamVec = rewParameterParser.__get__("getNthParamVec");
-const getNthValue = rewParameterParser.__get__("getNthValue");
-const getDigitsAfterTheDecimalPoint = rewParameterParser.__get__("getDigitsAfterTheDecimalPoint ");
-const getParamAxisSize = rewParameterParser.__get__("getParamAxisSize");
-const calcParamAxisSize = rewParameterParser.__get__("calcParamAxisSize");
-const isValidParamAxis = rewParameterParser.__get__("isValidParamAxis");
-const expandArrayOfGlob = rewParameterParser.__get__("expandArrayOfGlob");
+const {
+  paramVecGenerator,
+  getParamSpacev2,
+  getFilenames,
+  getParamSize,
+  getNthParamVec,
+  getNthValue,
+  getDigitsAfterTheDecimalPoint,
+  getParamAxisSize,
+  calcParamAxisSize,
+  isValidParamAxis,
+  expandArrayOfGlob
+} = require("../../../app/core/parameterParser");
 const testRoot = "WHEEL_TEST_TMP"; ;
 var testDir;
 

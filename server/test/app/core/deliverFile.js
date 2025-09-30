@@ -7,22 +7,14 @@
 const { expect } = require("chai");
 const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const rewire = require("rewire");
+const { deliverFile, deliverFilesOnRemote, deliverFilesFromRemote, _internal } = require("../../../app/core/deliverFile.js");
 const { rsyncExcludeOptionOfWheelSystemFiles } = require("../../../app/db/db");
 
 describe("#deliverFile", ()=>{
-  let rewireDeliverFile;
-  let deliverFile;
   let fsMock; //fsモジュールをstub化
   let statsMock; //fs.lstatで返されるstatオブジェクトをstub化
 
   beforeEach(()=>{
-    //rewireでdeliverFile.jsを読み込み
-    rewireDeliverFile = rewire("../../../app/core/deliverFile.js");
-
-    //テスト対象関数deliverFileを取得
-    deliverFile = rewireDeliverFile.__get__("deliverFile");
-
     //fsモックを用意し、呼び出しをすべてsinon.stub()化
     fsMock = {
       lstat: sinon.stub(),
@@ -30,9 +22,7 @@ describe("#deliverFile", ()=>{
       remove: sinon.stub(),
       ensureSymlink: sinon.stub()
     };
-
-    //deliverFile.js内部のfsをモックに差し替え
-    rewireDeliverFile.__set__("fs", fsMock);
+    _internal.fs = fsMock;
 
     //isDirectory()の結果を切り替えるためのstatsオブジェクトMock
     statsMock = {
@@ -170,20 +160,12 @@ describe("#deliverFile", ()=>{
 });
 
 describe("#deliverFilesOnRemote", ()=>{
-  let rewireDeliverFile;
-  let deliverFilesOnRemote;
   let getLoggerMock;
   let loggerMock;
   let getSshMock;
   let sshMock;
 
   beforeEach(()=>{
-    //rewire で deliverFile.js を読み込む
-    rewireDeliverFile = rewire("../../../app/core/deliverFile.js");
-
-    //テスト対象関数の取得
-    deliverFilesOnRemote = rewireDeliverFile.__get__("deliverFilesOnRemote");
-
     //logger のモックを準備
     loggerMock = {
       warn: sinon.stub(),
@@ -197,9 +179,9 @@ describe("#deliverFilesOnRemote", ()=>{
     };
     getSshMock = sinon.stub().returns(sshMock);
 
-    //rewire で deliverFile.js 内部の依存を差し替え
-    rewireDeliverFile.__set__("getLogger", getLoggerMock);
-    rewireDeliverFile.__set__("getSsh", getSshMock);
+    _internal.getLogger = getLoggerMock;
+    _internal.getSsh = getSshMock;
+    _internal.path = require("path");
   });
 
   afterEach(()=>{
@@ -310,20 +292,12 @@ describe("#deliverFilesOnRemote", ()=>{
 });
 
 describe("#deliverFilesFromRemote", ()=>{
-  let rewireDeliverFile;
-  let deliverFilesFromRemote;
   let getLoggerMock;
   let loggerMock;
   let getSshMock;
   let sshMock;
 
   beforeEach(()=>{
-    //deliverFile.js を rewireで読み込む
-    rewireDeliverFile = rewire("../../../app/core/deliverFile.js");
-
-    //テスト対象関数を取得
-    deliverFilesFromRemote = rewireDeliverFile.__get__("deliverFilesFromRemote");
-
     //getLoggerをスタブ化
     getLoggerMock = sinon.stub();
     //loggerとして warnやdebugをモック化
@@ -339,12 +313,11 @@ describe("#deliverFilesFromRemote", ()=>{
     sshMock = {
       recv: sinon.stub()
     };
+    getSshMock.returns(sshMock);
 
-    //rewireで差し替え
-    rewireDeliverFile.__set__({
-      getLogger: getLoggerMock,
-      getSsh: getSshMock
-    });
+    _internal.getLogger = getLoggerMock;
+    _internal.getSsh = getSshMock;
+    _internal.rsyncExcludeOptionOfWheelSystemFiles = rsyncExcludeOptionOfWheelSystemFiles;
   });
 
   afterEach(()=>{
@@ -377,7 +350,6 @@ describe("#deliverFilesFromRemote", ()=>{
       dstRoot: "/local/dst",
       dstName: "fileA.txt"
     };
-    getSshMock.returns(sshMock);
 
     const fakeError = new Error("recv failed");
     sshMock.recv.rejects(fakeError);
@@ -402,7 +374,6 @@ describe("#deliverFilesFromRemote", ()=>{
       dstRoot: "/local/dst",
       dstName: "fileB.dat"
     };
-    getSshMock.returns(sshMock);
 
     //recvが正常終了するようにする
     sshMock.recv.resolves();

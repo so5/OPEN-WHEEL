@@ -8,21 +8,14 @@
 const { expect } = require("chai");
 const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const rewire = require("rewire");
+const fileUtils = require("../../../app/core/fileUtils.js");
+const { readJsonGreedy, addX, openFile, saveFile, getUnusedPath, replaceCRLF, _internal } = fileUtils;
 
 describe("#readJsonGreedy", ()=>{
-  let rewireFileUtils; //rewireで読み込んだfileUtils
-  let readJsonGreedy; //テスト対象関数
   let fsMock; //fsをスタブ化したオブジェクト
   let promiseRetryMock; //promise-retryをスタブ化したオブジェクト
 
   beforeEach(()=>{
-    //rewireFileUtilsを初期化
-    rewireFileUtils = rewire("../../../app/core/fileUtils.js");
-
-    //テスト対象関数を取得
-    readJsonGreedy = rewireFileUtils.__get__("readJsonGreedy");
-
     //fsモジュールをスタブ化
     fsMock = {
       readFile: sinon.stub()
@@ -58,8 +51,8 @@ describe("#readJsonGreedy", ()=>{
     });
 
     //rewireを使ってfs, promise-retryを差し替え
-    rewireFileUtils.__set__("fs", fsMock);
-    rewireFileUtils.__set__("promiseRetry", promiseRetryMock);
+    _internal.fs = fsMock;
+    _internal.promiseRetry = promiseRetryMock;
   });
 
   afterEach(()=>{
@@ -162,18 +155,10 @@ describe("#readJsonGreedy", ()=>{
 });
 
 describe("#addX", ()=>{
-  let rewireFileUtils;
-  let addX;
   let fsMock;
   let modeMock;
 
   beforeEach(()=>{
-    //fileUtils.js を rewire で読み込む
-    rewireFileUtils = rewire("../../../app/core/fileUtils.js");
-
-    //テスト対象関数を rewire で取得
-    addX = rewireFileUtils.__get__("addX");
-
     //fs と Mode をモック化する
     fsMock = {
       stat: sinon.stub(),
@@ -181,11 +166,8 @@ describe("#addX", ()=>{
     };
     modeMock = sinon.stub();
 
-    //rewireでfileUtils内部のfs, Modeを差し替える
-    rewireFileUtils.__set__({
-      fs: fsMock,
-      Mode: modeMock
-    });
+    _internal.fs = fsMock;
+    _internal.Mode = modeMock;
   });
 
   afterEach(()=>{
@@ -312,8 +294,6 @@ describe("#addX", ()=>{
 });
 
 describe("#openFile", ()=>{
-  let rewireFileUtils;
-  let openFile;
   let fsMock;
   let readJsonGreedyMock;
   let getLoggerMock;
@@ -321,11 +301,6 @@ describe("#openFile", ()=>{
   const dummyProjectRoot = "/dummy/projectRoot";
 
   beforeEach(()=>{
-    //fileUtils.js を rewire で読み込む
-    rewireFileUtils = rewire("../../../app/core/fileUtils.js");
-    //テスト対象関数 openFile を取得
-    openFile = rewireFileUtils.__get__("openFile");
-
     //fs のスタブを作成
     fsMock = {
       readFile: sinon.stub(),
@@ -337,10 +312,9 @@ describe("#openFile", ()=>{
     //readJsonGreedy のスタブ
     readJsonGreedyMock = sinon.stub();
 
-    //rewire で差し替え
-    rewireFileUtils.__set__("fs", fsMock);
-    rewireFileUtils.__set__("getLogger", getLoggerMock);
-    rewireFileUtils.__set__("readJsonGreedy", readJsonGreedyMock);
+    _internal.fs = fsMock;
+    _internal.getLogger = getLoggerMock;
+    _internal.readJsonGreedy = readJsonGreedyMock;
   });
 
   afterEach(()=>{
@@ -472,18 +446,11 @@ describe("#openFile", ()=>{
 });
 
 describe("#saveFile", ()=>{
-  let rewireFileUtils;
-  let saveFile;
   let fsMock;
   let pathMock;
   let gitAddMock;
 
   beforeEach(()=>{
-    rewireFileUtils = rewire("../../../app/core/fileUtils.js");
-
-    //テスト対象関数を取得
-    saveFile = rewireFileUtils.__get__("saveFile");
-
     //sinon.stub() でテストダブルを作成（末尾はMock）
     fsMock = {
       writeFile: sinon.stub().resolves(),
@@ -497,12 +464,9 @@ describe("#saveFile", ()=>{
     };
     gitAddMock = sinon.stub().resolves();
 
-    //rewire を使って差し替え
-    rewireFileUtils.__set__({
-      fs: fsMock,
-      path: pathMock,
-      gitAdd: gitAddMock
-    });
+    _internal.fs = fsMock;
+    _internal.path = pathMock;
+    _internal.gitAdd = gitAddMock;
   });
 
   afterEach(()=>{
@@ -646,24 +610,15 @@ describe("#saveFile", ()=>{
 });
 
 describe("#getUnusedPath", ()=>{
-  let rewireFileUtils;
-  let getUnusedPath;
   let fsMock; //sinon.stub()で作成するモックには Mock の接尾語をつける
 
   beforeEach(()=>{
-    //fileUtils.js を rewire で取得
-    rewireFileUtils = rewire("../../../app/core/fileUtils.js");
-
-    //テスト対象の関数を __get__ で取得
-    getUnusedPath = rewireFileUtils.__get__("getUnusedPath");
-
     //fs のモックを作成し、必要なメソッドだけスタブ化
     fsMock = {
       pathExists: sinon.stub()
     };
 
-    //rewire を使って fileUtils.js 内の fs をモックに差し替え
-    rewireFileUtils.__set__("fs", fsMock);
+    _internal.fs = fsMock;
   });
 
   it("should return the desired path if it does not exist", async ()=>{
@@ -706,25 +661,16 @@ describe("#getUnusedPath", ()=>{
 });
 
 describe("#replaceCRLF", ()=>{
-  let rewireFileUtils;
-  let replaceCRLF;
   let fsMock;
 
   beforeEach(()=>{
-    //fileUtils.js をrewireで読み込む
-    rewireFileUtils = rewire("../../../app/core/fileUtils.js");
-
-    //テスト対象関数を取得
-    replaceCRLF = rewireFileUtils.__get__("replaceCRLF");
-
     //fsをStub化
     fsMock = {
       readFile: sinon.stub(),
       writeFile: sinon.stub()
     };
 
-    //fileUtils.js内部のfsを差し替え
-    rewireFileUtils.__set__("fs", fsMock);
+    _internal.fs = fsMock;
   });
 
   afterEach(()=>{

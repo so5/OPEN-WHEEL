@@ -17,7 +17,27 @@ const Dispatcher = require("./dispatcher");
 const { getDateString } = require("../lib/utility");
 const { getLogger } = require("../logSettings.js");
 const { eventEmitters } = require("./global.js");
-const rootDispatchers = new Map();
+
+const _internal = {
+  path,
+  readJsonGreedy,
+  gitResetHEAD,
+  gitClean,
+  removeSsh,
+  removeExecuters,
+  removeTransferrers,
+  defaultCleanupRemoteRoot,
+  projectJsonFilename,
+  componentJsonFilename,
+  setProjectState,
+  writeComponentJson,
+  Dispatcher,
+  getDateString,
+  getLogger,
+  eventEmitters,
+  rootDispatchers: new Map()
+};
+
 
 /**
  * @event projectStateChanged
@@ -39,9 +59,9 @@ const rootDispatchers = new Map();
  * @param {string} state - status
  */
 async function updateProjectState(projectRootDir, state) {
-  const projectJson = await setProjectState(projectRootDir, state);
+  const projectJson = await _internal.setProjectState(projectRootDir, state);
   if (projectJson) {
-    const ee = eventEmitters.get(projectRootDir);
+    const ee = _internal.eventEmitters.get(projectRootDir);
     if (ee) {
       ee.emit("projectStateChanged", projectJson);
     }
@@ -54,25 +74,25 @@ async function updateProjectState(projectRootDir, state) {
  * @param {string} targetDir - If this argument is specified, limit git clean operations to under this directory
  */
 async function cleanProject(projectRootDir, targetDir) {
-  await gitResetHEAD(projectRootDir, targetDir);
-  await gitClean(projectRootDir, targetDir);
+  await _internal.gitResetHEAD(projectRootDir, targetDir);
+  await _internal.gitClean(projectRootDir, targetDir);
   //project state must be updated by onCleanProject()
   //temp dirs also removed by onCleanProject()
-};
+}
 
 /**
  * stop project run
  * @param {string} projectRootDir - project's root path
  */
 async function stopProject(projectRootDir) {
-  const rootDispatcher = rootDispatchers.get(projectRootDir);
+  const rootDispatcher = _internal.rootDispatchers.get(projectRootDir);
   if (rootDispatcher) {
     await rootDispatcher.remove();
-    rootDispatchers.delete(projectRootDir);
+    _internal.rootDispatchers.delete(projectRootDir);
   }
-  removeExecuters(projectRootDir);
-  removeTransferrers(projectRootDir);
-  removeSsh(projectRootDir);
+  _internal.removeExecuters(projectRootDir);
+  _internal.removeTransferrers(projectRootDir);
+  _internal.removeSsh(projectRootDir);
   //project state must be updated by onStopProject()
 }
 
@@ -82,39 +102,49 @@ async function stopProject(projectRootDir) {
  * @returns {string} - project status after run
  */
 async function runProject(projectRootDir) {
-  if (rootDispatchers.has(projectRootDir)) {
+  if (_internal.rootDispatchers.has(projectRootDir)) {
     return new Error(`project is already running ${projectRootDir}`);
   }
 
-  const projectJson = await readJsonGreedy(path.resolve(projectRootDir, projectJsonFilename));
-  const rootWF = await readJsonGreedy(path.resolve(projectRootDir, componentJsonFilename));
+  const projectJson = await _internal.readJsonGreedy(_internal.path.resolve(projectRootDir, _internal.projectJsonFilename));
+  const rootWF = await _internal.readJsonGreedy(_internal.path.resolve(projectRootDir, _internal.componentJsonFilename));
 
-  const rootDispatcher = new Dispatcher(projectRootDir,
+  const rootDispatcher = new _internal.Dispatcher(projectRootDir,
     rootWF.ID,
     projectRootDir,
-    getDateString(),
+    _internal.getDateString(),
     projectJson.componentPath,
     rootWF.env);
   if (rootWF.cleanupFlag === "2") {
-    rootDispatcher.doCleanup = defaultCleanupRemoteRoot;
+    rootDispatcher.doCleanup = _internal.defaultCleanupRemoteRoot;
   }
-  rootDispatchers.set(projectRootDir, rootDispatcher);
+  _internal.rootDispatchers.set(projectRootDir, rootDispatcher);
 
   await updateProjectState(projectRootDir, "running", projectJson);
-  getLogger(projectRootDir).info("project start");
+  _internal.getLogger(projectRootDir).info("project start");
   rootWF.state = await rootDispatcher.start();
-  getLogger(projectRootDir).info(`project ${rootWF.state}`);
+  _internal.getLogger(projectRootDir).info(`project ${rootWF.state}`);
   await updateProjectState(projectRootDir, rootWF.state, projectJson);
-  await writeComponentJson(projectRootDir, projectRootDir, rootWF, true);
-  rootDispatchers.delete(projectRootDir);
-  removeExecuters(projectRootDir);
-  removeTransferrers(projectRootDir);
-  removeSsh(projectRootDir);
+  await _internal.writeComponentJson(projectRootDir, projectRootDir, rootWF, true);
+  _internal.rootDispatchers.delete(projectRootDir);
+  _internal.removeExecuters(projectRootDir);
+  _internal.removeTransferrers(projectRootDir);
+  _internal.removeSsh(projectRootDir);
   return rootWF.state;
 }
+
+_internal.updateProjectState = updateProjectState;
+_internal.cleanProject = cleanProject;
+_internal.stopProject = stopProject;
+_internal.runProject = runProject;
 
 module.exports = {
   cleanProject,
   runProject,
-  stopProject
+  stopProject,
+  updateProjectState
 };
+
+if (process.env.NODE_ENV === "test") {
+  module.exports._internal = _internal;
+}

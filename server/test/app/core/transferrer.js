@@ -8,12 +8,9 @@
 const { expect } = require("chai");
 const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const rewire = require("rewire");
+const { stageIn, stageOut, _internal } = require("../../../app/core/transferrer.js");
 
 describe("#stageIn", ()=>{
-  let rewireTransferrer;
-  let stageIn;
-
   let setTaskStateMock;
   let getSshHostinfoMock;
   let replaceCRLFMock;
@@ -21,27 +18,17 @@ describe("#stageIn", ()=>{
   let registerMock;
 
   beforeEach(()=>{
-    //transferrer.js を rewire でインポート
-    rewireTransferrer = rewire("../../../app/core/transferrer.js");
-
-    //テスト対象の関数を取得
-    stageIn = rewireTransferrer.__get__("stageIn");
-
-    //依存する関数をすべてスタブ化
     setTaskStateMock = sinon.stub().resolves();
     getSshHostinfoMock = sinon.stub().returns({ host: "mock-host" });
     replaceCRLFMock = sinon.stub().resolves();
     addXMock = sinon.stub().resolves();
     registerMock = sinon.stub().resolves("register-result");
 
-    //rewire で差し替え
-    rewireTransferrer.__set__({
-      setTaskState: setTaskStateMock,
-      getSshHostinfo: getSshHostinfoMock,
-      replaceCRLF: replaceCRLFMock,
-      addX: addXMock,
-      register: registerMock
-    });
+    _internal.setTaskState = setTaskStateMock;
+    _internal.getSshHostinfo = getSshHostinfoMock;
+    _internal.replaceCRLF = replaceCRLFMock;
+    _internal.addX = addXMock;
+    _internal.register = registerMock;
   });
 
   afterEach(()=>{
@@ -84,8 +71,6 @@ describe("#stageIn", ()=>{
 });
 
 describe("#stageOut", ()=>{
-  let rewireTransferrer;
-  let stageOut;
   let setTaskStateMock;
   let getSshHostinfoMock;
   let needDownloadMock;
@@ -95,12 +80,6 @@ describe("#stageOut", ()=>{
   let sshMock;
 
   beforeEach(()=>{
-    //transferrer.jsをrewireで読み込む
-    rewireTransferrer = rewire("../../../app/core/transferrer.js");
-    //テスト対象関数を__get__で取得
-    stageOut = rewireTransferrer.__get__("stageOut");
-
-    //sinon.stub() でMock(テストダブル)を作成
     setTaskStateMock = sinon.stub();
     getSshHostinfoMock = sinon.stub();
     needDownloadMock = sinon.stub();
@@ -108,28 +87,24 @@ describe("#stageOut", ()=>{
     registerMock = sinon.stub();
     getSshMock = sinon.stub();
 
-    //ssh の execをモック化
     sshMock = {
       exec: sinon.stub()
     };
+    getSshMock.returns(sshMock);
 
-    //loggerモック（debug, trace, warn などをstubに）
     const loggerStub = {
       debug: sinon.stub(),
       trace: sinon.stub(),
       warn: sinon.stub()
     };
 
-    //rewireを使ってtransferrer.js内部の依存を差し替え
-    rewireTransferrer.__set__({
-      setTaskState: setTaskStateMock,
-      getSshHostinfo: getSshHostinfoMock,
-      getLogger: ()=>loggerStub, //getLoggerMockを使わなくても良いが、必要なら差し替え
-      needDownload: needDownloadMock,
-      makeDownloadRecipe: makeDownloadRecipeMock,
-      register: registerMock,
-      getSsh: getSshMock
-    });
+    _internal.setTaskState = setTaskStateMock;
+    _internal.getSshHostinfo = getSshHostinfoMock;
+    _internal.getLogger = ()=>loggerStub;
+    _internal.needDownload = needDownloadMock;
+    _internal.makeDownloadRecipe = makeDownloadRecipeMock;
+    _internal.register = registerMock;
+    _internal.getSsh = getSshMock;
   });
 
   afterEach(()=>{

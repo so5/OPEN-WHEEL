@@ -9,8 +9,6 @@ const path = require("path");
 const { promisify } = require("util");
 const { execFile } = require("child_process");
 const asyncExecFile = promisify(execFile);
-const rewire = require("rewire");
-
 //setup test framework
 const chai = require("chai");
 const expect = chai.expect;
@@ -18,23 +16,19 @@ chai.use(require("chai-fs"));
 chai.use(require("chai-as-promised"));
 
 //helper
-const { updateComponent, createNewComponent, createNewProject } = require("../../../app/core/projectFilesOperator.js");
+const { updateComponent, createNewComponent, createNewProject, readProject, _internal } = require("../../../app/core/projectFilesOperator.js");
 const { gitAdd, gitRm, gitStatus, gitCommit } = require("../../../app/core/gitOperator2.js");
 const { componentJsonFilename, projectJsonFilename } = require("../../../app/db/db.js");
 
 //testee
-const PFO = rewire("../../../app/core/projectFilesOperator.js");
-const readProject = PFO.__get__("readProject");
-
 let onList = false;
-const projectList = PFO.__get__("projectList");
-projectList.query = ()=>{
+_internal.projectList.query = ()=>{
   return onList;
 };
-projectList.write = ()=>{};
-PFO.__set__("projectList", projectList);
+_internal.projectList.write = ()=>{};
+
 ////for debug
-//PFO.__set__("getLogger", ()=>{return {
+//_internal.getLogger = ()=>{return {
 //trace: console.log.bind(console),
 //debug: console.log.bind(console),
 //info: console.log.bind(console),

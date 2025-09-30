@@ -5,22 +5,11 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it, beforeEach } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const rewire = require("rewire");
+const { registerJob, getFirstCapture, getBulkFirstCapture, isJobFailed, getStatusCode, createRequestForWebAPI, createRequest, _internal } = require("../../../app/core/jobManager.js");
 
 describe("#getFirstCapture", ()=>{
-  let rewireJobManager;
-  let getFirstCapture;
-
-  beforeEach(()=>{
-    //jobManager.js を再取得
-    rewireJobManager = rewire("../../../app/core/jobManager.js");
-
-    //テスト対象関数を取得
-    getFirstCapture = rewireJobManager.__get__("getFirstCapture");
-  });
-
   it("should return null if there is no match (result === null)", ()=>{
     const outputText = "No matching pattern here";
     //キャプチャつきの正規表現を用意しても、マッチしなければ result === null
@@ -57,17 +46,6 @@ describe("#getFirstCapture", ()=>{
 });
 
 describe("#getBulkFirstCapture", ()=>{
-  let rewireJobManager;
-  let getBulkFirstCapture;
-
-  beforeEach(()=>{
-    //jobManager.js を再取得
-    rewireJobManager = rewire("../../../app/core/jobManager.js");
-
-    //テスト対象関数を取得
-    getBulkFirstCapture = rewireJobManager.__get__("getBulkFirstCapture");
-  });
-
   it("should return [1, []] if no lines match the pattern", ()=>{
     //準備: outputTextに正規表現とマッチする行が無い
     const outputText = [
@@ -140,17 +118,6 @@ describe("#getBulkFirstCapture", ()=>{
 });
 
 describe("#isJobFailed", ()=>{
-  let rewireJobManager;
-  let isJobFailed;
-
-  beforeEach(()=>{
-    //jobManager.js をrewireで読み込む
-    rewireJobManager = rewire("../../../app/core/jobManager.js");
-
-    //テスト対象関数を取得
-    isJobFailed = rewireJobManager.__get__("isJobFailed");
-  });
-
   it("should return true if acceptableJobStatus is undefined and code is '0'", ()=>{
     //JS.acceptableJobStatus が未定義の場合
     const JS = {}; //acceptableJobStatus未定義
@@ -227,8 +194,6 @@ describe("#isJobFailed", ()=>{
 });
 
 describe("#getStatusCode", ()=>{
-  let rewireJobManager;
-  let getStatusCode;
   let getLoggerMock;
   let loggerMock;
   let getFirstCaptureMock;
@@ -236,12 +201,6 @@ describe("#getStatusCode", ()=>{
   let createBulkStatusFileMock;
 
   beforeEach(()=>{
-    //jobManager.jsをrewireで読み込む
-    rewireJobManager = rewire("../../../app/core/jobManager.js");
-
-    //テスト対象関数を取得
-    getStatusCode = rewireJobManager.__get__("getStatusCode");
-
     //loggerのMockオブジェクト作成
     loggerMock = {
       debug: sinon.stub(),
@@ -254,13 +213,10 @@ describe("#getStatusCode", ()=>{
     getBulkFirstCaptureMock = sinon.stub();
     createBulkStatusFileMock = sinon.stub().resolves();
 
-    //jobManager内部の依存を差し替え
-    rewireJobManager.__set__({
-      getLogger: getLoggerMock,
-      getFirstCapture: getFirstCaptureMock,
-      getBulkFirstCapture: getBulkFirstCaptureMock,
-      createBulkStatusFile: createBulkStatusFileMock
-    });
+    _internal.getLogger = getLoggerMock;
+    _internal.getFirstCapture = getFirstCaptureMock;
+    _internal.getBulkFirstCapture = getBulkFirstCaptureMock;
+    _internal.createBulkStatusFile = createBulkStatusFileMock;
   });
 
   afterEach(()=>{
@@ -474,9 +430,6 @@ describe("#getStatusCode", ()=>{
 });
 
 describe("#createRequestForWebAPI", ()=>{
-  let rewireJobManager;
-  let createRequestForWebAPIFunc;
-
   //環境変数のバックアップ用
   let originalCertFilename;
   let originalCertPassphrase;
@@ -486,12 +439,6 @@ describe("#createRequestForWebAPI", ()=>{
   let JS;
 
   beforeEach(()=>{
-    //jobManager.js を rewire で読み込む
-    rewireJobManager = rewire("../../../app/core/jobManager.js");
-
-    //テスト対象関数を rewire の __get__ で取得
-    createRequestForWebAPIFunc = rewireJobManager.__get__("createRequestForWebAPI");
-
     //process.env をバックアップしてから、テスト用に上書き
     originalCertFilename = process.env.WHEEL_CERT_FILENAME;
     originalCertPassphrase = process.env.WHEEL_CERT_PASSPHRASE;
@@ -520,7 +467,7 @@ describe("#createRequestForWebAPI", ()=>{
   });
 
   it("should return a valid request object for Fugaku webAPI", ()=>{
-    const result = createRequestForWebAPIFunc(hostinfo, task, JS);
+    const result = createRequestForWebAPI(hostinfo, task, JS);
 
     expect(result).to.be.an("object");
 
@@ -561,16 +508,11 @@ describe("#createRequestForWebAPI", ()=>{
 });
 
 describe("#createRequest", ()=>{
-  let rewireJobManager;
-  let createRequestFunc;
   let hostinfo;
   let task;
   let JS;
 
   beforeEach(()=>{
-    rewireJobManager = rewire("../../../app/core/jobManager.js");
-    createRequestFunc = rewireJobManager.__get__("createRequest");
-
     hostinfo = {
       statusCheckInterval: 10,
       someOtherProperty: "dummy"
@@ -597,7 +539,7 @@ describe("#createRequest", ()=>{
   it("should return correct object when task.type is not 'bulkjobTask'", ()=>{
     task.type = "normalTask";
 
-    const result = createRequestFunc(hostinfo, task, JS);
+    const result = createRequest(hostinfo, task, JS);
     expect(result).to.be.an("object");
 
     //cmd
@@ -626,7 +568,7 @@ describe("#createRequest", ()=>{
   it("should return correct object when task.type is 'bulkjobTask'", ()=>{
     task.type = "bulkjobTask";
 
-    const result = createRequestFunc(hostinfo, task, JS);
+    const result = createRequest(hostinfo, task, JS);
     expect(result).to.be.an("object");
 
     //cmd
@@ -656,9 +598,6 @@ describe("#createRequest", ()=>{
 const EventEmitter = require("events");
 
 describe("#registerJob", ()=>{
-  let rewireJobManager;
-  let registerJob;
-
   //モック用変数
   let jobSchedulerMock;
   let addRequestMock;
@@ -674,11 +613,6 @@ describe("#registerJob", ()=>{
   let task;
 
   beforeEach(()=>{
-    //jobManager.jsをrewireで読み込み
-    rewireJobManager = rewire("../../../app/core/jobManager.js");
-    //テスト対象のregisterJobを取得
-    registerJob = rewireJobManager.__get__("registerJob");
-
     //jobSchedulerのモック
     jobSchedulerMock = {
       dummyJS: {
@@ -707,16 +641,15 @@ describe("#registerJob", ()=>{
     getStatusCodeMock = sinon.stub();
     isJobFailedMock = sinon.stub();
 
-    //rewireで内部の依存を差し替え
-    rewireJobManager.__set__("jobScheduler", jobSchedulerMock);
-    rewireJobManager.__set__("addRequest", addRequestMock);
-    rewireJobManager.__set__("getRequest", getRequestMock);
-    rewireJobManager.__set__("delRequest", delRequestMock);
-    rewireJobManager.__set__("getLogger", getLoggerMock);
-    rewireJobManager.__set__("createRequestForWebAPI", createRequestForWebAPIMock);
-    rewireJobManager.__set__("createRequest", createRequestMock);
-    rewireJobManager.__set__("getStatusCode", getStatusCodeMock);
-    rewireJobManager.__set__("isJobFailed", isJobFailedMock);
+    _internal.jobScheduler = jobSchedulerMock;
+    _internal.addRequest = addRequestMock;
+    _internal.getRequest = getRequestMock;
+    _internal.delRequest = delRequestMock;
+    _internal.getLogger = getLoggerMock;
+    _internal.createRequestForWebAPI = createRequestForWebAPIMock;
+    _internal.createRequest = createRequestMock;
+    _internal.getStatusCode = getStatusCodeMock;
+    _internal.isJobFailed = isJobFailedMock;
 
     //hostinfo, taskの初期化
     hostinfo = {

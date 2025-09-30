@@ -8,6 +8,12 @@ const { emitAll } = require("../handlers/commUtils.js");
 const { remoteHost } = require("../db/db.js");
 const { getLogger } = require("../logSettings");
 
+const _internal = {
+  emitAll,
+  remoteHost,
+  getLogger
+};
+
 /**
  * determine hostMap is valid
  * @param {object} hostMap - old and new remotehost label map
@@ -15,7 +21,7 @@ const { getLogger } = require("../logSettings");
  * @returns {boolean} -
  */
 function isValidHostMap(hostMap, hosts) {
-  const remotehostLabels = remoteHost.getAll().map((host)=>{
+  const remotehostLabels = _internal.remoteHost.getAll().map((host)=>{
     return host.name;
   });
   remotehostLabels.push("localhost");
@@ -24,20 +30,21 @@ function isValidHostMap(hostMap, hosts) {
   });
   return Object.entries(hostMap).some(([oldHost, newHost])=>{
     if (typeof newHost !== "string") {
-      getLogger().error("newHost must be string", newHost);
+      _internal.getLogger().error("newHost must be string", newHost);
       return false;
     }
     if (!oldRemotehostLabels.includes(oldHost)) {
-      getLogger().error("invaild oldHost", oldHost);
+      _internal.getLogger().error("invaild oldHost", oldHost);
       return false;
     }
     if (!remotehostLabels.includes(newHost)) {
-      getLogger().error("invaild newHost", newHost);
+      _internal.getLogger().error("invaild newHost", newHost);
       return false;
     }
     return true;
   });
 }
+_internal.isValidHostMap = isValidHostMap;
 
 /**
  * ask how to map host settings to user
@@ -47,14 +54,14 @@ function isValidHostMap(hostMap, hosts) {
  */
 async function askHostMap(clientID, hosts) {
   return new Promise((resolve, reject)=>{
-    emitAll(clientID, "askHostMap", hosts, (hostMap)=>{
+    _internal.emitAll(clientID, "askHostMap", hosts, (hostMap)=>{
       if (hostMap === null) {
         const err = new Error("user canceled host map input");
         err.reason = "CANCELED";
         reject(err);
         return;
       }
-      if (!isValidHostMap(hostMap, hosts)) {
+      if (!_internal.isValidHostMap(hostMap, hosts)) {
         const err = new Error("invalid host map");
         err.reason = "INVALID";
         reject(err);
@@ -67,5 +74,10 @@ async function askHostMap(clientID, hosts) {
 }
 
 module.exports = {
-  askHostMap
+  askHostMap,
+  isValidHostMap
 };
+
+if (process.env.NODE_ENV === "test") {
+  module.exports._internal = _internal;
+}

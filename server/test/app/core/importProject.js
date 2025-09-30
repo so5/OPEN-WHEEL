@@ -5,33 +5,28 @@
  */
 
 "use strict";
-const path = require("node:path");
-const util = require("node:util");
-const exec = util.promisify(require("node:child_process").exec);
-const fs = require("fs-extra");
-
 //setup test framework
 const chai = require("chai");
 const expect = chai.expect;
 chai.use(require("chai-fs"));
 chai.use(require("chai-as-promised"));
-const rewire = require("rewire");
 const sinon = require("sinon");
 
+const path = require("node:path");
+const util = require("node:util");
+const exec = util.promisify(require("node:child_process").exec);
+const fs = require("fs-extra");
+
 //testee
-const IP = rewire("../../../app/core/importProject.js");
-const isEmptyDir = IP.__get__("isEmptyDir");
-const extractAndReadArchiveMetadata = IP.__get__("extractAndReadArchiveMetadata");
-const importProject = IP.__get__("importProject");
+const { importProject, _internal } = require("../../../app/core/importProject.js");
 
 const dummyProjectList = [];
-IP.__set__("projectList", dummyProjectList);
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";
 const testArchiveFile = path.resolve(__dirname, "../../testFiles/WHEEL_project_test_project.tgz");
 
-describe("import project UT", function () {
+describe("import project UT", function() {
   this.timeout(10000);
   beforeEach(async ()=>{
     await fs.remove(testDirRoot);
@@ -50,18 +45,18 @@ describe("import project UT", function () {
       await fs.outputFile(path.resolve(testDirRoot, "withFile", "hoge"), "hoge");
     });
     it("should be return true for empty dir", async ()=>{
-      expect(await isEmptyDir(path.resolve(testDirRoot, "empty"))).to.be.true;
+      expect(await _internal.isEmptyDir(path.resolve(testDirRoot, "empty"))).to.be.true;
     });
     it("should be return false if directory contains file", async ()=>{
-      expect(await isEmptyDir(path.resolve(testDirRoot, "withFile"))).to.be.false;
+      expect(await _internal.isEmptyDir(path.resolve(testDirRoot, "withFile"))).to.be.false;
     });
     it("should be return false if directory contains dot file", async ()=>{
-      expect(await isEmptyDir(path.resolve(testDirRoot, "withDot"))).to.be.false;
+      expect(await _internal.isEmptyDir(path.resolve(testDirRoot, "withDot"))).to.be.false;
     });
   });
   describe("#extractAndReadArchiveMetadata", ()=>{
     it("should read projectJson metadata in archive", async ()=>{
-      const result = await extractAndReadArchiveMetadata(testArchiveFile);
+      const result = await _internal.extractAndReadArchiveMetadata(testArchiveFile);
       expect(result.name).to.equal("new_project");
     });
   });
@@ -69,20 +64,19 @@ describe("import project UT", function () {
     const getHosts = sinon.stub();
     const askHostMap = sinon.stub();
     const rewriteHosts = sinon.stub();
-    IP.__set__("getHosts", getHosts);
-    IP.__set__("askHostMap", askHostMap);
-    IP.__set__("rewriteHosts", rewriteHosts);
     beforeEach(async ()=>{
+      _internal.getHosts = getHosts;
+      _internal.askHostMap = askHostMap;
+      _internal.rewriteHosts = rewriteHosts;
+      _internal.projectList = dummyProjectList;
+
       getHosts.resetHistory();
       askHostMap.resetHistory();
       rewriteHosts.resetHistory();
       await exec(`cp ${testArchiveFile} ${testArchiveFile}.bak`);
     });
     afterEach(async ()=>{
-      await exec(`cp ${testArchiveFile}.bak ${testArchiveFile}`);
-    });
-    after(async ()=>{
-      await exec(`rm ${testArchiveFile}.bak`);
+      await exec(`mv ${testArchiveFile}.bak ${testArchiveFile}`);
     });
     it("should import project and add it to projectList", async ()=>{
       getHosts.onCall(0).returns([]);
