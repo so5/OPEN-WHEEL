@@ -12,19 +12,54 @@ const glob = require("glob");
 const { diff } = require("just-diff");
 const { diffApply } = require("just-diff-apply");
 const { getComponentDir, writeComponentJson, writeComponentJsonByID, readComponentJson, readComponentJsonByID } = require("./componentJsonIO.js");
-const { componentFactory, getComponentDefaultName } = require("./workflowComponent");
+const { componentFactory, getComponentDefaultName, hasChild, isLocalComponent } = require("./workflowComponent");
 const { projectList, defaultCleanupRemoteRoot, projectJsonFilename, componentJsonFilename, jobManagerJsonFilename, suffix, remoteHost, defaultPSconfigFilename } = require("../db/db");
 const { getDateString, writeJsonWrapper, isValidName, isValidInputFilename, isValidOutputFilename } = require("../lib/utility");
 const { replacePathsep, convertPathSep } = require("./pathUtils");
 const { readJsonGreedy } = require("./fileUtils");
 const { gitInit, gitAdd, gitCommit, gitRm } = require("./gitOperator2");
-const { hasChild, isLocalComponent } = require("./workflowComponent");
 const { getLogger: actualGetLogger } = require("../logSettings");
 const { getSsh } = require("./sshManager.js");
 
 const _internal = {
+  promisify,
+  fs,
+  path,
+  isPathInside,
+  glob,
+  diff,
+  diffApply,
+  getComponentDir,
+  writeComponentJson,
+  writeComponentJsonByID,
+  readComponentJson,
+  readComponentJsonByID,
+  componentFactory,
+  getComponentDefaultName,
+  hasChild,
+  isLocalComponent,
   projectList,
-  getLogger: actualGetLogger
+  defaultCleanupRemoteRoot,
+  projectJsonFilename,
+  componentJsonFilename,
+  jobManagerJsonFilename,
+  suffix,
+  remoteHost,
+  defaultPSconfigFilename,
+  getDateString,
+  writeJsonWrapper,
+  isValidName,
+  isValidInputFilename,
+  isValidOutputFilename,
+  replacePathsep,
+  convertPathSep,
+  readJsonGreedy,
+  gitInit,
+  gitAdd,
+  gitCommit,
+  gitRm,
+  getLogger: actualGetLogger,
+  getSsh
 };
 
 /**
@@ -64,7 +99,7 @@ function glob2Array(token) {
  * @returns {string} - string without trailing path sep
  */
 function removeTrailingPathSep(filename) {
-  if (filename.endsWith(path.sep)) {
+  if (filename.endsWith(_internal.path.sep)) {
     return removeTrailingPathSep(filename.slice(0, -1));
   }
   return filename;
@@ -76,7 +111,7 @@ function removeTrailingPathSep(filename) {
  * @returns {object} - project JSON data
  */
 async function getProjectJson(projectRootDir) {
-  return readJsonGreedy(path.resolve(projectRootDir, projectJsonFilename));
+  return _internal.readJsonGreedy(_internal.path.resolve(projectRootDir, _internal.projectJsonFilename));
 }
 
 /**
@@ -86,9 +121,9 @@ async function getProjectJson(projectRootDir) {
  * @returns {Promise} - resolved when write JSON file and git add performed
  */
 async function writeProjectJson(projectRootDir, projectJson) {
-  const filename = path.resolve(projectRootDir, projectJsonFilename);
-  await writeJsonWrapper(filename, projectJson);
-  return gitAdd(projectRootDir, filename);
+  const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
+  await _internal.writeJsonWrapper(filename, projectJson);
+  return _internal.gitAdd(projectRootDir, filename);
 }
 
 /**
@@ -98,12 +133,12 @@ async function writeProjectJson(projectRootDir, projectJson) {
  * @returns {string[]} - array of id string
  */
 async function getDescendantsIDs(projectRootDir, ID) {
-  const filename = path.resolve(projectRootDir, projectJsonFilename);
-  const projectJson = await readJsonGreedy(filename);
-  const poi = await getComponentDir(projectRootDir, ID, true);
+  const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
+  const projectJson = await _internal.readJsonGreedy(filename);
+  const poi = await _internal.getComponentDir(projectRootDir, ID, true);
   const rt = [ID];
   for (const [id, componentPath] of Object.entries(projectJson.componentPath)) {
-    if (isPathInside(path.resolve(projectRootDir, componentPath), poi)) {
+    if (_internal.isPathInside(_internal.path.resolve(projectRootDir, componentPath), poi)) {
       rt.push(id);
     }
   }
@@ -116,8 +151,8 @@ async function getDescendantsIDs(projectRootDir, ID) {
  * @returns {string[]} - array of id string
  */
 async function getAllComponentIDs(projectRootDir) {
-  const filename = path.resolve(projectRootDir, projectJsonFilename);
-  const projectJson = await readJsonGreedy(filename);
+  const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
+  const projectJson = await _internal.readJsonGreedy(filename);
   return Object.keys(projectJson.componentPath);
 }
 
@@ -138,22 +173,22 @@ function getSuffixNumberFromProjectName(projectName) {
  * @returns {string} - absolute path of project root directory
  */
 async function getUnusedProjectDir(projectRootDir, projectName) {
-  if (!await fs.pathExists(projectRootDir)) {
+  if (!await _internal.fs.pathExists(projectRootDir)) {
     return projectRootDir;
   }
 
-  const dirname = path.dirname(projectRootDir);
-  let projectRootDirCandidate = path.resolve(dirname, `${projectName}${suffix}`);
-  if (!await fs.pathExists(projectRootDirCandidate)) {
+  const dirname = _internal.path.dirname(projectRootDir);
+  let projectRootDirCandidate = _internal.path.resolve(dirname, `${projectName}${_internal.suffix}`);
+  if (!await _internal.fs.pathExists(projectRootDirCandidate)) {
     return projectRootDirCandidate;
   }
 
   let suffixNumber = getSuffixNumberFromProjectName(projectName);
-  projectRootDirCandidate = path.resolve(dirname, `${projectName}${suffixNumber}${suffix}`);
+  projectRootDirCandidate = _internal.path.resolve(dirname, `${projectName}${suffixNumber}${_internal.suffix}`);
 
-  while (await fs.pathExists(projectRootDirCandidate)) {
+  while (await _internal.fs.pathExists(projectRootDirCandidate)) {
     ++suffixNumber;
-    projectRootDirCandidate = path.resolve(dirname, `${projectName}${suffixNumber}${suffix}`);
+    projectRootDirCandidate = _internal.path.resolve(dirname, `${projectName}${suffixNumber}${_internal.suffix}`);
   }
   return projectRootDirCandidate;
 }
@@ -170,19 +205,19 @@ async function getUnusedProjectDir(projectRootDir, projectName) {
 async function createNewProject(argProjectRootDir, name, argDescription, user, mail) {
   const description = argDescription != null ? argDescription : "This is new project.";
   const projectRootDir = await getUnusedProjectDir(argProjectRootDir, name);
-  await fs.ensureDir(projectRootDir);
-  await gitInit(projectRootDir, user, mail);
+  await _internal.fs.ensureDir(projectRootDir);
+  await _internal.gitInit(projectRootDir, user, mail);
 
   //write root workflow
-  const rootWorkflow = componentFactory("workflow");
-  rootWorkflow.name = path.basename(projectRootDir.slice(0, -suffix.length));
-  rootWorkflow.cleanupFlag = defaultCleanupRemoteRoot ? 0 : 1;
+  const rootWorkflow = _internal.componentFactory("workflow");
+  rootWorkflow.name = _internal.path.basename(projectRootDir.slice(0, -_internal.suffix.length));
+  rootWorkflow.cleanupFlag = _internal.defaultCleanupRemoteRoot ? 0 : 1;
 
   _internal.getLogger().debug(rootWorkflow);
-  await writeComponentJson(projectRootDir, projectRootDir, rootWorkflow);
+  await _internal.writeComponentJson(projectRootDir, projectRootDir, rootWorkflow);
 
   //write project JSON
-  const timestamp = getDateString(true);
+  const timestamp = _internal.getDateString(true);
   const projectJson = {
     version: 2,
     name: rootWorkflow.name,
@@ -194,11 +229,11 @@ async function createNewProject(argProjectRootDir, name, argDescription, user, m
     componentPath: {}
   };
   projectJson.componentPath[rootWorkflow.ID] = "./";
-  const projectJsonFileFullpath = path.resolve(projectRootDir, projectJsonFilename);
+  const projectJsonFileFullpath = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
   _internal.getLogger().debug(projectJson);
-  await writeJsonWrapper(projectJsonFileFullpath, projectJson);
-  await gitAdd(projectRootDir, "./");
-  await gitCommit(projectRootDir, "create new project");
+  await _internal.writeJsonWrapper(projectJsonFileFullpath, projectJson);
+  await _internal.gitAdd(projectRootDir, "./");
+  await _internal.gitCommit(projectRootDir, "create new project");
   return projectRootDir;
 }
 
@@ -210,19 +245,19 @@ async function createNewProject(argProjectRootDir, name, argDescription, user, m
  * @returns {Promise} - resolved when project Json file is added to git repo
  */
 async function removeComponentPath(projectRootDir, IDs, force = false) {
-  const filename = path.resolve(projectRootDir, projectJsonFilename);
-  const projectJson = await readJsonGreedy(filename);
+  const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
+  const projectJson = await _internal.readJsonGreedy(filename);
   for (const [id, componentPath] of Object.entries(projectJson.componentPath)) {
     if (IDs.includes(id)) {
-      if (force || !await fs.pathExists(path.join(projectRootDir, componentPath))) {
+      if (force || !await _internal.fs.pathExists(_internal.path.join(projectRootDir, componentPath))) {
         delete projectJson.componentPath[id];
       }
     }
   }
 
   //write project Json file
-  await writeJsonWrapper(filename, projectJson);
-  return gitAdd(projectRootDir, filename);
+  await _internal.writeJsonWrapper(filename, projectJson);
+  return _internal.gitAdd(projectRootDir, filename);
 }
 
 /**
@@ -233,11 +268,11 @@ async function removeComponentPath(projectRootDir, IDs, force = false) {
  * @returns {object} - component path map
  */
 async function updateComponentPath(projectRootDir, ID, absPath) {
-  const filename = path.resolve(projectRootDir, projectJsonFilename);
-  const projectJson = await readJsonGreedy(filename);
+  const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
+  const projectJson = await _internal.readJsonGreedy(filename);
 
   //normalize path
-  let newRelativePath = replacePathsep(path.relative(projectRootDir, absPath));
+  let newRelativePath = _internal.replacePathsep(_internal.path.relative(projectRootDir, absPath));
   if (!newRelativePath.startsWith(".")) {
     newRelativePath = `./${newRelativePath}`;
   }
@@ -246,7 +281,7 @@ async function updateComponentPath(projectRootDir, ID, absPath) {
   const oldRelativePath = projectJson.componentPath[ID];
   if (typeof oldRelativePath !== "undefined") {
     for (const [k, v] of Object.entries(projectJson.componentPath)) {
-      if (isPathInside(convertPathSep(v), convertPathSep(oldRelativePath)) || v === oldRelativePath) {
+      if (_internal.isPathInside(_internal.convertPathSep(v), _internal.convertPathSep(oldRelativePath)) || v === oldRelativePath) {
         projectJson.componentPath[k] = v.replace(oldRelativePath, newRelativePath);
       }
     }
@@ -256,8 +291,8 @@ async function updateComponentPath(projectRootDir, ID, absPath) {
   projectJson.componentPath[ID] = newRelativePath;
 
   //write project Json file
-  await writeJsonWrapper(filename, projectJson);
-  await gitAdd(projectRootDir, filename);
+  await _internal.writeJsonWrapper(filename, projectJson);
+  await _internal.gitAdd(projectRootDir, filename);
   return projectJson.componentPath;
 }
 
@@ -269,14 +304,14 @@ async function updateComponentPath(projectRootDir, ID, absPath) {
  * @returns {object|false} - new Project JSON meta data. false means meta data does not updated
  */
 async function setProjectState(projectRootDir, state, force) {
-  const filename = path.resolve(projectRootDir, projectJsonFilename);
-  const projectJson = await readJsonGreedy(filename);
+  const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
+  const projectJson = await _internal.readJsonGreedy(filename);
   if (force || projectJson.state !== state) {
     projectJson.state = state;
-    const timestamp = getDateString(true);
+    const timestamp = _internal.getDateString(true);
     projectJson.mtime = timestamp;
-    await writeJsonWrapper(filename, projectJson);
-    await gitAdd(projectRootDir, filename);
+    await _internal.writeJsonWrapper(filename, projectJson);
+    await _internal.gitAdd(projectRootDir, filename);
     return projectJson;
   }
   return false;
@@ -289,7 +324,7 @@ async function setProjectState(projectRootDir, state, force) {
  * @returns {string} - absolute path of target component's template dir
  */
 async function getComponentFullName(projectRootDir, ID) {
-  const relativePath = await getComponentDir(projectRootDir, ID);
+  const relativePath = await _internal.getComponentDir(projectRootDir, ID);
   if (relativePath === null) {
     return relativePath;
   }
@@ -302,7 +337,7 @@ async function getComponentFullName(projectRootDir, ID) {
  * @returns {string} -
  */
 async function getProjectState(projectRootDir) {
-  const projectJson = await readJsonGreedy(path.resolve(projectRootDir, projectJsonFilename));
+  const projectJson = await _internal.readJsonGreedy(_internal.path.resolve(projectRootDir, _internal.projectJsonFilename));
   return projectJson.state;
 }
 
@@ -315,10 +350,10 @@ async function checkRunningJobs(projectRootDir) {
   const tasks = [];
   const jmFiles = [];
 
-  const candidates = await promisify(glob)(`*.${jobManagerJsonFilename}`, { cwd: projectRootDir });
+  const candidates = await _internal.promisify(_internal.glob)(`*.${_internal.jobManagerJsonFilename}`, { cwd: projectRootDir });
   for (const jmFile of candidates) {
     try {
-      const taskInJmFile = await fs.readJson(path.resolve(projectRootDir, jmFile));
+      const taskInJmFile = await _internal.fs.readJson(_internal.path.resolve(projectRootDir, jmFile));
       if (Array.isArray(taskInJmFile) && taskInJmFile.length > 0) {
         jmFiles.push(jmFile);
         tasks.push(...taskInJmFile);
@@ -338,7 +373,7 @@ async function checkRunningJobs(projectRootDir) {
  */
 async function rewriteIncludeExclude(projectRootDir, filename, changed) {
   let needToWrite = false;
-  const componentJson = await readJsonGreedy(filename);
+  const componentJson = await _internal.readJsonGreedy(filename);
   if (typeof componentJson.include === "string" && !Array.isArray(componentJson.include)) {
     _internal.getLogger().info("convert include property", filename);
     componentJson.include = glob2Array(componentJson.include).map((e)=>{
@@ -362,7 +397,7 @@ async function rewriteIncludeExclude(projectRootDir, filename, changed) {
     needToWrite = true;
   }
   if (needToWrite) {
-    await writeComponentJson(projectRootDir, path.dirname(filename), componentJson);
+    await _internal.writeComponentJson(projectRootDir, _internal.path.dirname(filename), componentJson);
     changed.push(filename);
   }
 }
@@ -374,9 +409,9 @@ async function rewriteIncludeExclude(projectRootDir, filename, changed) {
  */
 async function rewriteAllIncludeExcludeProperty(projectRootDir, changed) {
   //convert include and exclude property to array
-  const files = await promisify(glob)(`./**/${componentJsonFilename}`, { cwd: projectRootDir });
+  const files = await _internal.promisify(_internal.glob)(`./**/${_internal.componentJsonFilename}`, { cwd: projectRootDir });
   await Promise.all(files.map((filename)=>{
-    return rewriteIncludeExclude(projectRootDir, path.resolve(projectRootDir, filename), changed);
+    return rewriteIncludeExclude(projectRootDir, _internal.path.resolve(projectRootDir, filename), changed);
   }));
 }
 
@@ -399,37 +434,37 @@ async function readProject(projectRootDir) {
     return projectRootDir;
   }
 
-  const projectBasename = path.basename(projectRootDir);
+  const projectBasename = _internal.path.basename(projectRootDir);
 
-  if (projectBasename !== projectJson.name + suffix) {
-    projectJson.name = projectBasename.replace(suffix, "");
+  if (projectBasename !== projectJson.name + _internal.suffix) {
+    projectJson.name = projectBasename.replace(_internal.suffix, "");
     await writeProjectJson(projectRootDir, projectJson);
-    toBeCommited.push(projectJsonFilename);
+    toBeCommited.push(_internal.projectJsonFilename);
   }
 
   //set up project directory as git repo
-  if (!await fs.pathExists(path.resolve(projectRootDir, ".git"))) {
+  if (!await _internal.fs.pathExists(_internal.path.resolve(projectRootDir, ".git"))) {
     try {
       //this directory does not have ".git" that means its first time opening from WHEEL
-      await gitInit(projectRootDir, "wheel", "wheel@example.com");
+      await _internal.gitInit(projectRootDir, "wheel", "wheel@example.com");
       await setProjectState(projectRootDir, "not-started");
       await setComponentStateR(projectRootDir, projectRootDir, "not-started");
-      await gitAdd(projectRootDir, "./");
-      await gitCommit(projectRootDir, "import project");
+      await _internal.gitAdd(projectRootDir, "./");
+      await _internal.gitCommit(projectRootDir, "import project");
     } catch (e) {
       _internal.getLogger().error("can not access to git repository", e);
       return null;
     }
   } else {
-    const ignoreFile = path.join(projectRootDir, ".gitignore");
-    if (!await fs.pathExists(ignoreFile)) {
-      await fs.outputFile(ignoreFile, "wheel.log");
-      await gitAdd(projectRootDir, ".gitignore");
+    const ignoreFile = _internal.path.join(projectRootDir, ".gitignore");
+    if (!await _internal.fs.pathExists(ignoreFile)) {
+      await _internal.fs.outputFile(ignoreFile, "wheel.log");
+      await _internal.gitAdd(projectRootDir, ".gitignore");
     }
     await Promise.all(toBeCommited.map((name)=>{
-      return gitAdd(projectRootDir, name);
+      return _internal.gitAdd(projectRootDir, name);
     }));
-    await gitCommit(projectRootDir, "import project", ["--", ".gitignore", ...toBeCommited]);
+    await _internal.gitCommit(projectRootDir, "import project", ["--", ".gitignore", ...toBeCommited]);
   }
   _internal.projectList.unshift({ path: projectRootDir });
   return projectRootDir;
@@ -445,20 +480,20 @@ async function readProject(projectRootDir) {
  * @returns {Promise} - resolved when all componentJSON meta data file is written
  */
 async function setComponentStateR(projectRootDir, dir, state, doNotAdd = false, ignoreStates = []) {
-  const filenames = await promisify(glob)(path.join(dir, "**", componentJsonFilename));
-  filenames.push(path.join(dir, componentJsonFilename));
+  const filenames = await _internal.promisify(_internal.glob)(_internal.path.join(dir, "**", _internal.componentJsonFilename));
+  filenames.push(_internal.path.join(dir, _internal.componentJsonFilename));
   if (!ignoreStates.includes(state)) {
     ignoreStates.push(state);
   }
   const p = filenames.map((filename)=>{
-    return readJsonGreedy(filename)
+    return _internal.readJsonGreedy(filename)
       .then((component)=>{
         if (ignoreStates.includes(component.state)) {
           return true;
         }
         component.state = state;
-        const componentDir = path.dirname(filename);
-        return writeComponentJson(projectRootDir, componentDir, component, doNotAdd);
+        const componentDir = _internal.path.dirname(filename);
+        return _internal.writeComponentJson(projectRootDir, componentDir, component, doNotAdd);
       });
   });
   return Promise.all(p);
@@ -470,10 +505,10 @@ async function setComponentStateR(projectRootDir, dir, state, doNotAdd = false, 
  * @param {boolean} isRO - read only status
  */
 async function updateProjectROStatus(projectRootDir, isRO) {
-  const filename = path.resolve(projectRootDir, projectJsonFilename);
-  const projectJson = await readJsonGreedy(filename);
+  const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
+  const projectJson = await _internal.readJsonGreedy(filename);
   projectJson.readOnly = isRO;
-  await writeJsonWrapper(filename, projectJson);
+  await _internal.writeJsonWrapper(filename, projectJson);
 }
 
 /**
@@ -482,11 +517,11 @@ async function updateProjectROStatus(projectRootDir, isRO) {
  * @param {string} description - new project description
  */
 async function updateProjectDescription(projectRootDir, description) {
-  const filename = path.resolve(projectRootDir, projectJsonFilename);
-  const projectJson = await readJsonGreedy(filename);
+  const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
+  const projectJson = await _internal.readJsonGreedy(filename);
   projectJson.description = description;
-  await writeJsonWrapper(filename, projectJson);
-  await gitAdd(projectRootDir, filename);
+  await _internal.writeJsonWrapper(filename, projectJson);
+  await _internal.gitAdd(projectRootDir, filename);
 }
 
 /**
@@ -495,26 +530,26 @@ async function updateProjectDescription(projectRootDir, description) {
  * @param {string} description - project description
  */
 async function addProject(projectDir, description) {
-  let projectRootDir = path.resolve(removeTrailingPathSep(convertPathSep(projectDir)));
-  if (!projectRootDir.endsWith(suffix)) {
-    projectRootDir += suffix;
+  let projectRootDir = _internal.path.resolve(removeTrailingPathSep(_internal.convertPathSep(projectDir)));
+  if (!projectRootDir.endsWith(_internal.suffix)) {
+    projectRootDir += _internal.suffix;
   }
-  projectRootDir = path.resolve(projectRootDir);
+  projectRootDir = _internal.path.resolve(projectRootDir);
 
-  if (await fs.pathExists(projectRootDir)) {
+  if (await _internal.fs.pathExists(projectRootDir)) {
     const err = new Error("specified project dir is already exists");
     err.projectRootDir = projectRootDir;
     throw err;
   }
 
-  if (await fs.pathExists(projectRootDir)) {
+  if (await _internal.fs.pathExists(projectRootDir)) {
     const err = new Error("specified project dir is already used");
     err.projectRootDir = projectRootDir;
     throw err;
   }
 
-  const projectName = path.basename(projectRootDir.slice(0, -suffix.length));
-  if (!isValidName(projectName)) {
+  const projectName = _internal.path.basename(projectRootDir.slice(0, -_internal.suffix.length));
+  if (!_internal.isValidName(projectName)) {
     _internal.getLogger().error(projectName, "is not allowed for project name");
     throw (new Error("illegal project name"));
   }
@@ -529,28 +564,28 @@ async function addProject(projectDir, description) {
  * @param {string} oldDir - old projectRootDir
  */
 async function renameProject(id, argNewName, oldDir) {
-  const newName = argNewName.endsWith(suffix) ? argNewName.slice(0, -suffix.length) : argNewName;
-  if (!isValidName(newName)) {
+  const newName = argNewName.endsWith(_internal.suffix) ? argNewName.slice(0, -_internal.suffix.length) : argNewName;
+  if (!_internal.isValidName(newName)) {
     _internal.getLogger().error(newName, "is not allowed for project name");
     throw (new Error("illegal project name"));
   }
-  const newDir = path.resolve(path.dirname(oldDir), `${newName}${suffix}`);
-  if (await fs.pathExists(newDir)) {
+  const newDir = _internal.path.resolve(_internal.path.dirname(oldDir), `${newName}${_internal.suffix}`);
+  if (await _internal.fs.pathExists(newDir)) {
     _internal.getLogger().error(newName, "directory is already exists");
     throw (new Error("already exists"));
   }
 
-  await fs.move(oldDir, newDir);
-  const projectJson = await readJsonGreedy(path.resolve(newDir, projectJsonFilename));
+  await _internal.fs.move(oldDir, newDir);
+  const projectJson = await _internal.readJsonGreedy(_internal.path.resolve(newDir, _internal.projectJsonFilename));
   projectJson.name = newName;
   projectJson.root = newDir;
-  projectJson.mtime = getDateString(true);
+  projectJson.mtime = _internal.getDateString(true);
   await writeProjectJson(newDir, projectJson);
 
-  const rootWorkflow = await readJsonGreedy(path.resolve(newDir, componentJsonFilename));
+  const rootWorkflow = await _internal.readJsonGreedy(_internal.path.resolve(newDir, _internal.componentJsonFilename));
   rootWorkflow.name = newName;
-  await writeComponentJson(newDir, newDir, rootWorkflow);
-  await gitCommit(newDir);
+  await _internal.writeComponentJson(newDir, newDir, rootWorkflow);
+  await _internal.gitCommit(newDir);
 
   //rewrite path in project List entry
   const target = _internal.projectList.get(id);
@@ -587,16 +622,16 @@ async function isSameRemoteHost(projectRootDir, src, dst) {
   if (src === dst) {
     return null;
   }
-  const srcComponent = await readComponentJsonByID(projectRootDir, src);
-  const dstComponent = await readComponentJsonByID(projectRootDir, dst);
-  if (isLocalComponent(srcComponent) || isLocalComponent(dstComponent)) {
+  const srcComponent = await _internal.readComponentJsonByID(projectRootDir, src);
+  const dstComponent = await _internal.readComponentJsonByID(projectRootDir, dst);
+  if (_internal.isLocalComponent(srcComponent) || _internal.isLocalComponent(dstComponent)) {
     return false;
   }
   if (srcComponent.host === dstComponent.host) {
     return true;
   }
-  const srcHostInfo = remoteHost.query("name", srcComponent.host);
-  const dstHostInfo = remoteHost.query("name", dstComponent.host);
+  const srcHostInfo = _internal.remoteHost.query("name", srcComponent.host);
+  const dstHostInfo = _internal.remoteHost.query("name", dstComponent.host);
 
   if (dstHostInfo.sharedHost === srcHostInfo.name) {
     return true;
@@ -624,7 +659,7 @@ async function isParent(projectRootDir, parentID, childID) {
   if (childID === "parent") {
     return false;
   }
-  const childJson = await readComponentJsonByID(projectRootDir, childID);
+  const childJson = await _internal.readComponentJsonByID(projectRootDir, childID);
   if (childJson === null || typeof childID !== "string") {
     return false;
   }
@@ -638,10 +673,10 @@ async function isParent(projectRootDir, parentID, childID) {
  */
 async function removeAllLinkFromComponent(projectRootDir, ID) {
   const counterparts = new Map();
-  const component = await readComponentJsonByID(projectRootDir, ID);
+  const component = await _internal.readComponentJsonByID(projectRootDir, ID);
   if (Object.prototype.hasOwnProperty.call(component, "previous")) {
     for (const previousComponent of component.previous) {
-      const counterpart = counterparts.get(previousComponent) || await readComponentJsonByID(projectRootDir, previousComponent);
+      const counterpart = counterparts.get(previousComponent) || await _internal.readComponentJsonByID(projectRootDir, previousComponent);
       counterpart.next = counterpart.next.filter((e)=>{
         return e !== component.ID;
       });
@@ -655,7 +690,7 @@ async function removeAllLinkFromComponent(projectRootDir, ID) {
   }
   if (Object.prototype.hasOwnProperty.call(component, "next")) {
     for (const nextComponent of component.next) {
-      const counterpart = counterparts.get(nextComponent) || await readComponentJsonByID(projectRootDir, nextComponent);
+      const counterpart = counterparts.get(nextComponent) || await _internal.readComponentJsonByID(projectRootDir, nextComponent);
       counterpart.previous = counterpart.previous.filter((e)=>{
         return e !== component.ID;
       });
@@ -664,7 +699,7 @@ async function removeAllLinkFromComponent(projectRootDir, ID) {
   }
   if (Object.prototype.hasOwnProperty.call(component, "else")) {
     for (const elseComponent of component.else) {
-      const counterpart = counterparts.get(elseComponent) || await readComponentJsonByID(projectRootDir, elseComponent);
+      const counterpart = counterparts.get(elseComponent) || await _internal.readComponentJsonByID(projectRootDir, elseComponent);
       counterpart.previous = counterpart.previous.filter((e)=>{
         return e !== component.ID;
       });
@@ -675,7 +710,7 @@ async function removeAllLinkFromComponent(projectRootDir, ID) {
     for (const inputFile of component.inputFiles) {
       for (const src of inputFile.src) {
         const srcComponent = src.srcNode;
-        const counterpart = counterparts.get(srcComponent) || await readComponentJsonByID(projectRootDir, srcComponent);
+        const counterpart = counterparts.get(srcComponent) || await _internal.readComponentJsonByID(projectRootDir, srcComponent);
         for (const outputFile of counterpart.outputFiles) {
           outputFile.dst = outputFile.dst.filter((e)=>{
             return e.dstNode !== component.ID;
@@ -689,7 +724,7 @@ async function removeAllLinkFromComponent(projectRootDir, ID) {
     for (const outputFile of component.outputFiles) {
       for (const dst of outputFile.dst) {
         const dstComponent = dst.dstNode;
-        const counterpart = counterparts.get(dstComponent) || await readComponentJsonByID(projectRootDir, dstComponent);
+        const counterpart = counterparts.get(dstComponent) || await _internal.readComponentJsonByID(projectRootDir, dstComponent);
         for (const inputFile of counterpart.inputFiles) {
           inputFile.src = inputFile.src.filter((e)=>{
             return e.srcNode !== component.ID;
@@ -700,7 +735,7 @@ async function removeAllLinkFromComponent(projectRootDir, ID) {
     }
   }
   for (const [counterPartID, counterpart] of counterparts) {
-    await writeComponentJsonByID(projectRootDir, counterPartID, counterpart);
+    await _internal.writeComponentJsonByID(projectRootDir, counterPartID, counterpart);
   }
 }
 
@@ -713,10 +748,10 @@ async function removeAllLinkFromComponent(projectRootDir, ID) {
  * @returns {Promise} - resolved when all component JSON files are writted
  */
 async function addFileLinkToParent(projectRootDir, srcNode, srcName, dstName) {
-  const srcDir = await getComponentDir(projectRootDir, srcNode, true);
-  const srcJson = await readComponentJson(srcDir);
-  const parentDir = path.dirname(srcDir);
-  const parentJson = await readComponentJson(parentDir);
+  const srcDir = await _internal.getComponentDir(projectRootDir, srcNode, true);
+  const srcJson = await _internal.readComponentJson(srcDir);
+  const parentDir = _internal.path.dirname(srcDir);
+  const parentJson = await _internal.readComponentJson(parentDir);
   const parentID = parentJson.ID;
 
   const srcOutputFile = srcJson.outputFiles.find((e)=>{
@@ -725,7 +760,7 @@ async function addFileLinkToParent(projectRootDir, srcNode, srcName, dstName) {
   if (!srcOutputFile.dst.includes({ dstNode: parentID, dstName })) {
     srcOutputFile.dst.push({ dstNode: parentID, dstName });
   }
-  const p = writeComponentJson(projectRootDir, srcDir, srcJson);
+  const p = _internal.writeComponentJson(projectRootDir, srcDir, srcJson);
 
   const parentOutputFile = parentJson.outputFiles.find((e)=>{
     return e.name === dstName;
@@ -737,7 +772,7 @@ async function addFileLinkToParent(projectRootDir, srcNode, srcName, dstName) {
     parentOutputFile.origin.push({ srcNode, srcName });
   }
   await p;
-  return writeComponentJson(projectRootDir, parentDir, parentJson);
+  return _internal.writeComponentJson(projectRootDir, parentDir, parentJson);
 }
 
 /**
@@ -749,10 +784,10 @@ async function addFileLinkToParent(projectRootDir, srcNode, srcName, dstName) {
  * @returns {Promise} - resolved when all component JSON files are writted
  */
 async function addFileLinkFromParent(projectRootDir, srcName, dstNode, dstName) {
-  const dstDir = await getComponentDir(projectRootDir, dstNode, true);
-  const dstJson = await readComponentJson(dstDir);
-  const parentDir = path.dirname(dstDir);
-  const parentJson = await readComponentJson(parentDir);
+  const dstDir = await _internal.getComponentDir(projectRootDir, dstNode, true);
+  const dstJson = await _internal.readComponentJson(dstDir);
+  const parentDir = _internal.path.dirname(dstDir);
+  const parentJson = await _internal.readComponentJson(parentDir);
   const parentID = parentJson.ID;
 
   const parentInputFile = parentJson.inputFiles.find((e)=>{
@@ -764,7 +799,7 @@ async function addFileLinkFromParent(projectRootDir, srcName, dstNode, dstName) 
   if (!parentInputFile.forwardTo.includes({ dstNode, dstName })) {
     parentInputFile.forwardTo.push({ dstNode, dstName });
   }
-  const p = writeComponentJson(projectRootDir, parentDir, parentJson);
+  const p = _internal.writeComponentJson(projectRootDir, parentDir, parentJson);
 
   const dstInputFile = dstJson.inputFiles.find((e)=>{
     return e.name === dstName;
@@ -775,7 +810,7 @@ async function addFileLinkFromParent(projectRootDir, srcName, dstNode, dstName) 
     dstInputFile.src.push({ srcNode: parentID, srcName });
   }
   await p;
-  return writeComponentJson(projectRootDir, dstDir, dstJson);
+  return _internal.writeComponentJson(projectRootDir, dstDir, dstJson);
 }
 
 /**
@@ -788,18 +823,18 @@ async function addFileLinkFromParent(projectRootDir, srcName, dstNode, dstName) 
  * @returns {Promise} - resolved when all component JSON files are writted
  */
 async function addFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName) {
-  const srcDir = await getComponentDir(projectRootDir, srcNode, true);
-  const srcJson = await readComponentJson(srcDir);
+  const srcDir = await _internal.getComponentDir(projectRootDir, srcNode, true);
+  const srcJson = await _internal.readComponentJson(srcDir);
   const srcOutputFile = srcJson.outputFiles.find((e)=>{
     return e.name === srcName;
   });
   if (!srcOutputFile.dst.includes({ dstNode, dstName })) {
     srcOutputFile.dst.push({ dstNode, dstName });
   }
-  const p1 = writeComponentJson(projectRootDir, srcDir, srcJson);
+  const p1 = _internal.writeComponentJson(projectRootDir, srcDir, srcJson);
 
-  const dstDir = await getComponentDir(projectRootDir, dstNode, true);
-  const dstJson = await readComponentJson(dstDir);
+  const dstDir = await _internal.getComponentDir(projectRootDir, dstNode, true);
+  const dstJson = await _internal.readComponentJson(dstDir);
   const dstInputFile = dstJson.inputFiles.find((e)=>{
     return e.name === dstName;
   });
@@ -809,7 +844,7 @@ async function addFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstN
     dstInputFile.src.push({ srcNode, srcName });
   }
   await p1;
-  return writeComponentJson(projectRootDir, dstDir, dstJson);
+  return _internal.writeComponentJson(projectRootDir, dstDir, dstJson);
 }
 
 /**
@@ -821,10 +856,10 @@ async function addFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstN
  * @returns {Promise} - resolved when all component JSON files are writted
  */
 async function removeFileLinkToParent(projectRootDir, srcNode, srcName, dstName) {
-  const srcDir = await getComponentDir(projectRootDir, srcNode, true);
-  const srcJson = await readComponentJson(srcDir);
-  const parentDir = path.dirname(srcDir);
-  const parentJson = await readComponentJson(parentDir);
+  const srcDir = await _internal.getComponentDir(projectRootDir, srcNode, true);
+  const srcJson = await _internal.readComponentJson(srcDir);
+  const parentDir = _internal.path.dirname(srcDir);
+  const parentJson = await _internal.readComponentJson(parentDir);
 
   const srcOutputFile = srcJson.outputFiles.find((e)=>{
     return e.name === srcName;
@@ -832,7 +867,7 @@ async function removeFileLinkToParent(projectRootDir, srcNode, srcName, dstName)
   srcOutputFile.dst = srcOutputFile.dst.filter((e)=>{
     return e.dstNode !== parentJson.ID || e.dstName !== dstName;
   });
-  const p = writeComponentJson(projectRootDir, srcDir, srcJson);
+  const p = _internal.writeComponentJson(projectRootDir, srcDir, srcJson);
 
   const parentOutputFile = parentJson.outputFiles.find((e)=>{
     return e.name === dstName;
@@ -844,7 +879,7 @@ async function removeFileLinkToParent(projectRootDir, srcNode, srcName, dstName)
   }
 
   await p;
-  return writeComponentJson(projectRootDir, parentDir, parentJson);
+  return _internal.writeComponentJson(projectRootDir, parentDir, parentJson);
 }
 
 /**
@@ -856,10 +891,10 @@ async function removeFileLinkToParent(projectRootDir, srcNode, srcName, dstName)
  * @returns {Promise} - resolved when all component JSON files are writted
  */
 async function removeFileLinkFromParent(projectRootDir, srcName, dstNode, dstName) {
-  const dstDir = await getComponentDir(projectRootDir, dstNode, true);
-  const dstJson = await readComponentJson(dstDir);
-  const parentDir = path.dirname(dstDir);
-  const parentJson = await readComponentJson(parentDir);
+  const dstDir = await _internal.getComponentDir(projectRootDir, dstNode, true);
+  const dstJson = await _internal.readComponentJson(dstDir);
+  const parentDir = _internal.path.dirname(dstDir);
+  const parentJson = await _internal.readComponentJson(parentDir);
   const parentID = parentJson.ID;
 
   const parentInputFile = parentJson.inputFiles.find((e)=>{
@@ -870,7 +905,7 @@ async function removeFileLinkFromParent(projectRootDir, srcName, dstNode, dstNam
       return e.dstNode !== dstNode || e.dstName !== dstName;
     });
   }
-  const p = writeComponentJson(projectRootDir, parentDir, parentJson);
+  const p = _internal.writeComponentJson(projectRootDir, parentDir, parentJson);
 
   const dstInputFile = dstJson.inputFiles.find((e)=>{
     return e.name === dstName;
@@ -879,7 +914,7 @@ async function removeFileLinkFromParent(projectRootDir, srcName, dstNode, dstNam
     return e.srcNode !== parentID || e.srcName !== srcName;
   });
   await p;
-  return writeComponentJson(projectRootDir, dstDir, dstJson);
+  return _internal.writeComponentJson(projectRootDir, dstDir, dstJson);
 }
 
 /**
@@ -892,18 +927,18 @@ async function removeFileLinkFromParent(projectRootDir, srcName, dstNode, dstNam
  * @returns {Promise} - resolved when all component JSON files are writted
  */
 async function removeFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName) {
-  const srcDir = await getComponentDir(projectRootDir, srcNode, true);
-  const srcJson = await readComponentJson(srcDir);
+  const srcDir = await _internal.getComponentDir(projectRootDir, srcNode, true);
+  const srcJson = await _internal.readComponentJson(srcDir);
   const srcOutputFile = srcJson.outputFiles.find((e)=>{
     return e.name === srcName;
   });
   srcOutputFile.dst = srcOutputFile.dst.filter((e)=>{
     return !(e.dstNode === dstNode && e.dstName === dstName);
   });
-  const p = writeComponentJson(projectRootDir, srcDir, srcJson);
+  const p = _internal.writeComponentJson(projectRootDir, srcDir, srcJson);
 
-  const dstDir = await getComponentDir(projectRootDir, dstNode, true);
-  const dstJson = await readComponentJson(dstDir);
+  const dstDir = await _internal.getComponentDir(projectRootDir, dstNode, true);
+  const dstJson = await _internal.readComponentJson(dstDir);
   const dstInputFile = dstJson.inputFiles.find((e)=>{
     return e.name === dstName;
   });
@@ -911,7 +946,7 @@ async function removeFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, d
     return !(e.srcNode === srcNode && e.srcName === srcName);
   });
   await p;
-  return writeComponentJson(projectRootDir, dstDir, dstJson);
+  return _internal.writeComponentJson(projectRootDir, dstDir, dstJson);
 }
 
 /**
@@ -924,12 +959,12 @@ async function removeFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, d
  */
 async function makeDir(basename, argSuffix) {
   let suffix = argSuffix;
-  while (await fs.pathExists(basename + suffix)) {
+  while (await _internal.fs.pathExists(basename + suffix)) {
     ++suffix;
   }
 
   const dirname = basename + suffix;
-  await fs.mkdir(dirname);
+  await _internal.fs.mkdir(dirname);
   return dirname;
 }
 
@@ -941,18 +976,18 @@ async function makeDir(basename, argSuffix) {
  * @returns {object[]} - array of child components except for subComponent
  */
 async function getChildren(projectRootDir, parentID, isParentDir) {
-  const dir = isParentDir ? parentID : parentID === null ? projectRootDir : await getComponentDir(projectRootDir, parentID, true);
+  const dir = isParentDir ? parentID : parentID === null ? projectRootDir : await _internal.getComponentDir(projectRootDir, parentID, true);
   if (!dir) {
     return [];
   }
 
-  const children = await promisify(glob)(path.join(dir, "*", componentJsonFilename));
+  const children = await _internal.promisify(_internal.glob)(_internal.path.join(dir, "*", _internal.componentJsonFilename));
   if (children.length === 0) {
     return [];
   }
 
   const rt = await Promise.all(children.map((e)=>{
-    return readJsonGreedy(e);
+    return _internal.readJsonGreedy(e);
   }));
 
   return rt.filter((e)=>{
@@ -969,8 +1004,8 @@ async function getChildren(projectRootDir, parentID, isParentDir) {
  * @returns {Promise} - resolved if user has write permission to storagePath on remotehost
  */
 async function checkRemoteStoragePathWritePermission(projectRootDir, { host, storagePath }) {
-  const remotehostID = remoteHost.getID("name", host);
-  const ssh = getSsh(projectRootDir, remotehostID);
+  const remotehostID = _internal.remoteHost.getID("name", host);
+  const ssh = _internal.getSsh(projectRootDir, remotehostID);
   const rt = ssh.exec(`test -w ${storagePath}`);
   if (rt !== 0) {
     const err = new Error("bad permission");
@@ -1008,7 +1043,7 @@ async function recursiveGetHosts(projectRootDir, parentID, hosts, storageHosts, 
     } else if (component.type === "storage") {
       storageHosts.push({ hostname: component.host, isStorage: true });
     }
-    if (hasChild(component)) {
+    if (_internal.hasChild(component)) {
       promises.push(recursiveGetHosts(projectRootDir, component.ID, hosts, storageHosts, gfarmHosts));
     }
   }
@@ -1049,20 +1084,20 @@ async function getHosts(projectRootDir, rootID) {
  * @returns {object} component
  */
 async function createNewComponent(projectRootDir, parentDir, type, pos) {
-  const parentJson = await readJsonGreedy(path.resolve(parentDir, componentJsonFilename));
+  const parentJson = await _internal.readJsonGreedy(_internal.path.resolve(parentDir, _internal.componentJsonFilename));
   const parentID = parentJson.ID;
-  const componentBasename = getComponentDefaultName(type);
+  const componentBasename = _internal.getComponentDefaultName(type);
 
   //create component directory and Json file
-  const absDirName = await makeDir(path.resolve(parentDir, componentBasename), 0);
-  const newComponent = componentFactory(type, pos, parentID);
-  newComponent.name = path.basename(absDirName);
-  await writeComponentJson(projectRootDir, absDirName, newComponent);
+  const absDirName = await makeDir(_internal.path.resolve(parentDir, componentBasename), 0);
+  const newComponent = _internal.componentFactory(type, pos, parentID);
+  newComponent.name = _internal.path.basename(absDirName);
+  await _internal.writeComponentJson(projectRootDir, absDirName, newComponent);
   await updateComponentPath(projectRootDir, newComponent.ID, absDirName);
   if (type === "PS") {
-    const PSConfigFilename = path.resolve(absDirName, defaultPSconfigFilename);
-    await writeJsonWrapper(PSConfigFilename, { version: 2, targetFiles: [], params: [], scatter: [], gather: [] });
-    await gitAdd(projectRootDir, PSConfigFilename);
+    const PSConfigFilename = _internal.path.resolve(absDirName, _internal.defaultPSconfigFilename);
+    await _internal.writeJsonWrapper(PSConfigFilename, { version: 2, targetFiles: [], params: [], scatter: [], gather: [] });
+    await _internal.gitAdd(projectRootDir, PSConfigFilename);
   }
   return newComponent;
 }
@@ -1075,21 +1110,21 @@ async function createNewComponent(projectRootDir, parentDir, type, pos) {
  * @returns {Promise} - resolved when rename is done
  */
 async function renameComponentDir(projectRootDir, ID, newName) {
-  if (!isValidName(newName)) {
+  if (!_internal.isValidName(newName)) {
     return Promise.reject(new Error(`${newName} is not valid component name`));
   }
-  const oldDir = await getComponentDir(projectRootDir, ID, true);
+  const oldDir = await _internal.getComponentDir(projectRootDir, ID, true);
   if (oldDir === projectRootDir) {
     return Promise.reject(new Error("updateNode can not rename root workflow"));
   }
-  if (path.basename(oldDir) === newName) {
+  if (_internal.path.basename(oldDir) === newName) {
     //nothing to be done when you attempt to rename to the same name
     return true;
   }
-  const newDir = path.resolve(path.dirname(oldDir), newName);
-  await gitRm(projectRootDir, oldDir);
-  await fs.move(oldDir, newDir);
-  await gitAdd(projectRootDir, newDir);
+  const newDir = _internal.path.resolve(_internal.path.dirname(oldDir), newName);
+  await _internal.gitRm(projectRootDir, oldDir);
+  await _internal.fs.move(oldDir, newDir);
+  await _internal.gitAdd(projectRootDir, newDir);
   return updateComponentPath(projectRootDir, ID, newDir);
 }
 
@@ -1101,12 +1136,12 @@ async function renameComponentDir(projectRootDir, ID, newName) {
  * @returns {object} - updated componentJSON
  */
 async function replaceEnv(projectRootDir, ID, newEnv) {
-  const componentJson = await readComponentJsonByID(projectRootDir, ID);
+  const componentJson = await _internal.readComponentJsonByID(projectRootDir, ID);
   const env = componentJson.env || {};
-  const patch = diff(env, newEnv);
-  diffApply(env, patch);
+  const patch = _internal.diff(env, newEnv);
+  _internal.diffApply(env, patch);
   componentJson.env = env;
-  await writeComponentJsonByID(projectRootDir, ID, componentJson);
+  await _internal.writeComponentJsonByID(projectRootDir, ID, componentJson);
   return componentJson;
 }
 
@@ -1122,8 +1157,8 @@ async function replaceWebhook(projectRootDir, newWebhook) {
   if (typeof webhook === "undefined") {
     projectJson.webhook = newWebhook;
   } else {
-    const patch = diff(webhook, newWebhook);
-    diffApply(webhook, patch);
+    const patch = _internal.diff(webhook, newWebhook);
+    _internal.diffApply(webhook, patch);
   }
   await writeProjectJson(projectRootDir, projectJson);
   return webhook;
@@ -1136,7 +1171,7 @@ async function replaceWebhook(projectRootDir, newWebhook) {
  * @returns {object} -
  */
 async function getEnv(projectRootDir, ID) {
-  const componentJson = await readComponentJsonByID(projectRootDir, ID);
+  const componentJson = await _internal.readComponentJsonByID(projectRootDir, ID);
   const env = componentJson.env || {};
   return env;
 }
@@ -1165,9 +1200,9 @@ async function updateComponent(projectRootDir, ID, prop, value) {
   if (prop === "name") {
     await renameComponentDir(projectRootDir, ID, value);
   }
-  const componentJson = await readComponentJsonByID(projectRootDir, ID);
+  const componentJson = await _internal.readComponentJsonByID(projectRootDir, ID);
   componentJson[prop] = value;
-  await writeComponentJsonByID(projectRootDir, ID, componentJson);
+  await _internal.writeComponentJsonByID(projectRootDir, ID, componentJson);
   return componentJson;
 }
 
@@ -1183,8 +1218,8 @@ async function updateStepNumber(projectRootDir) {
   const stepjobGroup = [];
   //get stepjob, stepjobTask
   for (const id of componentIDs) {
-    const componentDir = await getComponentDir(projectRootDir, id, true);
-    const componentJson = await readComponentJson(componentDir);
+    const componentDir = await _internal.getComponentDir(projectRootDir, id, true);
+    const componentJson = await _internal.readComponentJson(componentDir);
     if (componentJson.type === "stepjobTask") {
       stepjobTaskComponentJson.push(componentJson);
     }
@@ -1206,8 +1241,8 @@ async function updateStepNumber(projectRootDir) {
   const p = [];
   for (const componentJson of arrangedComponents) {
     componentJson[prop] = stepnum;
-    const componentDir = await getComponentDir(projectRootDir, componentJson.ID, true);
-    p.push(writeComponentJson(projectRootDir, componentDir, componentJson));
+    const componentDir = await _internal.getComponentDir(projectRootDir, componentJson.ID, true);
+    p.push(_internal.writeComponentJson(projectRootDir, componentDir, componentJson));
     stepnum++;
   }
   return Promise.all(p);
@@ -1272,18 +1307,18 @@ async function arrangeComponent(stepjobGroupArray) {
  * @returns {Promise} - resolved when update is done
  */
 async function addInputFile(projectRootDir, ID, name) {
-  if (!isValidInputFilename(name)) {
+  if (!_internal.isValidInputFilename(name)) {
     return Promise.reject(new Error(`${name} is not valid inputFile name`));
   }
-  const componentDir = await getComponentDir(projectRootDir, ID, true);
-  const componentJson = await readComponentJson(componentDir);
+  const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
+  const componentJson = await _internal.readComponentJson(componentDir);
   if (!Object.prototype.hasOwnProperty.call(componentJson, "inputFiles")) {
     const err = new Error(`${componentJson.name} does not have inputFiles`);
     err.component = componentJson;
     return Promise.reject(err);
   }
   componentJson.inputFiles.push({ name, src: [] });
-  return writeComponentJson(projectRootDir, componentDir, componentJson);
+  return _internal.writeComponentJson(projectRootDir, componentDir, componentJson);
 }
 
 /**
@@ -1294,11 +1329,11 @@ async function addInputFile(projectRootDir, ID, name) {
  * @returns {Promise} - resolved when update is done
  */
 async function addOutputFile(projectRootDir, ID, name) {
-  if (!isValidOutputFilename(name)) {
+  if (!_internal.isValidOutputFilename(name)) {
     return Promise.reject(new Error(`${name} is not valid outputFile name`));
   }
-  const componentDir = await getComponentDir(projectRootDir, ID, true);
-  const componentJson = await readComponentJson(componentDir);
+  const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
+  const componentJson = await _internal.readComponentJson(componentDir);
   if (!Object.prototype.hasOwnProperty.call(componentJson, "outputFiles")) {
     const err = new Error(`${componentJson.name} does not have outputFiles`);
     err.component = componentJson;
@@ -1310,7 +1345,7 @@ async function addOutputFile(projectRootDir, ID, name) {
     return Promise.reject(new Error(`${name} is already exists`));
   }
   componentJson.outputFiles.push({ name, dst: [] });
-  return writeComponentJson(projectRootDir, componentDir, componentJson);
+  return _internal.writeComponentJson(projectRootDir, componentDir, componentJson);
 }
 
 /**
@@ -1320,8 +1355,8 @@ async function addOutputFile(projectRootDir, ID, name) {
  * @returns {Promise} - resolved when update is done
  */
 async function setUploadOndemandOutputFile(projectRootDir, ID) {
-  const componentDir = await getComponentDir(projectRootDir, ID, true);
-  const componentJson = await readComponentJson(componentDir);
+  const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
+  const componentJson = await _internal.readComponentJson(componentDir);
   if (!Object.prototype.hasOwnProperty.call(componentJson, "outputFiles")) {
     const err = new Error(`${componentJson.name} does not have outputFiles`);
     err.component = componentJson;
@@ -1350,8 +1385,8 @@ async function setUploadOndemandOutputFile(projectRootDir, ID) {
 
 async function removeInputFile(projectRootDir, ID, name) {
   const counterparts = new Set();
-  const componentDir = await getComponentDir(projectRootDir, ID, true);
-  const componentJson = await readComponentJson(componentDir);
+  const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
+  const componentJson = await _internal.readComponentJson(componentDir);
   componentJson.inputFiles.forEach((inputFile)=>{
     if (name === inputFile.name) {
       for (const src of inputFile.src) {
@@ -1367,12 +1402,12 @@ async function removeInputFile(projectRootDir, ID, name) {
   componentJson.inputFiles = componentJson.inputFiles.filter((inputFile)=>{
     return name !== inputFile.name;
   });
-  return writeComponentJson(projectRootDir, componentDir, componentJson);
+  return _internal.writeComponentJson(projectRootDir, componentDir, componentJson);
 }
 async function removeOutputFile(projectRootDir, ID, name) {
   const counterparts = new Set();
-  const componentDir = await getComponentDir(projectRootDir, ID, true);
-  const componentJson = await readComponentJson(componentDir);
+  const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
+  const componentJson = await _internal.readComponentJson(componentDir);
 
   componentJson.outputFiles = componentJson.outputFiles.filter((outputFile)=>{
     if (name !== outputFile.name) {
@@ -1387,15 +1422,15 @@ async function removeOutputFile(projectRootDir, ID, name) {
   for (const counterPart of counterparts) {
     await removeFileLink(projectRootDir, ID, name, counterPart.dstNode, counterPart.dstName);
   }
-  return writeComponentJson(projectRootDir, componentDir, componentJson);
+  return _internal.writeComponentJson(projectRootDir, componentDir, componentJson);
 }
 
 async function renameInputFile(projectRootDir, ID, index, newName) {
-  if (!isValidInputFilename(newName)) {
+  if (!_internal.isValidInputFilename(newName)) {
     return Promise.reject(new Error(`${newName} is not valid inputFile name`));
   }
-  const componentDir = await getComponentDir(projectRootDir, ID, true);
-  const componentJson = await readComponentJson(componentDir);
+  const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
+  const componentJson = await _internal.readComponentJson(componentDir);
   if (index < 0 || componentJson.inputFiles.length - 1 < index) {
     return Promise.reject(new Error(`invalid index ${index}`));
   }
@@ -1406,12 +1441,12 @@ async function renameInputFile(projectRootDir, ID, index, newName) {
   componentJson.inputFiles[index].src.forEach((e)=>{
     counterparts.add(e.srcNode);
   });
-  await writeComponentJson(projectRootDir, componentDir, componentJson);
+  await _internal.writeComponentJson(projectRootDir, componentDir, componentJson);
 
   const p = [];
   for (const counterPartID of counterparts) {
-    const counterpartDir = await getComponentDir(projectRootDir, counterPartID, true);
-    const counterpartJson = await readComponentJson(counterpartDir);
+    const counterpartDir = await _internal.getComponentDir(projectRootDir, counterPartID, true);
+    const counterpartJson = await _internal.readComponentJson(counterpartDir);
     for (const outputFile of counterpartJson.outputFiles) {
       for (const dst of outputFile.dst) {
         if (dst.dstNode === ID && dst.dstName === oldName) {
@@ -1430,7 +1465,7 @@ async function renameInputFile(projectRootDir, ID, index, newName) {
         }
       }
     }
-    p.push(writeComponentJson(projectRootDir, counterpartDir, counterpartJson));
+    p.push(_internal.writeComponentJson(projectRootDir, counterpartDir, counterpartJson));
   }
   return Promise.all(p);
 }
@@ -1444,11 +1479,11 @@ async function renameInputFile(projectRootDir, ID, index, newName) {
  * @returns {Promise} - resolved when update is done
  */
 async function renameOutputFile(projectRootDir, ID, index, newName) {
-  if (!isValidOutputFilename(newName)) {
+  if (!_internal.isValidOutputFilename(newName)) {
     return Promise.reject(new Error(`${newName} is not valid outputFile name`));
   }
-  const componentDir = await getComponentDir(projectRootDir, ID, true);
-  const componentJson = await readComponentJson(componentDir);
+  const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
+  const componentJson = await _internal.readComponentJson(componentDir);
   if (index < 0 || componentJson.outputFiles.length - 1 < index) {
     return Promise.reject(new Error(`invalid index ${index}`));
   }
@@ -1459,12 +1494,12 @@ async function renameOutputFile(projectRootDir, ID, index, newName) {
   componentJson.outputFiles[index].dst.forEach((e)=>{
     counterparts.add(e.dstNode);
   });
-  await writeComponentJson(projectRootDir, componentDir, componentJson);
+  await _internal.writeComponentJson(projectRootDir, componentDir, componentJson);
 
   const promises = [];
   for (const counterPartID of counterparts) {
-    const counterpartDir = await getComponentDir(projectRootDir, counterPartID, true);
-    const counterpartJson = await readComponentJson(counterpartDir);
+    const counterpartDir = await _internal.getComponentDir(projectRootDir, counterPartID, true);
+    const counterpartJson = await _internal.readComponentJson(counterpartDir);
     for (const inputFile of counterpartJson.inputFiles) {
       for (const src of inputFile.src) {
         if (src.srcNode === ID && src.srcName === oldName) {
@@ -1483,7 +1518,7 @@ async function renameOutputFile(projectRootDir, ID, index, newName) {
         }
       }
     }
-    promises.push(writeComponentJson(projectRootDir, counterpartDir, counterpartJson));
+    promises.push(_internal.writeComponentJson(projectRootDir, counterpartDir, counterpartJson));
   }
   return Promise.all(promises);
 }
@@ -1500,10 +1535,10 @@ async function addLink(projectRootDir, src, dst, isElse = false) {
   if (src === dst) {
     return Promise.reject(new Error("cyclic link is not allowed"));
   }
-  const srcDir = await getComponentDir(projectRootDir, src, true);
-  const srcJson = await readComponentJson(srcDir);
-  const dstDir = await getComponentDir(projectRootDir, dst, true);
-  const dstJson = await readComponentJson(dstDir);
+  const srcDir = await _internal.getComponentDir(projectRootDir, src, true);
+  const srcJson = await _internal.readComponentJson(srcDir);
+  const dstDir = await _internal.getComponentDir(projectRootDir, dst, true);
+  const dstJson = await _internal.readComponentJson(dstDir);
   for (const type of ["viewer", "source"]) {
     if (srcJson.type !== type && dstJson.type !== type) {
       continue;
@@ -1522,11 +1557,11 @@ async function addLink(projectRootDir, src, dst, isElse = false) {
   } else if (!srcJson.next.includes(dst)) {
     srcJson.next.push(dst);
   }
-  await writeComponentJson(projectRootDir, srcDir, srcJson);
+  await _internal.writeComponentJson(projectRootDir, srcDir, srcJson);
   if (!dstJson.previous.includes(src)) {
     dstJson.previous.push(src);
   }
-  await writeComponentJson(projectRootDir, dstDir, dstJson);
+  await _internal.writeComponentJson(projectRootDir, dstDir, dstJson);
   if (srcJson.type === "stepjobTask" && dstJson.type === "stepjobTask") {
     await updateStepNumber(projectRootDir);
   }
@@ -1541,8 +1576,8 @@ async function addLink(projectRootDir, src, dst, isElse = false) {
  * @returns {Promise} - resolved after updated
  */
 async function removeLink(projectRootDir, src, dst, isElse) {
-  const srcDir = await getComponentDir(projectRootDir, src, true);
-  const srcJson = await readComponentJson(srcDir);
+  const srcDir = await _internal.getComponentDir(projectRootDir, src, true);
+  const srcJson = await _internal.readComponentJson(srcDir);
   if (isElse) {
     srcJson.else = srcJson.else.filter((e)=>{
       return e !== dst;
@@ -1552,14 +1587,14 @@ async function removeLink(projectRootDir, src, dst, isElse) {
       return e !== dst;
     });
   }
-  await writeComponentJson(projectRootDir, srcDir, srcJson);
+  await _internal.writeComponentJson(projectRootDir, srcDir, srcJson);
 
-  const dstDir = await getComponentDir(projectRootDir, dst, true);
-  const dstJson = await readComponentJson(dstDir);
+  const dstDir = await _internal.getComponentDir(projectRootDir, dst, true);
+  const dstJson = await _internal.readComponentJson(dstDir);
   dstJson.previous = dstJson.previous.filter((e)=>{
     return e !== src;
   });
-  await writeComponentJson(projectRootDir, dstDir, dstJson);
+  await _internal.writeComponentJson(projectRootDir, dstDir, dstJson);
 }
 
 /**
@@ -1568,14 +1603,14 @@ async function removeLink(projectRootDir, src, dst, isElse) {
  * @param {string} componentID - component's ID string
  */
 async function removeAllLink(projectRootDir, componentID) {
-  const dstDir = await getComponentDir(projectRootDir, componentID, true);
-  const dstJson = await readComponentJson(dstDir);
+  const dstDir = await _internal.getComponentDir(projectRootDir, componentID, true);
+  const dstJson = await _internal.readComponentJson(dstDir);
 
   const srcComponents = dstJson.previous;
   const p = [];
   for (const src of srcComponents) {
-    const srcDir = await getComponentDir(projectRootDir, src, true);
-    const srcJson = await readComponentJson(srcDir);
+    const srcDir = await _internal.getComponentDir(projectRootDir, src, true);
+    const srcJson = await _internal.readComponentJson(srcDir);
     if (Array.isArray(srcJson.next)) {
       srcJson.next = srcJson.next.filter((e)=>{
         return e !== componentID;
@@ -1586,11 +1621,11 @@ async function removeAllLink(projectRootDir, componentID) {
         return e !== componentID;
       });
     }
-    p.push(writeComponentJson(projectRootDir, srcDir, srcJson));
+    p.push(_internal.writeComponentJson(projectRootDir, srcDir, srcJson));
   }
 
   dstJson.previous = [];
-  p.push(writeComponentJson(projectRootDir, dstDir, dstJson));
+  p.push(_internal.writeComponentJson(projectRootDir, dstDir, dstJson));
   return Promise.all(p);
 }
 
@@ -1644,8 +1679,8 @@ async function removeFileLink(projectRootDir, srcNode, srcName, dstNode, dstName
  * @returns {Promise} - resolved after updated
  */
 async function removeAllFileLink(projectRootDir, componentID, inputFilename, fromChildren) {
-  const targetDir = await getComponentDir(projectRootDir, componentID, true);
-  const componentJson = await readComponentJson(targetDir);
+  const targetDir = await _internal.getComponentDir(projectRootDir, componentID, true);
+  const componentJson = await _internal.readComponentJson(targetDir);
   const p = [];
   if (fromChildren) {
     const outputFile = componentJson.outputFiles.find((e)=>{
@@ -1681,7 +1716,7 @@ async function removeAllFileLink(projectRootDir, componentID, inputFilename, fro
  * @returns {Promise} - resolved after updated
  */
 async function removeComponent(projectRootDir, ID) {
-  const targetDir = await getComponentDir(projectRootDir, ID, true);
+  const targetDir = await _internal.getComponentDir(projectRootDir, ID, true);
   const descendantsIDs = await getDescendantsIDs(projectRootDir, ID);
   //remove all link/filelink to or from components to be removed
   for (const descendantID of descendantsIDs) {
@@ -1689,8 +1724,8 @@ async function removeComponent(projectRootDir, ID) {
   }
   //gitOperator.rm() only remove existing files from git repo if directory is passed
   //so, gitRm and fs.remove must be called in this order
-  await gitRm(projectRootDir, targetDir);
-  await fs.remove(targetDir);
+  await _internal.gitRm(projectRootDir, targetDir);
+  await _internal.fs.remove(targetDir);
   return removeComponentPath(projectRootDir, descendantsIDs);
 }
 
@@ -1700,10 +1735,10 @@ async function removeComponent(projectRootDir, ID) {
  * @returns {object[]} - array of source component
  */
 async function getSourceComponents(projectRootDir) {
-  const componentJsonFiles = await promisify(glob)(path.join(projectRootDir, "**", componentJsonFilename));
+  const componentJsonFiles = await _internal.promisify(_internal.glob)(_internal.path.join(projectRootDir, "**", _internal.componentJsonFilename));
   const components = await Promise.all(componentJsonFiles
     .map((componentJsonFile)=>{
-      return readJsonGreedy(componentJsonFile);
+      return _internal.readJsonGreedy(componentJsonFile);
     }));
 
   return components.filter((componentJson)=>{
@@ -1717,11 +1752,11 @@ async function getSourceComponents(projectRootDir) {
  * @returns {boolean} - whether given path is component directory or not
  */
 async function isComponentDir(target) {
-  const stats = await fs.lstat(path.resolve(target));
+  const stats = await _internal.fs.lstat(_internal.path.resolve(target));
   if (!stats.isDirectory()) {
     return false;
   }
-  return fs.pathExists(path.resolve(target, componentJsonFilename));
+  return _internal.fs.pathExists(_internal.path.resolve(target, _internal.componentJsonFilename));
 }
 
 /**
@@ -1731,23 +1766,23 @@ async function isComponentDir(target) {
  * @returns {object} - integrated component json data
  */
 async function getComponentTree(projectRootDir, rootDir) {
-  const projectJson = await readJsonGreedy(path.resolve(projectRootDir, projectJsonFilename));
-  const start = path.isAbsolute(rootDir) ? path.relative(projectRootDir, rootDir) || "./" : rootDir;
+  const projectJson = await _internal.readJsonGreedy(_internal.path.resolve(projectRootDir, _internal.projectJsonFilename));
+  const start = _internal.path.isAbsolute(rootDir) ? _internal.path.relative(projectRootDir, rootDir) || "./" : rootDir;
   const componentJsonFileList = Object.values(projectJson.componentPath)
     .filter((dirname)=>{
-      return isPathInside(dirname, start) || path.normalize(dirname) === path.normalize(start);
+      return _internal.isPathInside(dirname, start) || _internal.path.normalize(dirname) === _internal.path.normalize(start);
     })
     .map((dirname)=>{
-      return path.join(dirname, componentJsonFilename);
+      return _internal.path.join(dirname, _internal.componentJsonFilename);
     });
   const componentJsonList = await Promise.all(componentJsonFileList.map((target)=>{
-    return readJsonGreedy(path.resolve(projectRootDir, target));
+    return _internal.readJsonGreedy(_internal.path.resolve(projectRootDir, target));
   }));
 
   //Naive implementation
   const startStriped = start.endsWith("/") ? start.slice(0, -1) : start;
   const rootIndex = componentJsonFileList.findIndex((e)=>{
-    return path.dirname(e) === startStriped;
+    return _internal.path.dirname(e) === startStriped;
   });
   if (rootIndex === -1) {
     throw Promise.reject(new Error("root component not found"));
@@ -1767,6 +1802,73 @@ async function getComponentTree(projectRootDir, rootDir) {
 
   return root;
 }
+
+_internal.isSurrounded = isSurrounded;
+_internal.trimSurrounded = trimSurrounded;
+_internal.glob2Array = glob2Array;
+_internal.removeTrailingPathSep = removeTrailingPathSep;
+_internal.getProjectJson = getProjectJson;
+_internal.writeProjectJson = writeProjectJson;
+_internal.getDescendantsIDs = getDescendantsIDs;
+_internal.getAllComponentIDs = getAllComponentIDs;
+_internal.getSuffixNumberFromProjectName = getSuffixNumberFromProjectName;
+_internal.getUnusedProjectDir = getUnusedProjectDir;
+_internal.createNewProject = createNewProject;
+_internal.removeComponentPath = removeComponentPath;
+_internal.updateComponentPath = updateComponentPath;
+_internal.setProjectState = setProjectState;
+_internal.getComponentFullName = getComponentFullName;
+_internal.getProjectState = getProjectState;
+_internal.checkRunningJobs = checkRunningJobs;
+_internal.rewriteIncludeExclude = rewriteIncludeExclude;
+_internal.rewriteAllIncludeExcludeProperty = rewriteAllIncludeExcludeProperty;
+_internal.readProject = readProject;
+_internal.setComponentStateR = setComponentStateR;
+_internal.updateProjectROStatus = updateProjectROStatus;
+_internal.updateProjectDescription = updateProjectDescription;
+_internal.addProject = addProject;
+_internal.renameProject = renameProject;
+_internal.isDefaultPort = isDefaultPort;
+_internal.isLocal = isLocal;
+_internal.isSameRemoteHost = isSameRemoteHost;
+_internal.isParent = isParent;
+_internal.removeAllLinkFromComponent = removeAllLinkFromComponent;
+_internal.addFileLinkToParent = addFileLinkToParent;
+_internal.addFileLinkFromParent = addFileLinkFromParent;
+_internal.addFileLinkBetweenSiblings = addFileLinkBetweenSiblings;
+_internal.removeFileLinkToParent = removeFileLinkToParent;
+_internal.removeFileLinkFromParent = removeFileLinkFromParent;
+_internal.removeFileLinkBetweenSiblings = removeFileLinkBetweenSiblings;
+_internal.makeDir = makeDir;
+_internal.getChildren = getChildren;
+_internal.checkRemoteStoragePathWritePermission = checkRemoteStoragePathWritePermission;
+_internal.recursiveGetHosts = recursiveGetHosts;
+_internal.getHosts = getHosts;
+_internal.createNewComponent = createNewComponent;
+_internal.renameComponentDir = renameComponentDir;
+_internal.replaceEnv = replaceEnv;
+_internal.replaceWebhook = replaceWebhook;
+_internal.getEnv = getEnv;
+_internal.updateComponent = updateComponent;
+_internal.updateStepNumber = updateStepNumber;
+_internal.arrangeComponent = arrangeComponent;
+_internal.addInputFile = addInputFile;
+_internal.addOutputFile = addOutputFile;
+_internal.setUploadOndemandOutputFile = setUploadOndemandOutputFile;
+_internal.renameInputFile = renameInputFile;
+_internal.renameOutputFile = renameOutputFile;
+_internal.addLink = addLink;
+_internal.removeLink = removeLink;
+_internal.removeAllLink = removeAllLink;
+_internal.addFileLink = addFileLink;
+_internal.removeFileLink = removeFileLink;
+_internal.removeAllFileLink = removeAllFileLink;
+_internal.removeComponent = removeComponent;
+_internal.getSourceComponents = getSourceComponents;
+_internal.isComponentDir = isComponentDir;
+_internal.getComponentTree = getComponentTree;
+_internal.removeInputFile = removeInputFile;
+_internal.removeOutputFile = removeOutputFile;
 
 module.exports = {
   createNewProject,

@@ -13,6 +13,19 @@ const { replacePathsep } = require("./pathUtils");
 const { remoteHost, componentJsonFilename } = require("../db/db");
 const { getSshHostinfo } = require("./sshManager.js");
 
+const _internal = {
+  path,
+  childProcess,
+  fs,
+  addX,
+  readJsonGreedy,
+  getLogger,
+  replacePathsep,
+  remoteHost,
+  componentJsonFilename,
+  getSshHostinfo
+};
+
 /**
  * run script with options via child_process.spawn
  * @param {string} projectRootDir - project's root path
@@ -22,21 +35,21 @@ const { getSshHostinfo } = require("./sshManager.js");
  */
 async function pspawn(projectRootDir, script, options) {
   return new Promise((resolve, reject)=>{
-    const cp = childProcess.spawn(script, options, (err)=>{
+    const cp = _internal.childProcess.spawn(script, options, (err)=>{
       if (err) {
         reject(err);
       }
     });
     cp.on("error", reject);
     cp.on("close", (code)=>{
-      getLogger(projectRootDir).debug("return value of conditional expression = ", code);
+      _internal.getLogger(projectRootDir).debug("return value of conditional expression = ", code);
       resolve(code === 0);
     });
     cp.stdout.on("data", (data)=>{
-      getLogger(projectRootDir).trace(data.toString());
+      _internal.getLogger(projectRootDir).trace(data.toString());
     });
     cp.stderr.on("data", (data)=>{
-      getLogger(projectRootDir).trace(data.toString());
+      _internal.getLogger(projectRootDir).trace(data.toString());
     });
   });
 }
@@ -55,14 +68,14 @@ async function evalCondition(projectRootDir, condition, cwd, env) {
     return condition;
   }
   if (typeof condition !== "string") {
-    getLogger(projectRootDir).warn("condition must be string or boolean");
+    _internal.getLogger(projectRootDir).warn("condition must be string or boolean");
     return new Error(`illegal condition specified ${typeof condition} \n${condition}`);
   }
-  const script = path.resolve(cwd, condition);
-  if (await fs.pathExists(script)) {
-    getLogger(projectRootDir).debug("execute ", script);
-    await addX(script);
-    const dir = path.dirname(script);
+  const script = _internal.path.resolve(cwd, condition);
+  if (await _internal.fs.pathExists(script)) {
+    _internal.getLogger(projectRootDir).debug("execute ", script);
+    await _internal.addX(script);
+    const dir = _internal.path.dirname(script);
     const options = {
       env: Object.assign({}, process.env, env),
       cwd: dir,
@@ -71,7 +84,7 @@ async function evalCondition(projectRootDir, condition, cwd, env) {
 
     return pspawn(projectRootDir, script, options);
   }
-  getLogger(projectRootDir).debug("evalute ", condition);
+  _internal.getLogger(projectRootDir).debug("evalute ", condition);
   let conditionExpression = "";
 
   for (const [key, value] of Object.entries(env)) {
@@ -89,16 +102,16 @@ async function evalCondition(projectRootDir, condition, cwd, env) {
  * @param {boolean} isSharedHost - return as sharedHost path or ordinary remote path
  */
 function getRemoteRootWorkingDir(projectRootDir, projectStartTime, component, isSharedHost) {
-  const remotehostID = remoteHost.getID("name", component.host);
+  const remotehostID = _internal.remoteHost.getID("name", component.host);
   if (typeof remotehostID === "undefined") {
     return null;
   }
-  const hostinfo = getSshHostinfo(projectRootDir, remotehostID);
+  const hostinfo = _internal.getSshHostinfo(projectRootDir, remotehostID);
   let remoteRoot = isSharedHost ? hostinfo.sharedPath : hostinfo.path;
   if (typeof remoteRoot !== "string") {
     remoteRoot = "";
   }
-  return replacePathsep(path.posix.join(remoteRoot, projectStartTime));
+  return _internal.replacePathsep(_internal.path.posix.join(remoteRoot, projectStartTime));
 }
 
 /**
@@ -114,8 +127,8 @@ function getRemoteWorkingDir(projectRootDir, projectStartTime, workingDir, compo
   if (remoteRootWorkingDir === null) {
     return null;
   }
-  const localWorkingDir = replacePathsep(path.relative(projectRootDir, workingDir));
-  return replacePathsep(path.posix.join(remoteRootWorkingDir, localWorkingDir));
+  const localWorkingDir = _internal.replacePathsep(_internal.path.relative(projectRootDir, workingDir));
+  return _internal.replacePathsep(_internal.path.posix.join(remoteRootWorkingDir, localWorkingDir));
 }
 
 /**
@@ -134,7 +147,7 @@ function isFinishedState(state) {
  */
 async function isSubComponent(target) {
   try {
-    const stats = await fs.stat(target);
+    const stats = await _internal.fs.stat(target);
     if (!stats.isDirectory()) {
       return false;
     }
@@ -148,7 +161,7 @@ async function isSubComponent(target) {
 
   let rt = false;
   try {
-    const componentJson = await readJsonGreedy(path.resolve(target, componentJsonFilename));
+    const componentJson = await _internal.readJsonGreedy(_internal.path.resolve(target, _internal.componentJsonFilename));
     rt = componentJson.subComponent === true;
   } catch (e) {
     if (e.code === "ENOENT") {
@@ -159,6 +172,9 @@ async function isSubComponent(target) {
   return rt;
 }
 
+_internal.pspawn = pspawn;
+_internal.getRemoteRootWorkingDir = getRemoteRootWorkingDir;
+
 module.exports = {
   evalCondition,
   getRemoteWorkingDir,
@@ -166,3 +182,7 @@ module.exports = {
   isFinishedState,
   isSubComponent
 };
+
+if (process.env.NODE_ENV === "test") {
+  module.exports._internal = _internal;
+}

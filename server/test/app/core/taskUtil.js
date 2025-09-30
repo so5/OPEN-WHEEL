@@ -8,27 +8,22 @@
 //setup test framework
 const sinon = require("sinon");
 const chai = require("chai");
-const rewire = require("rewire");
 const expect = chai.expect;
 chai.use(require("chai-fs"));
 const { jobScheduler } = require("../../../app/db/db");
 
 //testee
-const rewTaskUtil = rewire("../../../app/core/taskUtil.js");
-const cancelDispatchedTasks = rewTaskUtil.__get__("cancelDispatchedTasks");
-const killTask = rewTaskUtil.__get__("killTask");
-const killLocalProcess = rewTaskUtil.__get__("killLocalProcess");
-const cancelRemoteJob = rewTaskUtil.__get__("cancelRemoteJob");
+const { cancelDispatchedTasks, killTask, killLocalProcess, cancelRemoteJob, _internal } = require("../../../app/core/taskUtil.js");
 
-describe("UT for taskUtil class", function () {
+describe("UT for taskUtil class", function() {
   describe("#cancelDispatchedTasks", ()=>{
     let cancelStub, killTaskStub;
     beforeEach(()=>{
       sinon.restore();
       cancelStub = sinon.stub();
       killTaskStub = sinon.stub();
-      rewTaskUtil.__set__("cancel", cancelStub);
-      rewTaskUtil.__set__("killTask", killTaskStub);
+      _internal.cancel = cancelStub;
+      _internal.killTask = killTaskStub;
     });
     afterEach(()=>{
       sinon.restore();
@@ -90,9 +85,9 @@ describe("UT for taskUtil class", function () {
       cancelLocalJobStub = sinon.stub();
       killLocalProcessStub = sinon.stub();
       cancelRemoteJobStub = sinon.stub();
-      rewTaskUtil.__set__("cancelLocalJob", cancelLocalJobStub);
-      rewTaskUtil.__set__("killLocalProcess", killLocalProcessStub);
-      rewTaskUtil.__set__("cancelRemoteJob", cancelRemoteJobStub);
+      _internal.cancelLocalJob = cancelLocalJobStub;
+      _internal.killLocalProcess = killLocalProcessStub;
+      _internal.cancelRemoteJob = cancelRemoteJobStub;
     });
     afterEach(()=>{
       sinon.restore();
@@ -166,15 +161,16 @@ describe("UT for taskUtil class", function () {
       getSshHostinfoStub.returns({
         jobScheduler: "SLURM"
       });
-      rewTaskUtil.__set__("getSsh", getSshStub);
-      rewTaskUtil.__set__("getSshHostinfo", getSshHostinfoStub);
+      _internal.getSsh = getSshStub;
+      _internal.getSshHostinfo = getSshHostinfoStub;
+      _internal.jobScheduler = jobScheduler;
       jobScheduler.SLURM = { del: "scancel" };
       loggerStub = {
         debug: sinon.stub()
       };
       getLoggerStub = sinon.stub();
       getLoggerStub.returns(loggerStub);
-      rewTaskUtil.__set__("getLogger", getLoggerStub);
+      _internal.getLogger = getLoggerStub;
     });
     afterEach(()=>{
       sinon.restore();

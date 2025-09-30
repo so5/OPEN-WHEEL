@@ -7,10 +7,9 @@
 const chai = require("chai");
 const expect = chai.expect;
 chai.use(require("chai-as-promised"));
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const rewire = require("rewire");
-const { isFinishedState } = require("../../../app/core/dispatchUtils");
+const { isFinishedState, evalCondition, getRemoteRootWorkingDir, getRemoteWorkingDir, isSubComponent, _internal } = require("../../../app/core/dispatchUtils");
 
 describe("#pspawn", ()=>{
   let pspawn;
@@ -23,8 +22,7 @@ describe("#pspawn", ()=>{
   let traceStub;
 
   beforeEach(()=>{
-    const dispatchUtils = rewire("../../../app/core/dispatchUtils.js");
-    pspawn = dispatchUtils.__get__("pspawn");
+    pspawn = _internal.pspawn;
     spawnStub = sinon.stub();
     onStub = sinon.stub();
     stdoutStub = sinon.stub();
@@ -32,10 +30,8 @@ describe("#pspawn", ()=>{
     getLoggerStub = sinon.stub();
     debugStub = sinon.stub();
     traceStub = sinon.stub();
-    dispatchUtils.__set__({
-      childProcess: { spawn: spawnStub },
-      getLogger: getLoggerStub
-    });
+    _internal.childProcess = { spawn: spawnStub };
+    _internal.getLogger = getLoggerStub;
     getLoggerStub.returns({ debug: debugStub, trace: traceStub });
   });
 
@@ -150,7 +146,6 @@ describe("#pspawn", ()=>{
 });
 
 describe("#evalCondition", ()=>{
-  let evalCondition;
   let pathExistsStub;
   let getLoggerStub;
   let debugStub;
@@ -159,21 +154,17 @@ describe("#evalCondition", ()=>{
   let pspawnStub;
 
   beforeEach(()=>{
-    const dispatchUtils = rewire("../../../app/core/dispatchUtils.js");
-    evalCondition = dispatchUtils.__get__("evalCondition");
     pathExistsStub = sinon.stub();
     getLoggerStub = sinon.stub();
     debugStub = sinon.stub();
     warnStub = sinon.stub();
     addXStub = sinon.stub();
     pspawnStub = sinon.stub();
-    dispatchUtils.__set__({
-      process: { env: {} },
-      fs: { pathExists: pathExistsStub },
-      getLogger: getLoggerStub,
-      addX: addXStub,
-      pspawn: pspawnStub
-    });
+    _internal.fs = { pathExists: pathExistsStub };
+    _internal.getLogger = getLoggerStub;
+    _internal.addX = addXStub;
+    _internal.pspawn = pspawnStub;
+    _internal.path = require("path");
     getLoggerStub.returns({ debug: debugStub, warn: warnStub });
   });
 
@@ -246,22 +237,17 @@ describe("#evalCondition", ()=>{
 });
 
 describe("#getRemoteRootWorkingDir", ()=>{
-  let getRemoteRootWorkingDir;
   let getIDStub;
   let getSshHostinfoStub;
   let replacePathsepStub;
 
   beforeEach(()=>{
-    const dispatchUtils = rewire("../../../app/core/dispatchUtils.js");
-    getRemoteRootWorkingDir = dispatchUtils.__get__("getRemoteRootWorkingDir");
     getIDStub = sinon.stub();
     getSshHostinfoStub = sinon.stub();
     replacePathsepStub = sinon.stub();
-    dispatchUtils.__set__({
-      remoteHost: { getID: getIDStub },
-      getSshHostinfo: getSshHostinfoStub,
-      replacePathsep: replacePathsepStub
-    });
+    _internal.remoteHost = { getID: getIDStub };
+    _internal.getSshHostinfo = getSshHostinfoStub;
+    _internal.replacePathsep = replacePathsepStub;
   });
 
   afterEach(()=>{
@@ -348,19 +334,14 @@ describe("#getRemoteRootWorkingDir", ()=>{
 });
 
 describe("#getRemoteWorkingDir", ()=>{
-  let getRemoteWorkingDir;
   let getRemoteRootWorkingDirStub;
   let replacePathsepStub;
 
   beforeEach(()=>{
-    const dispatchUtils = rewire("../../../app/core/dispatchUtils.js");
-    getRemoteWorkingDir = dispatchUtils.__get__("getRemoteWorkingDir");
     getRemoteRootWorkingDirStub = sinon.stub();
     replacePathsepStub = sinon.stub();
-    dispatchUtils.__set__({
-      getRemoteRootWorkingDir: getRemoteRootWorkingDirStub,
-      replacePathsep: replacePathsepStub
-    });
+    _internal.getRemoteRootWorkingDir = getRemoteRootWorkingDirStub;
+    _internal.replacePathsep = replacePathsepStub;
   });
 
   afterEach(()=>{
@@ -435,23 +416,16 @@ describe("#isFinishedState", ()=>{
 });
 
 describe("#isSubComponent", ()=>{
-  let isSubComponent;
   let statStub;
   let isDirectoryStub;
   let readJsonGreedyStub;
 
   beforeEach(()=>{
-    const dispatchUtils = rewire("../../../app/core/dispatchUtils.js");
-    isSubComponent = dispatchUtils.__get__("isSubComponent");
     statStub = sinon.stub();
     isDirectoryStub = sinon.stub();
     readJsonGreedyStub = sinon.stub();
-    dispatchUtils.__set__({
-      fs: {
-        stat: statStub
-      },
-      readJsonGreedy: readJsonGreedyStub
-    });
+    _internal.fs = { stat: statStub };
+    _internal.readJsonGreedy = readJsonGreedyStub;
   });
 
   afterEach(()=>{
