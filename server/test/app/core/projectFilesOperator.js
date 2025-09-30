@@ -6,19 +6,17 @@
 "use strict";
 const { expect } = require("chai");
 const { describe, it } = require("mocha");
-const rewire = require("rewire");
 const sinon = require("sinon");
 const path = require("path");
 const { promisify } = require("util");
 const glob = require("glob");
+const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
 
 describe("#isSurrounded", ()=>{
-  let rewireProjectFilesOperator;
   let isSurrounded;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    isSurrounded = rewireProjectFilesOperator.__get__("isSurrounded");
+    isSurrounded = projectFilesOperator._internal.isSurrounded;
   });
 
   it("should return true if the string is surrounded by curly braces", ()=>{
@@ -49,12 +47,10 @@ describe("#isSurrounded", ()=>{
 });
 
 describe("#trimSurrounded", ()=>{
-  let rewireProjectFilesOperator;
   let trimSurrounded;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    trimSurrounded = rewireProjectFilesOperator.__get__("trimSurrounded");
+    trimSurrounded = projectFilesOperator._internal.trimSurrounded;
   });
 
   it("should return the string without curly braces if it is surrounded by them", ()=>{
@@ -102,12 +98,10 @@ describe("#trimSurrounded", ()=>{
 });
 
 describe("#glob2Array", ()=>{
-  let rewireProjectFilesOperator;
   let glob2Array;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    glob2Array = rewireProjectFilesOperator.__get__("glob2Array");
+    glob2Array = projectFilesOperator._internal.glob2Array;
   });
 
   it("should convert a comma-separated string into an array", ()=>{
@@ -148,12 +142,10 @@ describe("#glob2Array", ()=>{
 });
 
 describe("#removeTrailingPathSep", ()=>{
-  let rewireProjectFilesOperator;
   let removeTrailingPathSep;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    removeTrailingPathSep = rewireProjectFilesOperator.__get__("removeTrailingPathSep");
+    removeTrailingPathSep = projectFilesOperator._internal.removeTrailingPathSep;
   });
 
   it("should remove trailing path separator for POSIX paths", ()=>{
@@ -194,16 +186,14 @@ describe("#removeTrailingPathSep", ()=>{
 });
 
 describe("#getProjectJson", ()=>{
-  let rewireProjectFilesOperator;
   let getProjectJson;
   let readJsonGreedyMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    getProjectJson = rewireProjectFilesOperator.__get__("getProjectJson");
+    getProjectJson = projectFilesOperator._internal.getProjectJson;
 
     readJsonGreedyMock = sinon.stub();
-    rewireProjectFilesOperator.__set__("readJsonGreedy", readJsonGreedyMock);
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
   });
 
   afterEach(()=>{
@@ -244,7 +234,6 @@ describe("#getProjectJson", ()=>{
 });
 
 describe("#writeProjectJson", ()=>{
-  let rewireProjectFilesOperator;
   let writeProjectJson;
   let writeJsonWrapperMock;
   let gitAddMock;
@@ -254,17 +243,13 @@ describe("#writeProjectJson", ()=>{
   const mockFileName = `${mockProjectRootDir}/prj.wheel.json`;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-
     writeJsonWrapperMock = sinon.stub();
     gitAddMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__({
-      writeJsonWrapper: writeJsonWrapperMock,
-      gitAdd: gitAddMock
-    });
+    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
+    projectFilesOperator._internal.gitAdd = gitAddMock;
 
-    writeProjectJson = rewireProjectFilesOperator.__get__("writeProjectJson");
+    writeProjectJson = projectFilesOperator._internal.writeProjectJson;
   });
 
   it("should write the JSON file and add it to git", async ()=>{
@@ -310,20 +295,18 @@ describe("#writeProjectJson", ()=>{
 });
 
 describe("#getDescendantsIDs", ()=>{
-  let rewireProjectFilesOperator;
   let getDescendantsIDs;
   let readJsonGreedyMock;
   let getComponentDirMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    getDescendantsIDs = rewireProjectFilesOperator.__get__("getDescendantsIDs");
+    getDescendantsIDs = projectFilesOperator._internal.getDescendantsIDs;
 
     readJsonGreedyMock = sinon.stub();
     getComponentDirMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__("readJsonGreedy", readJsonGreedyMock);
-    rewireProjectFilesOperator.__set__("getComponentDir", getComponentDirMock);
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
+    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
   });
 
   afterEach(()=>{
@@ -421,7 +404,6 @@ describe("#getDescendantsIDs", ()=>{
 });
 
 describe("#getAllComponentIDs", ()=>{
-  let rewireProjectFilesOperator;
   let getAllComponentIDs;
   let readJsonGreedyMock;
 
@@ -436,12 +418,11 @@ describe("#getAllComponentIDs", ()=>{
   const mockFileName = path.resolve(mockProjectRootDir, "prj.wheel.json");
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
     readJsonGreedyMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__("readJsonGreedy", readJsonGreedyMock);
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
 
-    getAllComponentIDs = rewireProjectFilesOperator.__get__("getAllComponentIDs");
+    getAllComponentIDs = projectFilesOperator._internal.getAllComponentIDs;
   });
 
   it("should return all component IDs from the project JSON", async ()=>{
@@ -480,12 +461,10 @@ describe("#getAllComponentIDs", ()=>{
 });
 
 describe("#getSuffixNumberFromProjectName", ()=>{
-  let rewireProjectFilesOperator;
   let getSuffixNumberFromProjectName;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    getSuffixNumberFromProjectName = rewireProjectFilesOperator.__get__("getSuffixNumberFromProjectName");
+    getSuffixNumberFromProjectName = projectFilesOperator._internal.getSuffixNumberFromProjectName;
   });
 
   it("should return the suffix number if the project name ends with numbers", ()=>{
@@ -532,17 +511,15 @@ describe("#getSuffixNumberFromProjectName", ()=>{
 });
 
 describe("#getUnusedProjectDir", ()=>{
-  let rewireProjectFilesOperator;
   let getUnusedProjectDir;
   let fsMock;
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    getUnusedProjectDir = rewireProjectFilesOperator.__get__("getUnusedProjectDir");
+    getUnusedProjectDir = projectFilesOperator._internal.getUnusedProjectDir;
 
     fsMock = {
       pathExists: sinon.stub()
     };
-    rewireProjectFilesOperator.__set__("fs", fsMock);
+    projectFilesOperator._internal.fs = fsMock;
   });
 
   afterEach(()=>{
@@ -587,7 +564,7 @@ describe("#getUnusedProjectDir", ()=>{
     fsMock.pathExists.onCall(2).resolves(true);
     fsMock.pathExists.onCall(3).resolves(false);
 
-    rewireProjectFilesOperator.__set__("suffix", suffix);
+    projectFilesOperator._internal.suffix = suffix;
 
     const result = await getUnusedProjectDir(projectRootDir, projectName);
     console.log(result);
@@ -604,7 +581,7 @@ describe("#getUnusedProjectDir", ()=>{
     fsMock.pathExists.onCall(0).resolves(true);
     fsMock.pathExists.onCall(1).resolves(false);
 
-    rewireProjectFilesOperator.__set__("suffix", suffix);
+    projectFilesOperator._internal.suffix = suffix;
 
     const result = await getUnusedProjectDir(projectRootDir, projectName);
 
@@ -614,7 +591,6 @@ describe("#getUnusedProjectDir", ()=>{
 });
 
 describe("#createNewProject", ()=>{
-  let rewireProjectFilesOperator;
   let createNewProject;
   let getUnusedProjectDirMock;
   let gitInitMock;
@@ -622,10 +598,10 @@ describe("#createNewProject", ()=>{
   let writeJsonWrapperMock;
   let gitAddMock;
   let gitCommitMock;
+  let fsMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    createNewProject = rewireProjectFilesOperator.__get__("createNewProject");
+    createNewProject = projectFilesOperator._internal.createNewProject;
 
     getUnusedProjectDirMock = sinon.stub();
     gitInitMock = sinon.stub();
@@ -634,19 +610,17 @@ describe("#createNewProject", ()=>{
     gitAddMock = sinon.stub();
     gitCommitMock = sinon.stub();
 
-    const fsMock = {
+    fsMock = {
       ensureDir: sinon.stub()
     };
 
-    rewireProjectFilesOperator.__set__({
-      getUnusedProjectDir: getUnusedProjectDirMock,
-      gitInit: gitInitMock,
-      writeComponentJson: writeComponentJsonMock,
-      writeJsonWrapper: writeJsonWrapperMock,
-      gitAdd: gitAddMock,
-      gitCommit: gitCommitMock,
-      fs: fsMock
-    });
+    projectFilesOperator._internal.getUnusedProjectDir = getUnusedProjectDirMock;
+    projectFilesOperator._internal.gitInit = gitInitMock;
+    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
+    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
+    projectFilesOperator._internal.gitAdd = gitAddMock;
+    projectFilesOperator._internal.gitCommit = gitCommitMock;
+    projectFilesOperator._internal.fs = fsMock;
   });
 
   afterEach(()=>{
@@ -668,11 +642,10 @@ describe("#createNewProject", ()=>{
     gitAddMock.resolves();
     gitCommitMock.resolves();
 
-    const fsMock = rewireProjectFilesOperator.__get__("fs");
     fsMock.ensureDir.resolves();
 
     const getDateStringMock = sinon.stub().returns(mockTimestamp);
-    rewireProjectFilesOperator.__set__("getDateString", getDateStringMock);
+    projectFilesOperator._internal.getDateString = getDateStringMock;
 
     const result = await createNewProject(mockRootDir, mockProjectName, mockDescription, mockUser, mockMail);
 
@@ -704,14 +677,12 @@ describe("#createNewProject", ()=>{
 
     expect(getUnusedProjectDirMock.calledOnceWithExactly(mockRootDir, mockProjectName)).to.be.true;
 
-    const fsMock = rewireProjectFilesOperator.__get__("fs");
     expect(fsMock.ensureDir.called).to.be.false;
     expect(gitInitMock.called).to.be.false;
   });
 });
 
 describe("#removeComponentPath", ()=>{
-  let rewireProjectFilesOperator;
   let removeComponentPath;
   let readJsonGreedyMock;
   let writeJsonWrapperMock;
@@ -719,20 +690,17 @@ describe("#removeComponentPath", ()=>{
   let pathExistsMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    removeComponentPath = rewireProjectFilesOperator.__get__("removeComponentPath");
+    removeComponentPath = projectFilesOperator._internal.removeComponentPath;
 
     readJsonGreedyMock = sinon.stub();
     writeJsonWrapperMock = sinon.stub();
     gitAddMock = sinon.stub();
     pathExistsMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__({
-      readJsonGreedy: readJsonGreedyMock,
-      writeJsonWrapper: writeJsonWrapperMock,
-      gitAdd: gitAddMock,
-      fs: { pathExists: pathExistsMock }
-    });
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
+    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
+    projectFilesOperator._internal.gitAdd = gitAddMock;
+    projectFilesOperator._internal.fs = { pathExists: pathExistsMock };
   });
 
   afterEach(()=>{
@@ -881,26 +849,21 @@ describe("#removeComponentPath", ()=>{
 });
 
 describe("#updateComponentPath", ()=>{
-  let rewireProjectFilesOperator;
   let updateComponentPath;
   let readJsonGreedyMock;
   let writeJsonWrapperMock;
   let gitAddMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-
     readJsonGreedyMock = sinon.stub();
     writeJsonWrapperMock = sinon.stub();
     gitAddMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__({
-      readJsonGreedy: readJsonGreedyMock,
-      writeJsonWrapper: writeJsonWrapperMock,
-      gitAdd: gitAddMock
-    });
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
+    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
+    projectFilesOperator._internal.gitAdd = gitAddMock;
 
-    updateComponentPath = rewireProjectFilesOperator.__get__("updateComponentPath");
+    updateComponentPath = projectFilesOperator._internal.updateComponentPath;
   });
 
   afterEach(()=>{
@@ -995,7 +958,6 @@ describe("#updateComponentPath", ()=>{
 });
 
 describe("#setProjectState", ()=>{
-  let rewireProjectFilesOperator;
   let setProjectState;
   let readJsonGreedyMock;
   let writeJsonWrapperMock;
@@ -1003,20 +965,17 @@ describe("#setProjectState", ()=>{
   let getDateStringMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    setProjectState = rewireProjectFilesOperator.__get__("setProjectState");
+    setProjectState = projectFilesOperator._internal.setProjectState;
 
     readJsonGreedyMock = sinon.stub();
     writeJsonWrapperMock = sinon.stub();
     gitAddMock = sinon.stub();
     getDateStringMock = sinon.stub().returns("20250101-123456");
 
-    rewireProjectFilesOperator.__set__({
-      readJsonGreedy: readJsonGreedyMock,
-      writeJsonWrapper: writeJsonWrapperMock,
-      gitAdd: gitAddMock,
-      getDateString: getDateStringMock
-    });
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
+    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
+    projectFilesOperator._internal.gitAdd = gitAddMock;
+    projectFilesOperator._internal.getDateString = getDateStringMock;
   });
 
   afterEach(()=>{
@@ -1126,17 +1085,15 @@ describe("#setProjectState", ()=>{
 });
 
 describe("#getComponentFullName", ()=>{
-  let rewireProjectFilesOperator;
   let getComponentFullName;
   let getComponentDirMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    getComponentFullName = rewireProjectFilesOperator.__get__("getComponentFullName");
+    getComponentFullName = projectFilesOperator._internal.getComponentFullName;
 
     //Mocking getComponentDir
     getComponentDirMock = sinon.stub();
-    rewireProjectFilesOperator.__set__("getComponentDir", getComponentDirMock);
+    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
   });
 
   afterEach(()=>{
@@ -1183,16 +1140,14 @@ describe("#getComponentFullName", ()=>{
 });
 
 describe("#getProjectState", ()=>{
-  let rewireProjectFilesOperator;
   let getProjectState;
   let readJsonGreedyMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    getProjectState = rewireProjectFilesOperator.__get__("getProjectState");
+    getProjectState = projectFilesOperator._internal.getProjectState;
 
     readJsonGreedyMock = sinon.stub();
-    rewireProjectFilesOperator.__set__("readJsonGreedy", readJsonGreedyMock);
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
   });
 
   afterEach(()=>{
@@ -1248,15 +1203,13 @@ describe("#getProjectState", ()=>{
 });
 
 describe("#checkRunningJobs", ()=>{
-  let rewireProjectFilesOperator;
   let checkRunningJobs;
   let globStub;
   let fsStub;
   let getLoggerStub;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    checkRunningJobs = rewireProjectFilesOperator.__get__("checkRunningJobs");
+    checkRunningJobs = projectFilesOperator._internal.checkRunningJobs;
 
     globStub = sinon.stub();
     fsStub = {
@@ -1266,11 +1219,9 @@ describe("#checkRunningJobs", ()=>{
       warn: sinon.spy()
     };
 
-    rewireProjectFilesOperator.__set__({
-      promisify: ()=>globStub,
-      fs: fsStub,
-      getLogger: ()=>getLoggerStub
-    });
+    projectFilesOperator._internal.promisify = ()=>globStub;
+    projectFilesOperator._internal.fs = fsStub;
+    projectFilesOperator._internal.getLogger = ()=>getLoggerStub;
   });
 
   afterEach(()=>{
@@ -1341,7 +1292,6 @@ describe("#checkRunningJobs", ()=>{
 });
 
 describe("#rewriteIncludeExclude", ()=>{
-  let rewireProjectFilesOperator;
   let rewriteIncludeExclude;
   let readJsonGreedyMock, writeComponentJsonMock, glob2ArrayMock;
   const mockProjectRootDir = "/mock/project/root";
@@ -1349,8 +1299,7 @@ describe("#rewriteIncludeExclude", ()=>{
   let changedFiles;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    rewriteIncludeExclude = rewireProjectFilesOperator.__get__("rewriteIncludeExclude");
+    rewriteIncludeExclude = projectFilesOperator._internal.rewriteIncludeExclude;
 
     changedFiles = [];
 
@@ -1358,11 +1307,9 @@ describe("#rewriteIncludeExclude", ()=>{
     writeComponentJsonMock = sinon.stub().resolves();
     glob2ArrayMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__({
-      readJsonGreedy: readJsonGreedyMock,
-      writeComponentJson: writeComponentJsonMock,
-      glob2Array: glob2ArrayMock
-    });
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
+    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
+    projectFilesOperator._internal.glob2Array = glob2ArrayMock;
   });
 
   afterEach(()=>{
@@ -1439,22 +1386,20 @@ describe("#rewriteIncludeExclude", ()=>{
 });
 
 describe("#rewriteAllIncludeExcludeProperty", ()=>{
-  let rewireProjectFilesOperator;
   let rewriteAllIncludeExcludeProperty;
   let rewriteIncludeExcludeMock;
   let globMock;
   let promisifyMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    rewriteAllIncludeExcludeProperty = rewireProjectFilesOperator.__get__("rewriteAllIncludeExcludeProperty");
+    rewriteAllIncludeExcludeProperty = projectFilesOperator._internal.rewriteAllIncludeExcludeProperty;
 
     rewriteIncludeExcludeMock = sinon.stub();
-    rewireProjectFilesOperator.__set__("rewriteIncludeExclude", rewriteIncludeExcludeMock);
+    projectFilesOperator._internal.rewriteIncludeExclude = rewriteIncludeExcludeMock;
 
     globMock = sinon.stub();
     promisifyMock = sinon.stub().callsFake((fn)=>fn === glob ? globMock : promisify(fn));
-    rewireProjectFilesOperator.__set__("promisify", promisifyMock);
+    projectFilesOperator._internal.promisify = promisifyMock;
   });
 
   afterEach(()=>{
@@ -1524,7 +1469,6 @@ describe("#rewriteAllIncludeExcludeProperty", ()=>{
 });
 
 describe("#readProject", ()=>{
-  let rewireProjectFilesOperator;
   let readProject;
   let getProjectJsonMock, rewriteAllIncludeExcludePropertyMock, writeProjectJsonMock;
   let setProjectStateMock, setComponentStateRMock;
@@ -1532,8 +1476,7 @@ describe("#readProject", ()=>{
   let fsPathExistsMock, fsOutputFileMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    readProject = rewireProjectFilesOperator.__get__("readProject");
+    readProject = projectFilesOperator._internal.readProject;
 
     getProjectJsonMock = sinon.stub();
     rewriteAllIncludeExcludePropertyMock = sinon.stub();
@@ -1547,23 +1490,21 @@ describe("#readProject", ()=>{
     fsPathExistsMock = sinon.stub();
     fsOutputFileMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__({
-      getProjectJson: getProjectJsonMock,
-      rewriteAllIncludeExcludeProperty: rewriteAllIncludeExcludePropertyMock,
-      writeProjectJson: writeProjectJsonMock,
-      gitInit: gitInitMock,
-      setProjectState: setProjectStateMock,
-      setComponentStateR: setComponentStateRMock,
-      gitAdd: gitAddMock,
-      gitCommit: gitCommitMock,
-      projectList: projectListMock,
-      fs: { pathExists: fsPathExistsMock, outputFile: fsOutputFileMock },
-      path: {
-        ...path,
-        resolve: sinon.stub().callsFake((...args)=>args.join("/")),
-        join: sinon.stub().callsFake((...args)=>args.join("/"))
-      }
-    });
+    projectFilesOperator._internal.getProjectJson = getProjectJsonMock;
+    projectFilesOperator._internal.rewriteAllIncludeExcludeProperty = rewriteAllIncludeExcludePropertyMock;
+    projectFilesOperator._internal.writeProjectJson = writeProjectJsonMock;
+    projectFilesOperator._internal.gitInit = gitInitMock;
+    projectFilesOperator._internal.setProjectState = setProjectStateMock;
+    projectFilesOperator._internal.setComponentStateR = setComponentStateRMock;
+    projectFilesOperator._internal.gitAdd = gitAddMock;
+    projectFilesOperator._internal.gitCommit = gitCommitMock;
+    projectFilesOperator._internal.projectList = projectListMock;
+    projectFilesOperator._internal.fs = { pathExists: fsPathExistsMock, outputFile: fsOutputFileMock };
+    projectFilesOperator._internal.path = {
+      ...path,
+      resolve: sinon.stub().callsFake((...args)=>args.join("/")),
+      join: sinon.stub().callsFake((...args)=>args.join("/"))
+    };
   });
 
   afterEach(()=>{
@@ -1655,23 +1596,19 @@ describe("#readProject", ()=>{
 });
 
 describe("#setComponentStateR", ()=>{
-  let rewireProjectFilesOperator;
   let setComponentStateR;
   let globMock, readJsonGreedyMock, writeComponentJsonMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    setComponentStateR = rewireProjectFilesOperator.__get__("setComponentStateR");
+    setComponentStateR = projectFilesOperator._internal.setComponentStateR;
 
     globMock = sinon.stub();
     readJsonGreedyMock = sinon.stub();
     writeComponentJsonMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__({
-      promisify: ()=>globMock,
-      readJsonGreedy: readJsonGreedyMock,
-      writeComponentJson: writeComponentJsonMock
-    });
+    projectFilesOperator._internal.promisify = ()=>globMock;
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
+    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
   });
 
   afterEach(()=>{
@@ -1787,20 +1724,18 @@ describe("#setComponentStateR", ()=>{
 });
 
 describe("#updateProjectROStatus", ()=>{
-  let rewireProjectFilesOperator;
   let updateProjectROStatus;
   let readJsonGreedyMock;
   let writeJsonWrapperMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    updateProjectROStatus = rewireProjectFilesOperator.__get__("updateProjectROStatus");
+    updateProjectROStatus = projectFilesOperator._internal.updateProjectROStatus;
 
     readJsonGreedyMock = sinon.stub();
     writeJsonWrapperMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__("readJsonGreedy", readJsonGreedyMock);
-    rewireProjectFilesOperator.__set__("writeJsonWrapper", writeJsonWrapperMock);
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
+    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
   });
 
   afterEach(()=>{
@@ -1874,25 +1809,21 @@ describe("#updateProjectROStatus", ()=>{
 });
 
 describe("#updateProjectDescription", ()=>{
-  let rewireProjectFilesOperator;
   let updateProjectDescription;
   let readJsonGreedyMock;
   let writeJsonWrapperMock;
   let gitAddMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    updateProjectDescription = rewireProjectFilesOperator.__get__("updateProjectDescription");
+    updateProjectDescription = projectFilesOperator._internal.updateProjectDescription;
 
     readJsonGreedyMock = sinon.stub();
     writeJsonWrapperMock = sinon.stub();
     gitAddMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__({
-      readJsonGreedy: readJsonGreedyMock,
-      writeJsonWrapper: writeJsonWrapperMock,
-      gitAdd: gitAddMock
-    });
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
+    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
+    projectFilesOperator._internal.gitAdd = gitAddMock;
   });
 
   afterEach(()=>{
@@ -1989,24 +1920,20 @@ describe("#updateProjectDescription", ()=>{
 });
 
 describe("#addProject", ()=>{
-  let rewireProjectFilesOperator;
   let addProject;
   let createNewProjectMock;
   let fsMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    addProject = rewireProjectFilesOperator.__get__("addProject");
+    addProject = projectFilesOperator._internal.addProject;
     createNewProjectMock = sinon.stub();
 
     fsMock = {
       pathExists: sinon.stub()
     };
 
-    rewireProjectFilesOperator.__set__({
-      createNewProject: createNewProjectMock,
-      fs: fsMock
-    });
+    projectFilesOperator._internal.createNewProject = createNewProjectMock;
+    projectFilesOperator._internal.fs = fsMock;
   });
 
   afterEach(()=>{
@@ -2054,7 +1981,7 @@ describe("#addProject", ()=>{
     createNewProjectMock.resolves(mockCreatedProjectDir);
 
     const projectListUnshiftStub = sinon.stub();
-    rewireProjectFilesOperator.__set__("projectList", { unshift: projectListUnshiftStub });
+    projectFilesOperator._internal.projectList = { unshift: projectListUnshiftStub };
 
     await addProject(mockProjectDir, "Test description");
 
@@ -2070,7 +1997,6 @@ describe("#addProject", ()=>{
 });
 
 describe("#renameProject", ()=>{
-  let rewireProjectFilesOperator;
   let renameProject;
   let isValidNameMock;
   let fsMock;
@@ -2081,8 +2007,7 @@ describe("#renameProject", ()=>{
   let projectListMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    renameProject = rewireProjectFilesOperator.__get__("renameProject");
+    renameProject = projectFilesOperator._internal.renameProject;
 
     isValidNameMock = sinon.stub();
     fsMock = {
@@ -2098,15 +2023,13 @@ describe("#renameProject", ()=>{
       update: sinon.stub()
     };
 
-    rewireProjectFilesOperator.__set__({
-      isValidName: isValidNameMock,
-      fs: fsMock,
-      readJsonGreedy: readJsonGreedyMock,
-      writeProjectJson: writeProjectJsonMock,
-      writeComponentJson: writeComponentJsonMock,
-      gitCommit: gitCommitMock,
-      projectList: projectListMock
-    });
+    projectFilesOperator._internal.isValidName = isValidNameMock;
+    projectFilesOperator._internal.fs = fsMock;
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
+    projectFilesOperator._internal.writeProjectJson = writeProjectJsonMock;
+    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
+    projectFilesOperator._internal.gitCommit = gitCommitMock;
+    projectFilesOperator._internal.projectList = projectListMock;
   });
 
   afterEach(()=>{
@@ -2202,12 +2125,10 @@ describe("#renameProject", ()=>{
 });
 
 describe("#isDefaultPort", ()=>{
-  let rewireProjectFilesOperator;
   let isDefaultPort;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    isDefaultPort = rewireProjectFilesOperator.__get__("isDefaultPort");
+    isDefaultPort = projectFilesOperator._internal.isDefaultPort;
   });
 
   it("should return true for undefined", ()=>{
@@ -2252,12 +2173,10 @@ describe("#isDefaultPort", ()=>{
 });
 
 describe("#isLocal", ()=>{
-  let rewireProjectFilesOperator;
   let isLocal;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    isLocal = rewireProjectFilesOperator.__get__("isLocal");
+    isLocal = projectFilesOperator._internal.isLocal;
   });
 
   it("should return true if host is undefined", ()=>{
@@ -2287,24 +2206,20 @@ describe("#isLocal", ()=>{
 });
 
 describe("#isSameRemoteHost", ()=>{
-  let rewireProjectFilesOperator;
   let isSameRemoteHost;
   let readComponentJsonByIDMock;
   let remoteHostMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    isSameRemoteHost = rewireProjectFilesOperator.__get__("isSameRemoteHost");
+    isSameRemoteHost = projectFilesOperator._internal.isSameRemoteHost;
 
     readComponentJsonByIDMock = sinon.stub();
     remoteHostMock = {
       query: sinon.stub()
     };
 
-    rewireProjectFilesOperator.__set__({
-      readComponentJsonByID: readComponentJsonByIDMock,
-      remoteHost: remoteHostMock
-    });
+    projectFilesOperator._internal.readComponentJsonByID = readComponentJsonByIDMock;
+    projectFilesOperator._internal.remoteHost = remoteHostMock;
   });
 
   afterEach(()=>{
@@ -2380,16 +2295,14 @@ describe("#isSameRemoteHost", ()=>{
 });
 
 describe("#isParent", ()=>{
-  let rewireProjectFilesOperator;
   let isParent;
   let readComponentJsonByIDMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    isParent = rewireProjectFilesOperator.__get__("isParent");
+    isParent = projectFilesOperator._internal.isParent;
 
     readComponentJsonByIDMock = sinon.stub();
-    rewireProjectFilesOperator.__set__("readComponentJsonByID", readComponentJsonByIDMock);
+    projectFilesOperator._internal.readComponentJsonByID = readComponentJsonByIDMock;
   });
 
   afterEach(()=>{
@@ -2439,20 +2352,16 @@ describe("#isParent", ()=>{
 });
 
 describe("#removeAllLinkFromComponent", ()=>{
-  let rewireProjectFilesOperator;
   let removeAllLinkFromComponent;
   let readComponentJsonByIDMock;
   let writeComponentJsonByIDMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    removeAllLinkFromComponent = rewireProjectFilesOperator.__get__("removeAllLinkFromComponent");
+    removeAllLinkFromComponent = projectFilesOperator._internal.removeAllLinkFromComponent;
     readComponentJsonByIDMock = sinon.stub();
     writeComponentJsonByIDMock = sinon.stub();
-    rewireProjectFilesOperator.__set__({
-      readComponentJsonByID: readComponentJsonByIDMock,
-      writeComponentJsonByID: writeComponentJsonByIDMock
-    });
+    projectFilesOperator._internal.readComponentJsonByID = readComponentJsonByIDMock;
+    projectFilesOperator._internal.writeComponentJsonByID = writeComponentJsonByIDMock;
   });
 
   afterEach(()=>{
@@ -2587,23 +2496,19 @@ describe("#removeAllLinkFromComponent", ()=>{
 });
 
 describe("#addFileLinkToParent", ()=>{
-  let rewireProjectFilesOperator;
   let addFileLinkToParent;
   let getComponentDirMock, readComponentJsonMock, writeComponentJsonMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    addFileLinkToParent = rewireProjectFilesOperator.__get__("addFileLinkToParent");
+    addFileLinkToParent = projectFilesOperator._internal.addFileLinkToParent;
 
     getComponentDirMock = sinon.stub();
     readComponentJsonMock = sinon.stub();
     writeComponentJsonMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__({
-      getComponentDir: getComponentDirMock,
-      readComponentJson: readComponentJsonMock,
-      writeComponentJson: writeComponentJsonMock
-    });
+    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
+    projectFilesOperator._internal.readComponentJson = readComponentJsonMock;
+    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
   });
 
   afterEach(()=>{
@@ -2674,7 +2579,6 @@ describe("#addFileLinkToParent", ()=>{
 });
 
 describe("#addFileLinkFromParent", ()=>{
-  let rewireProjectFilesOperator;
   let addFileLinkFromParent;
   let readComponentJsonMock;
   let writeComponentJsonMock;
@@ -2683,20 +2587,17 @@ describe("#addFileLinkFromParent", ()=>{
   let projectRootDir;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    addFileLinkFromParent = rewireProjectFilesOperator.__get__("addFileLinkFromParent");
+    addFileLinkFromParent = projectFilesOperator._internal.addFileLinkFromParent;
 
     readComponentJsonMock = sinon.stub();
     writeComponentJsonMock = sinon.stub().resolves();
     getComponentDirMock = sinon.stub();
     pathDirnameMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__({
-      readComponentJson: readComponentJsonMock,
-      writeComponentJson: writeComponentJsonMock,
-      getComponentDir: getComponentDirMock,
-      path: { dirname: pathDirnameMock }
-    });
+    projectFilesOperator._internal.readComponentJson = readComponentJsonMock;
+    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
+    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
+    projectFilesOperator._internal.path = { dirname: pathDirnameMock };
 
     projectRootDir = "/mock/project/root";
   });
@@ -2787,23 +2688,19 @@ describe("#addFileLinkFromParent", ()=>{
 });
 
 describe("#addFileLinkBetweenSiblings", ()=>{
-  let rewireProjectFilesOperator;
   let addFileLinkBetweenSiblings;
   let getComponentDirMock, readComponentJsonMock, writeComponentJsonMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    addFileLinkBetweenSiblings = rewireProjectFilesOperator.__get__("addFileLinkBetweenSiblings");
+    addFileLinkBetweenSiblings = projectFilesOperator._internal.addFileLinkBetweenSiblings;
 
     getComponentDirMock = sinon.stub();
     readComponentJsonMock = sinon.stub();
     writeComponentJsonMock = sinon.stub().resolves();
 
-    rewireProjectFilesOperator.__set__({
-      getComponentDir: getComponentDirMock,
-      readComponentJson: readComponentJsonMock,
-      writeComponentJson: writeComponentJsonMock
-    });
+    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
+    projectFilesOperator._internal.readComponentJson = readComponentJsonMock;
+    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
   });
 
   afterEach(()=>{
@@ -2913,23 +2810,19 @@ describe("#addFileLinkBetweenSiblings", ()=>{
 });
 
 describe("#removeFileLinkToParent", ()=>{
-  let rewireProjectFilesOperator;
   let removeFileLinkToParent;
   let getComponentDirMock, readComponentJsonMock, writeComponentJsonMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    removeFileLinkToParent = rewireProjectFilesOperator.__get__("removeFileLinkToParent");
+    removeFileLinkToParent = projectFilesOperator._internal.removeFileLinkToParent;
 
     getComponentDirMock = sinon.stub();
     readComponentJsonMock = sinon.stub();
     writeComponentJsonMock = sinon.stub().resolves();
 
-    rewireProjectFilesOperator.__set__({
-      getComponentDir: getComponentDirMock,
-      readComponentJson: readComponentJsonMock,
-      writeComponentJson: writeComponentJsonMock
-    });
+    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
+    projectFilesOperator._internal.readComponentJson = readComponentJsonMock;
+    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
   });
 
   afterEach(()=>{
@@ -3041,23 +2934,19 @@ describe("#removeFileLinkToParent", ()=>{
 });
 
 describe("#removeFileLinkFromParent", ()=>{
-  let rewireProjectFilesOperator;
   let removeFileLinkFromParent;
   let getComponentDirMock, readComponentJsonMock, writeComponentJsonMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    removeFileLinkFromParent = rewireProjectFilesOperator.__get__("removeFileLinkFromParent");
+    removeFileLinkFromParent = projectFilesOperator._internal.removeFileLinkFromParent;
 
     getComponentDirMock = sinon.stub();
     readComponentJsonMock = sinon.stub();
     writeComponentJsonMock = sinon.stub().resolves();
 
-    rewireProjectFilesOperator.__set__({
-      getComponentDir: getComponentDirMock,
-      readComponentJson: readComponentJsonMock,
-      writeComponentJson: writeComponentJsonMock
-    });
+    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
+    projectFilesOperator._internal.readComponentJson = readComponentJsonMock;
+    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
   });
 
   afterEach(()=>{
@@ -3141,23 +3030,19 @@ describe("#removeFileLinkFromParent", ()=>{
 });
 
 describe("#removeFileLinkBetweenSiblings", ()=>{
-  let rewireProjectFilesOperator;
   let removeFileLinkBetweenSiblings;
   let getComponentDirMock, readComponentJsonMock, writeComponentJsonMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    removeFileLinkBetweenSiblings = rewireProjectFilesOperator.__get__("removeFileLinkBetweenSiblings");
+    removeFileLinkBetweenSiblings = projectFilesOperator._internal.removeFileLinkBetweenSiblings;
 
     getComponentDirMock = sinon.stub();
     readComponentJsonMock = sinon.stub();
     writeComponentJsonMock = sinon.stub().resolves();
 
-    rewireProjectFilesOperator.__set__({
-      getComponentDir: getComponentDirMock,
-      readComponentJson: readComponentJsonMock,
-      writeComponentJson: writeComponentJsonMock
-    });
+    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
+    projectFilesOperator._internal.readComponentJson = readComponentJsonMock;
+    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
   });
 
   afterEach(()=>{
@@ -3241,20 +3126,18 @@ describe("#removeFileLinkBetweenSiblings", ()=>{
 });
 
 describe("#makeDir", ()=>{
-  let rewireProjectFilesOperator;
   let makeDir;
   let fsMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    makeDir = rewireProjectFilesOperator.__get__("makeDir");
+    makeDir = projectFilesOperator._internal.makeDir;
 
     fsMock = {
       pathExists: sinon.stub(),
       mkdir: sinon.stub().resolves()
     };
 
-    rewireProjectFilesOperator.__set__("fs", fsMock);
+    projectFilesOperator._internal.fs = fsMock;
   });
 
   it("should create a new directory when the name is available", async ()=>{
@@ -3304,24 +3187,20 @@ describe("#makeDir", ()=>{
 });
 
 describe("#getChildren", ()=>{
-  let rewireProjectFilesOperator;
   let getChildren;
   let getComponentDirMock;
   let readJsonGreedyMock;
   let globMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    getChildren = rewireProjectFilesOperator.__get__("getChildren");
+    getChildren = projectFilesOperator._internal.getChildren;
 
     getComponentDirMock = sinon.stub();
     readJsonGreedyMock = sinon.stub();
     globMock = sinon.stub();
-    rewireProjectFilesOperator.__set__({
-      getComponentDir: getComponentDirMock,
-      readJsonGreedy: readJsonGreedyMock,
-      promisify: ()=>globMock
-    });
+    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
+    projectFilesOperator._internal.promisify = ()=>globMock;
   });
 
   it("should return an empty array if the directory is not found", async ()=>{
@@ -3364,15 +3243,13 @@ describe("#getChildren", ()=>{
 });
 
 describe("#checkRemoteStoragePathWritePermission", ()=>{
-  let rewireProjectFilesOperator;
   let checkRemoteStoragePathWritePermission;
   let getSshMock;
   let remoteHostMock;
   let sshExecMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    checkRemoteStoragePathWritePermission = rewireProjectFilesOperator.__get__("checkRemoteStoragePathWritePermission");
+    checkRemoteStoragePathWritePermission = projectFilesOperator._internal.checkRemoteStoragePathWritePermission;
 
     remoteHostMock = {
       getID: sinon.stub()
@@ -3380,10 +3257,8 @@ describe("#checkRemoteStoragePathWritePermission", ()=>{
 
     sshExecMock = sinon.stub();
     getSshMock = sinon.stub().returns({ exec: sshExecMock });
-    rewireProjectFilesOperator.__set__({
-      getSsh: getSshMock,
-      remoteHost: remoteHostMock
-    });
+    projectFilesOperator._internal.getSsh = getSshMock;
+    projectFilesOperator._internal.remoteHost = remoteHostMock;
   });
 
   afterEach(()=>{
@@ -3425,20 +3300,16 @@ describe("#checkRemoteStoragePathWritePermission", ()=>{
 });
 
 describe("#recursiveGetHosts", ()=>{
-  let rewireProjectFilesOperator;
   let recursiveGetHosts, getChildrenMock, hasChildMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    recursiveGetHosts = rewireProjectFilesOperator.__get__("recursiveGetHosts");
+    recursiveGetHosts = projectFilesOperator._internal.recursiveGetHosts;
 
     getChildrenMock = sinon.stub();
     hasChildMock = sinon.stub();
 
-    rewireProjectFilesOperator.__set__({
-      getChildren: getChildrenMock,
-      hasChild: hasChildMock
-    });
+    projectFilesOperator._internal.getChildren = getChildrenMock;
+    projectFilesOperator._internal.hasChild = hasChildMock;
   });
 
   it("should not add any hosts if there are no children", async ()=>{
@@ -3522,16 +3393,14 @@ describe("#recursiveGetHosts", ()=>{
 });
 
 describe("#getHosts", ()=>{
-  let rewireProjectFilesOperator;
   let getHosts;
   let recursiveGetHostsMock;
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    getHosts = rewireProjectFilesOperator.__get__("getHosts");
+    getHosts = projectFilesOperator._internal.getHosts;
 
     recursiveGetHostsMock = sinon.stub();
-    rewireProjectFilesOperator.__set__("recursiveGetHosts", recursiveGetHostsMock);
+    projectFilesOperator._internal.recursiveGetHosts = recursiveGetHostsMock;
   });
 
   afterEach(()=>{
@@ -6510,7 +6379,6 @@ describe("#isComponentDir", ()=>{
 });
 
 describe("#getComponentTree", ()=>{
-  let rewireProjectFilesOperator;
   let getComponentTree;
   let readJsonGreedyMock;
   let pathIsAbsoluteMock;
@@ -6520,8 +6388,7 @@ describe("#getComponentTree", ()=>{
 
   beforeEach(()=>{
     //rewireで対象モジュールを読み込み
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    getComponentTree = rewireProjectFilesOperator.__get__("getComponentTree");
+    getComponentTree = projectFilesOperator._internal.getComponentTree;
 
     readJsonGreedyMock = sinon.stub();
     pathIsAbsoluteMock = sinon.stub();
@@ -6531,18 +6398,16 @@ describe("#getComponentTree", ()=>{
 
     //getComponentTree内で使われるメソッドをtest側でstub化
     //必要に応じてnormalizeやresolveもstub化可能
-    rewireProjectFilesOperator.__set__({
-      readJsonGreedy: readJsonGreedyMock,
-      path: {
-        ...path,
-        isAbsolute: pathIsAbsoluteMock,
-        relative: pathRelativeMock,
-        dirname: pathDirnameMock,
-        join: pathJoinMock,
-        normalize: path.normalize,
-        resolve: path.resolve
-      }
-    });
+    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
+    projectFilesOperator._internal.path = {
+      ...path,
+      isAbsolute: pathIsAbsoluteMock,
+      relative: pathRelativeMock,
+      dirname: pathDirnameMock,
+      join: pathJoinMock,
+      normalize: path.normalize,
+      resolve: path.resolve
+    };
   });
 
   afterEach(()=>{
