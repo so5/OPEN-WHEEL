@@ -433,9 +433,6 @@ _internal.updateComponentPos = updateComponentPos;
 
 module.exports = {
   updateComponent,
-  updateComponentPos
+  updateComponentPos,
+  _internal
 };
-
-if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
-}
