@@ -18,12 +18,11 @@ chai.use(require("chai-json-schema"));
 chai.use(require("deep-equal-in-any-order"));
 chai.use(require("chai-as-promised"));
 const sinon = require("sinon");
-const rewire = require("rewire");
 const { createNewProject, createNewComponent } = require("../../../app/core/projectFilesOperator.js");
 const { writeComponentJson } = require("../../../app/core/componentJsonIO.js");
 
 //testee
-const { updateComponent } = require("../../../app/core/updateComponent.js");
+const { updateComponent, _internal } = require("../../../app/core/updateComponent.js");
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";
@@ -361,16 +360,10 @@ describe("updateComponent", ()=>{
     let writeComponentJsonStub;
 
     beforeEach(()=>{
-      const updateComponent = rewire("../../../app/core/updateComponent.js");
-      removeInputFileLinkFromParent = updateComponent.__get__("removeInputFileLinkFromParent");
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
-      updateComponent.__set__({
-        getComponentDir: getComponentDirStub,
-        readComponentJson: readComponentJsonStub,
-        writeComponentJson: writeComponentJsonStub
-      });
+      removeInputFileLinkFromParent = _internal.removeInputFileLinkFromParent;
+      getComponentDirStub = sinon.stub(_internal, "getComponentDir");
+      readComponentJsonStub = sinon.stub(_internal, "readComponentJson");
+      writeComponentJsonStub = sinon.stub(_internal, "writeComponentJson");
     });
 
     afterEach(()=>{
@@ -445,16 +438,10 @@ describe("updateComponent", ()=>{
     let writeComponentJsonStub;
 
     beforeEach(()=>{
-      const updateComponent = rewire("../../../app/core/updateComponent.js");
-      removeOutputFileLinkToParent = updateComponent.__get__("removeOutputFileLinkToParent");
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
-      updateComponent.__set__({
-        getComponentDir: getComponentDirStub,
-        readComponentJson: readComponentJsonStub,
-        writeComponentJson: writeComponentJsonStub
-      });
+      removeOutputFileLinkToParent = _internal.removeOutputFileLinkToParent;
+      getComponentDirStub = sinon.stub(_internal, "getComponentDir");
+      readComponentJsonStub = sinon.stub(_internal, "readComponentJson");
+      writeComponentJsonStub = sinon.stub(_internal, "writeComponentJson");
     });
 
     afterEach(()=>{
@@ -529,16 +516,10 @@ describe("updateComponent", ()=>{
     let writeComponentJsonStub;
 
     beforeEach(()=>{
-      const updateComponent = rewire("../../../app/core/updateComponent.js");
-      removeInputFileLinkFromSiblings = updateComponent.__get__("removeInputFileLinkFromSiblings");
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
-      updateComponent.__set__({
-        getComponentDir: getComponentDirStub,
-        readComponentJson: readComponentJsonStub,
-        writeComponentJson: writeComponentJsonStub
-      });
+      removeInputFileLinkFromSiblings = _internal.removeInputFileLinkFromSiblings;
+      getComponentDirStub = sinon.stub(_internal, "getComponentDir");
+      readComponentJsonStub = sinon.stub(_internal, "readComponentJson");
+      writeComponentJsonStub = sinon.stub(_internal, "writeComponentJson");
     });
 
     afterEach(()=>{
@@ -612,16 +593,10 @@ describe("updateComponent", ()=>{
     let writeComponentJsonStub;
 
     beforeEach(()=>{
-      const updateComponent = rewire("../../../app/core/updateComponent.js");
-      removeOutputFileLinkToSiblings = updateComponent.__get__("removeOutputFileLinkToSiblings");
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
-      updateComponent.__set__({
-        getComponentDir: getComponentDirStub,
-        readComponentJson: readComponentJsonStub,
-        writeComponentJson: writeComponentJsonStub
-      });
+      removeOutputFileLinkToSiblings = _internal.removeOutputFileLinkToSiblings;
+      getComponentDirStub = sinon.stub(_internal, "getComponentDir");
+      readComponentJsonStub = sinon.stub(_internal, "readComponentJson");
+      writeComponentJsonStub = sinon.stub(_internal, "writeComponentJson");
     });
 
     afterEach(()=>{
@@ -694,14 +669,9 @@ describe("updateComponent", ()=>{
     let removeInputFileLinkFromSiblingsStub;
 
     beforeEach(()=>{
-      const updateComponent = rewire("../../../app/core/updateComponent.js");
-      removeInputFileCounterpart = updateComponent.__get__("removeInputFileCounterpart");
-      removeInputFileLinkFromParentStub = sinon.stub();
-      removeInputFileLinkFromSiblingsStub = sinon.stub();
-      updateComponent.__set__({
-        removeInputFileLinkFromParent: removeInputFileLinkFromParentStub,
-        removeInputFileLinkFromSiblings: removeInputFileLinkFromSiblingsStub
-      });
+      removeInputFileCounterpart = _internal.removeInputFileCounterpart;
+      removeInputFileLinkFromParentStub = sinon.stub(_internal, "removeInputFileLinkFromParent");
+      removeInputFileLinkFromSiblingsStub = sinon.stub(_internal, "removeInputFileLinkFromSiblings");
     });
 
     afterEach(()=>{
@@ -804,14 +774,9 @@ describe("updateComponent", ()=>{
     let removeOutputFileLinkToSiblingsStub;
 
     beforeEach(()=>{
-      const updateComponent = rewire("../../../app/core/updateComponent.js");
-      removeOutputFileCounterpart = updateComponent.__get__("removeOutputFileCounterpart");
-      removeOutputFileLinkToParentStub = sinon.stub();
-      removeOutputFileLinkToSiblingsStub = sinon.stub();
-      updateComponent.__set__({
-        removeOutputFileLinkToParent: removeOutputFileLinkToParentStub,
-        removeOutputFileLinkToSiblings: removeOutputFileLinkToSiblingsStub
-      });
+      removeOutputFileCounterpart = _internal.removeOutputFileCounterpart;
+      removeOutputFileLinkToParentStub = sinon.stub(_internal, "removeOutputFileLinkToParent");
+      removeOutputFileLinkToSiblingsStub = sinon.stub(_internal, "removeOutputFileLinkToSiblings");
     });
 
     afterEach(()=>{
@@ -915,16 +880,10 @@ describe("updateComponent", ()=>{
     let writeComponentJsonStub;
 
     beforeEach(()=>{
-      const updateComponent = rewire("../../../app/core/updateComponent.js");
-      renameInputFileCounterpart = updateComponent.__get__("renameInputFileCounterpart");
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
-      updateComponent.__set__({
-        getComponentDir: getComponentDirStub,
-        readComponentJson: readComponentJsonStub,
-        writeComponentJson: writeComponentJsonStub
-      });
+      renameInputFileCounterpart = _internal.renameInputFileCounterpart;
+      getComponentDirStub = sinon.stub(_internal, "getComponentDir");
+      readComponentJsonStub = sinon.stub(_internal, "readComponentJson");
+      writeComponentJsonStub = sinon.stub(_internal, "writeComponentJson");
     });
 
     afterEach(()=>{
@@ -1079,16 +1038,10 @@ describe("updateComponent", ()=>{
     let writeComponentJsonStub;
 
     beforeEach(()=>{
-      const updateComponent = rewire("../../../app/core/updateComponent.js");
-      renameOutputFileCounterpart = updateComponent.__get__("renameOutputFileCounterpart");
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
-      updateComponent.__set__({
-        getComponentDir: getComponentDirStub,
-        readComponentJson: readComponentJsonStub,
-        writeComponentJson: writeComponentJsonStub
-      });
+      renameOutputFileCounterpart = _internal.renameOutputFileCounterpart;
+      getComponentDirStub = sinon.stub(_internal, "getComponentDir");
+      readComponentJsonStub = sinon.stub(_internal, "readComponentJson");
+      writeComponentJsonStub = sinon.stub(_internal, "writeComponentJson");
     });
 
     afterEach(()=>{
@@ -1244,20 +1197,11 @@ describe("updateComponent", ()=>{
     let updateComponentPathStub;
 
     beforeEach(()=>{
-      const updateComponent = rewire("../../../app/core/updateComponent.js");
-      renameComponentDir = updateComponent.__get__("renameComponentDir");
-      getComponentDirStub = sinon.stub();
-      gitRmStub = sinon.stub();
-      moveStub = sinon.stub();
-      updateComponentPathStub = sinon.stub();
-      updateComponent.__set__({
-        getComponentDir: getComponentDirStub,
-        gitRm: gitRmStub,
-        updateComponentPath: updateComponentPathStub,
-        fs: {
-          move: moveStub
-        }
-      });
+      renameComponentDir = _internal.renameComponentDir;
+      getComponentDirStub = sinon.stub(_internal, "getComponentDir");
+      gitRmStub = sinon.stub(_internal, "gitRm");
+      moveStub = sinon.stub(_internal.fs, "move");
+      updateComponentPathStub = sinon.stub(_internal, "updateComponentPath");
     });
 
     afterEach(()=>{
@@ -1291,21 +1235,14 @@ describe("updateComponent", ()=>{
     let writeComponentJsonStub;
 
     beforeEach(()=>{
-      const updateComponent = rewire("../../../app/core/updateComponent.js");
-      updateComponentPos = updateComponent.__get__("updateComponentPos");
-      getLoggerStub = sinon.stub();
+      updateComponentPos = _internal.updateComponentPos;
+      getLoggerStub = sinon.stub(_internal, "getLogger");
       debugStub = sinon.stub();
       warnStub = sinon.stub();
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
+      getComponentDirStub = sinon.stub(_internal, "getComponentDir");
+      readComponentJsonStub = sinon.stub(_internal, "readComponentJson");
+      writeComponentJsonStub = sinon.stub(_internal, "writeComponentJson");
 
-      updateComponent.__set__({
-        getLogger: getLoggerStub,
-        getComponentDir: getComponentDirStub,
-        readComponentJson: readComponentJsonStub,
-        writeComponentJson: writeComponentJsonStub
-      });
       getLoggerStub.returns({
         debug: debugStub,
         warn: warnStub
