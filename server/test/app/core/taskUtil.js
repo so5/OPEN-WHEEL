@@ -8,27 +8,28 @@
 //setup test framework
 const sinon = require("sinon");
 const chai = require("chai");
-const rewire = require("rewire");
 const expect = chai.expect;
+const chaiAsPromised = require("chai-as-promised");
 chai.use(require("chai-fs"));
+chai.use(chaiAsPromised);
 const { jobScheduler } = require("../../../app/db/db");
 
 //testee
-const rewTaskUtil = rewire("../../../app/core/taskUtil.js");
-const cancelDispatchedTasks = rewTaskUtil.__get__("cancelDispatchedTasks");
-const killTask = rewTaskUtil.__get__("killTask");
-const killLocalProcess = rewTaskUtil.__get__("killLocalProcess");
-const cancelRemoteJob = rewTaskUtil.__get__("cancelRemoteJob");
+const { cancelDispatchedTasks, _internal } = require("../../../app/core/taskUtil.js");
+const executerManager = require("../../../app/core/executerManager.js");
+const sshManager = require("../../../app/core/sshManager.js");
+const logSettings = require("../../../app/logSettings.js");
 
-describe("UT for taskUtil class", function () {
+const killTask = _internal.killTask;
+const killLocalProcess = _internal.killLocalProcess;
+const cancelRemoteJob = _internal.cancelRemoteJob;
+
+describe("UT for taskUtil class", function() {
   describe("#cancelDispatchedTasks", ()=>{
     let cancelStub, killTaskStub;
     beforeEach(()=>{
-      sinon.restore();
-      cancelStub = sinon.stub();
-      killTaskStub = sinon.stub();
-      rewTaskUtil.__set__("cancel", cancelStub);
-      rewTaskUtil.__set__("killTask", killTaskStub);
+      cancelStub = sinon.stub(executerManager, "cancel");
+      killTaskStub = sinon.stub(_internal, "killTask");
     });
     afterEach(()=>{
       sinon.restore();
@@ -87,12 +88,9 @@ describe("UT for taskUtil class", function () {
   describe("#killTask", ()=>{
     let cancelLocalJobStub, killLocalProcessStub, cancelRemoteJobStub;
     beforeEach(()=>{
-      cancelLocalJobStub = sinon.stub();
-      killLocalProcessStub = sinon.stub();
-      cancelRemoteJobStub = sinon.stub();
-      rewTaskUtil.__set__("cancelLocalJob", cancelLocalJobStub);
-      rewTaskUtil.__set__("killLocalProcess", killLocalProcessStub);
-      rewTaskUtil.__set__("cancelRemoteJob", cancelRemoteJobStub);
+      cancelLocalJobStub = sinon.stub(_internal, "cancelLocalJob");
+      killLocalProcessStub = sinon.stub(_internal, "killLocalProcess");
+      cancelRemoteJobStub = sinon.stub(_internal, "cancelRemoteJob");
     });
     afterEach(()=>{
       sinon.restore();
@@ -149,7 +147,7 @@ describe("UT for taskUtil class", function () {
     });
   });
   describe("#cancelRemoteJob", ()=>{
-    let task, sshStub, getSshStub, getSshHostinfoStub, loggerStub, getLoggerStub;
+    let task, sshStub, loggerStub;
     beforeEach(()=>{
       task = {
         jobID: "12345",
@@ -157,24 +155,18 @@ describe("UT for taskUtil class", function () {
         remotehostID: "host1",
         name: "testTask"
       };
-      getSshStub = sinon.stub();
-      getSshHostinfoStub = sinon.stub();
       sshStub = {
         exec: sinon.stub().resolves()
       };
-      getSshStub.returns(sshStub);
-      getSshHostinfoStub.returns({
+      sinon.stub(sshManager, "getSsh").returns(sshStub);
+      sinon.stub(sshManager, "getSshHostinfo").returns({
         jobScheduler: "SLURM"
       });
-      rewTaskUtil.__set__("getSsh", getSshStub);
-      rewTaskUtil.__set__("getSshHostinfo", getSshHostinfoStub);
       jobScheduler.SLURM = { del: "scancel" };
       loggerStub = {
         debug: sinon.stub()
       };
-      getLoggerStub = sinon.stub();
-      getLoggerStub.returns(loggerStub);
-      rewTaskUtil.__set__("getLogger", getLoggerStub);
+      sinon.stub(logSettings, "getLogger").returns(loggerStub);
     });
     afterEach(()=>{
       sinon.restore();
