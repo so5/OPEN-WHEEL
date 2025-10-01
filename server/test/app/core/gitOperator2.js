@@ -345,7 +345,7 @@ describe("gitOperator2", ()=>{
     const filename = "file.txt";
 
     beforeEach(()=>{
-      sinon.stub(_internal, "promisifiedGit");
+      sinon.stub(_internal, "gitPromise");
     });
 
     afterEach(()=>{
@@ -353,12 +353,12 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitPromise with correct arguments (without -u)", async ()=>{
-      _internal.promisifiedGit.resolves();
+      _internal.gitPromise.resolves();
 
       await gitAdd(rootDir, filename, false);
 
       sinon.assert.calledWith(
-        _internal.promisifiedGit,
+        _internal.gitPromise,
         rootDir,
         ["add", "--", filename],
         rootDir
@@ -366,12 +366,12 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitPromise with correct arguments (with -u)", async ()=>{
-      _internal.promisifiedGit.resolves();
+      _internal.gitPromise.resolves();
 
       await gitAdd(rootDir, filename, true);
 
       sinon.assert.calledWith(
-        _internal.promisifiedGit,
+        _internal.gitPromise,
         rootDir,
         ["add", "-u", "--", filename],
         rootDir
@@ -383,12 +383,12 @@ describe("gitOperator2", ()=>{
       const error = new Error(
         "fatal: Unable to create '/repo/.git/index.lock': File exists"
       );
-      _internal.promisifiedGit.onCall(0).rejects(error);
-      _internal.promisifiedGit.onCall(1).rejects(error);
-      _internal.promisifiedGit.onCall(2).rejects(error);
-      _internal.promisifiedGit.onCall(3).rejects(error);
-      _internal.promisifiedGit.onCall(4).rejects(error);
-      _internal.promisifiedGit.onCall(5).resolves(undefined);
+      _internal.gitPromise.onCall(0).rejects(error);
+      _internal.gitPromise.onCall(1).rejects(error);
+      _internal.gitPromise.onCall(2).rejects(error);
+      _internal.gitPromise.onCall(3).rejects(error);
+      _internal.gitPromise.onCall(4).rejects(error);
+      _internal.gitPromise.onCall(5).resolves(undefined);
 
       await expect(gitAdd(rootDir, filename, false)).to.be.fulfilled;
     });
@@ -397,19 +397,19 @@ describe("gitOperator2", ()=>{
       const error = new Error(
         "fatal: Unable to create '/repo/.git/index.lock': File exists"
       );
-      _internal.promisifiedGit.onCall(0).rejects(error);
-      _internal.promisifiedGit.onCall(1).rejects(error);
-      _internal.promisifiedGit.onCall(2).rejects(error);
-      _internal.promisifiedGit.onCall(3).rejects(error);
-      _internal.promisifiedGit.onCall(4).rejects(error);
-      _internal.promisifiedGit.onCall(5).rejects(error);
+      _internal.gitPromise.onCall(0).rejects(error);
+      _internal.gitPromise.onCall(1).rejects(error);
+      _internal.gitPromise.onCall(2).rejects(error);
+      _internal.gitPromise.onCall(3).rejects(error);
+      _internal.gitPromise.onCall(4).rejects(error);
+      _internal.gitPromise.onCall(5).rejects(error);
 
       return expect(gitAdd(rootDir, filename, false)).to.be.rejected;
     });
 
     it("should throw error if gitPromise fails with another error", async ()=>{
       const error = new Error("some other error");
-      _internal.promisifiedGit.rejects(error);
+      _internal.gitPromise.rejects(error);
 
       await expect(gitAdd(rootDir, filename, false)).to.be.rejectedWith(
         Error,
