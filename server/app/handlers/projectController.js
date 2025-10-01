@@ -22,7 +22,7 @@ const { setJWTServerPassphrase, removeAllJWTServerPassphrase } = require("../cor
 const { runProject, cleanProject, stopProject } = require("../core/projectController.js");
 const { isValidOutputFilename } = require("../lib/utility");
 const { checkWritePermissions, parentDirs, eventEmitters } = require("../core/global.js");
-const { sendWorkflow, sendProjectJson, sendTaskStateList, sendResultsFileDir, sendComponentTree } = require("./senders.js");
+const senders = require("./senders.js");
 const { emitAll, emitWithPromise } = require("./commUtils.js");
 const { removeTempd, getTempd } = require("../core/tempd.js");
 const { validateComponents } = require("../core/validateComponents.js");
@@ -31,13 +31,18 @@ const { checkJWTAgent, startJWTAgent } = require("../core/gfarmOperator.js");
 const allowedOperations = require("../../../common/allowedOperations.cjs");
 
 const projectOperationQueues = new Map();
-async function updateProjectState(projectRootDir, state) {
+
+const _internal = {};
+_internal.projectOperationQueues = projectOperationQueues;
+_internal.senders = senders;
+
+_internal.updateProjectState = async function(projectRootDir, state) {
   const projectJson = await setProjectState(projectRootDir, state);
   if (projectJson) {
     await emitAll(projectRootDir, "projectState", projectJson.state);
   }
-}
-async function askUnsavedFiles(clientID, projectRootDir, targetDir) {
+};
+_internal.askUnsavedFiles = async function(clientID, projectRootDir, targetDir) {
   const logger = getLogger(projectRootDir);
   const unsavedFiles = await getUnsavedFiles(projectRootDir, targetDir);
   const filterdUnsavedFiles = unsavedFiles.filter((e)=>{
@@ -55,14 +60,14 @@ async function askUnsavedFiles(clientID, projectRootDir, targetDir) {
       return unsaved.name;
     }));
   } else if (mode === "update") {
-    return askUnsavedFiles(clientID, projectRootDir, targetDir);
+    return _internal.askUnsavedFiles(clientID, projectRootDir, targetDir);
   }
-}
-async function getSourceCandidates(projectRootDir, ID) {
+};
+_internal.getSourceCandidates = async function(projectRootDir, ID) {
   const componentDir = await getComponentDir(projectRootDir, ID);
   return promisify(glob)("*", { cwd: path.join(projectRootDir, componentDir), ignore: componentJsonFilename });
-}
-async function askSourceFilename(clientID, ID, name, description, candidates) {
+};
+_internal.askSourceFilename = async function(clientID, ID, name, description, candidates) {
   return new Promise((resolve, reject)=>{
     emitAll(clientID, "askSourceFilename", ID, name, description, candidates, (filename)=>{
       if (isValidOutputFilename(filename)) {
@@ -74,8 +79,8 @@ async function askSourceFilename(clientID, ID, name, description, candidates) {
       }
     });
   });
-}
-async function askUploadSourceFile(clientID, ID, name, description) {
+};
+_internal.askUploadSourceFile = async function(clientID, ID, name, description) {
   return new Promise((resolve, reject)=>{
     emitAll(clientID, "askUploadSourceFile", ID, name, description, (filename)=>{
       if (filename === null) {
@@ -85,16 +90,16 @@ async function askUploadSourceFile(clientID, ID, name, description) {
       }
     });
   });
-}
+};
 
 /**
  * ask user what file to be used
  */
-async function getSourceFilename(projectRootDir, component, clientID) {
+_internal.getSourceFilename = async function(projectRootDir, component, clientID) {
   if (component.uploadOnDemand) {
-    return askUploadSourceFile(clientID, component.ID, component.name, component.description);
+    return _internal.askUploadSourceFile(clientID, component.ID, component.name, component.description);
   }
-  const filelist = await getSourceCandidates(projectRootDir, component.ID);
+  const filelist = await _internal.getSourceCandidates(projectRootDir, component.ID);
   getLogger(projectRootDir).trace("sourceFile: candidates=", filelist);
   if (component.outputFiles && component.outputFiles[0] && component.outputFiles[0].name) {
     const rt = filelist.find((e)=>{
@@ -110,10 +115,10 @@ async function getSourceFilename(projectRootDir, component, clientID) {
     getLogger(projectRootDir).debug(`sourceFile: ${filelist[0]} is the only candidate. use it as outputFile`);
     return (filelist[0]);
   }
-  return askSourceFilename(clientID, component.ID, component.name, component.description, filelist);
-}
+  return _internal.askSourceFilename(clientID, component.ID, component.name, component.description, filelist);
+};
 
-async function makeOIDCAuth(clientID, remotehostID) {
+_internal.makeOIDCAuth = async function(clientID, remotehostID) {
   return new Promise((resolve)=>{
     emitAll(clientID, "requestOIDCAuth", remotehostID, ()=>{
       //一回目はここで証明書の確認とかをユーザがやっている間にresolveされてしまって
@@ -122,7 +127,7 @@ async function makeOIDCAuth(clientID, remotehostID) {
       resolve();
     });
   });
-}
+};
 
 async function onGetProjectJson(projectRootDir, ack) {
   try {
@@ -131,7 +136,7 @@ async function onGetProjectJson(projectRootDir, ack) {
     const resultDir = await getTempd(projectRootDir, "viewer");
     const filename = path.resolve(resultDir, filesJsonFilename);
     if (await fs.pathExists(filename)) {
-      sendResultsFileDir(projectRootDir, resultDir);
+      _internal.senders.sendResultsFileDir(projectRootDir, resultDir);
     }
   } catch (e) {
     getLogger(projectRootDir).warn("getProjectJson failed", e);
@@ -141,7 +146,7 @@ async function onGetProjectJson(projectRootDir, ack) {
 }
 async function onGetWorkflow(clientID, projectRootDir, componentID, ack) {
   const requestedComponentDir = await getComponentDir(projectRootDir, componentID);
-  return sendWorkflow(ack, projectRootDir, requestedComponentDir, clientID);
+  return _internal.senders.sendWorkflow(ack, projectRootDir, requestedComponentDir, clientID);
 }
 async function onUpdateProjectDescription(projectRootDir, description, ack) {
   await updateProjectDescription(projectRootDir, description);
@@ -152,7 +157,7 @@ async function onUpdateProjectROStatus(projectRootDir, isRO, ack) {
   onGetProjectJson(projectRootDir, ack);
 }
 
-async function onRunProject(clientID, projectRootDir, ack) {
+_internal.onRunProject = async function(clientID, projectRootDir, ack) {
   const logger = getLogger(projectRootDir);
   const projectState = await getProjectState(projectRootDir);
   if (projectState !== "paused") {
@@ -173,7 +178,7 @@ async function onRunProject(clientID, projectRootDir, ack) {
     }
     //interactive phase
     try {
-      await updateProjectState(projectRootDir, "preparing");
+      await _internal.updateProjectState(projectRootDir, "preparing");
 
       //resolve source files
       const sourceComponents = await getSourceComponents(projectRootDir);
@@ -183,7 +188,7 @@ async function onRunProject(clientID, projectRootDir, ack) {
           continue;
         }
         //ask to user if needed
-        const filename = await getSourceFilename(projectRootDir, component, clientID);
+        const filename = await _internal.getSourceFilename(projectRootDir, component, clientID);
         const componentDir = await getComponentDir(projectRootDir, component.ID);
         const outputFilenames = component.outputFiles.map((e)=>{
           return e.name;
@@ -216,7 +221,7 @@ async function onRunProject(clientID, projectRootDir, ack) {
         await createSsh(projectRootDir, hostinfo.name, hostinfo, clientID, host.isStorage);
         if (hostinfo.useWebAPI) {
           getLogger(projectRootDir).debug(`start OIDC authorization for ${hostinfo.name}`);
-          await makeOIDCAuth(clientID, id);
+          await _internal.makeOIDCAuth(clientID, id);
         }
         if (hostinfo.useGfarm && host.isGfarm) {
           if (await checkJWTAgent(projectRootDir, hostinfo.id)) {
@@ -249,7 +254,7 @@ async function onRunProject(clientID, projectRootDir, ack) {
         }
       }
     } catch (err) {
-      await updateProjectState(projectRootDir, "not-started");
+      await _internal.updateProjectState(projectRootDir, "not-started");
       if (err.reason === "CANCELED") {
         getLogger(projectRootDir).debug(err.message);
       } else if (err.reason === "invalidRemoteStorage") {
@@ -270,19 +275,19 @@ async function onRunProject(clientID, projectRootDir, ack) {
     eventEmitters.set(projectRootDir, ee);
     ee.on("componentStateChanged", ()=>{
       const parentDir = parentDirs.get(projectRootDir);
-      sendWorkflow(()=>{}, projectRootDir, parentDir);
+      _internal.senders.sendWorkflow(()=>{}, projectRootDir, parentDir);
     });
-    ee.on("projectStateChanged", sendProjectJson.bind(null, projectRootDir));
-    ee.on("taskDispatched", sendTaskStateList.bind(null, projectRootDir));
-    ee.on("taskCompleted", sendTaskStateList.bind(null, projectRootDir));
+    ee.on("projectStateChanged", _internal.senders.sendProjectJson.bind(null, projectRootDir));
+    ee.on("taskDispatched", _internal.senders.sendTaskStateList.bind(null, projectRootDir));
+    ee.on("taskCompleted", _internal.senders.sendTaskStateList.bind(null, projectRootDir));
     ee.on("taskStateChanged", async (task)=>{
-      await sendTaskStateList(projectRootDir);
+      await _internal.senders.sendTaskStateList(projectRootDir);
       if (task.ignoreFailure !== true && ["failed", "unknow"].includes(task.state)) {
         await stopProject(projectRootDir);
-        await updateProjectState(projectRootDir, "stopped");
+        await _internal.updateProjectState(projectRootDir, "stopped");
       }
     });
-    ee.on("resultFilesReady", sendResultsFileDir.bind(null, projectRootDir));
+    ee.on("resultFilesReady", _internal.senders.sendResultsFileDir.bind(null, projectRootDir));
 
     const { webhook } = await getProjectJson(projectRootDir);
     logger.trace(`webhook setting for ${projectRootDir} \n`, webhook);
@@ -308,26 +313,26 @@ async function onRunProject(clientID, projectRootDir, ack) {
     await updateProjectROStatus(projectRootDir, false);
   } catch (err) {
     getLogger(projectRootDir).error("fatal error occurred while parsing workflow:", err);
-    await updateProjectState(projectRootDir, "failed");
+    await _internal.updateProjectState(projectRootDir, "failed");
     ack(err);
   } finally {
     emitAll(projectRootDir, "projectJson", await getProjectJson(projectRootDir));
-    await sendWorkflow(ack, projectRootDir);
+    await _internal.senders.sendWorkflow(ack, projectRootDir);
     eventEmitters.delete(projectRootDir);
     removeSsh(projectRootDir);
     removeAllJWTServerPassphrase(projectRootDir);
   }
   return;
-}
-async function onStopProject(projectRootDir) {
+};
+_internal.onStopProject = async function(projectRootDir) {
   await stopProject(projectRootDir);
-  await updateProjectState(projectRootDir, "stopped");
-}
+  await _internal.updateProjectState(projectRootDir, "stopped");
+};
 
 async function onCleanComponent(clientID, projectRootDir, targetComponentID) {
   const componentDir = await getComponentDir(projectRootDir, targetComponentID);
   try {
-    await askUnsavedFiles(clientID, projectRootDir, componentDir);
+    await _internal.askUnsavedFiles(clientID, projectRootDir, componentDir);
   } catch (err) {
     if (err.message === "canceled by user") {
       return;
@@ -336,15 +341,15 @@ async function onCleanComponent(clientID, projectRootDir, targetComponentID) {
   }
   await cleanProject(projectRootDir, componentDir);
   await Promise.all([
-    sendWorkflow(null, projectRootDir),
-    sendTaskStateList(projectRootDir),
-    sendComponentTree(projectRootDir)
+    _internal.senders.sendWorkflow(null, projectRootDir),
+    _internal.senders.sendTaskStateList(projectRootDir),
+    _internal.senders.sendComponentTree(projectRootDir)
   ]);
 }
 
-async function onCleanProject(clientID, projectRootDir) {
+_internal.onCleanProject = async function(clientID, projectRootDir) {
   try {
-    await askUnsavedFiles(clientID, projectRootDir);
+    await _internal.askUnsavedFiles(clientID, projectRootDir);
   } catch (err) {
     if (err.message === "canceled by user") {
       return;
@@ -356,10 +361,10 @@ async function onCleanProject(clientID, projectRootDir) {
     removeTempd(projectRootDir, "viewer"),
     removeTempd(projectRootDir, "download")
   ]);
-}
-async function onRevertProject(clientID, projectRootDir) {
+};
+_internal.onRevertProject = async function(clientID, projectRootDir) {
   try {
-    await askUnsavedFiles(clientID, projectRootDir);
+    await _internal.askUnsavedFiles(clientID, projectRootDir);
   } catch (err) {
     if (err.message === "canceled by user") {
       return;
@@ -371,8 +376,8 @@ async function onRevertProject(clientID, projectRootDir) {
     removeTempd(projectRootDir, "viewer"),
     removeTempd(projectRootDir, "download")
   ]);
-}
-async function onSaveProject(projectRootDir, ack) {
+};
+_internal.onSaveProject = async function(projectRootDir, ack) {
   const projectJson = await getProjectJson(projectRootDir);
   const { readOnly, state: projectState } = projectJson;
   if (readOnly) {
@@ -393,9 +398,9 @@ async function onSaveProject(projectRootDir, ack) {
   await gitAdd(projectRootDir, filename);
   await setComponentStateR(projectRootDir, projectRootDir, "not-started", false, []);
   await gitCommit(projectRootDir);
-}
+};
 
-async function projectOperator({ clientID, projectRootDir, ack, operation }) {
+_internal.projectOperator = async function({ clientID, projectRootDir, ack, operation }) {
   const projectState = await getProjectState(projectRootDir);
   //ignore disallowd operation for this state
   if (!allowedOperations[projectState].includes(operation)) {
@@ -406,19 +411,19 @@ async function projectOperator({ clientID, projectRootDir, ack, operation }) {
     switch (operation) {
       case "runProject":
         //do not wait onRunProject
-        onRunProject(clientID, projectRootDir, ack);
+        _internal.onRunProject(clientID, projectRootDir, ack);
         break;
       case "stopProject":
-        await onStopProject(projectRootDir, ack);
+        await _internal.onStopProject(projectRootDir, ack);
         break;
       case "cleanProject":
-        await onCleanProject(clientID, projectRootDir, ack);
+        await _internal.onCleanProject(clientID, projectRootDir, ack);
         break;
       case "revertProject":
-        await onRevertProject(clientID, projectRootDir, ack);
+        await _internal.onRevertProject(clientID, projectRootDir, ack);
         break;
       case "saveProject":
-        await onSaveProject(projectRootDir, ack);
+        await _internal.onSaveProject(projectRootDir, ack);
         break;
     }
   } catch (e) {
@@ -427,21 +432,21 @@ async function projectOperator({ clientID, projectRootDir, ack, operation }) {
   } finally {
     if (operation !== "runProject") {
       await Promise.all([
-        sendWorkflow(null, projectRootDir),
-        sendTaskStateList(projectRootDir),
-        sendProjectJson(projectRootDir),
-        sendComponentTree(projectRootDir)
+        _internal.senders.sendWorkflow(null, projectRootDir),
+        _internal.senders.sendTaskStateList(projectRootDir),
+        _internal.senders.sendProjectJson(projectRootDir),
+        _internal.senders.sendComponentTree(projectRootDir)
       ]);
     }
   }
   getLogger(projectRootDir).debug(`${operation} handler finished`);
   return ack(true);
-}
-function getProjectOperationQueue(projectRootDir) {
-  if (!projectOperationQueues.has(projectRootDir)) {
+};
+_internal.getProjectOperationQueue = function(projectRootDir) {
+  if (!_internal.projectOperationQueues.has(projectRootDir)) {
     const tmp = new SBS({
       name: "projectOperator",
-      exec: projectOperator,
+      exec: _internal.projectOperator,
       submitHook: async (queue, { operation })=>{
         const last = queue.getLastEntry();
         if (last !== null && last.args.operation === operation) {
@@ -455,12 +460,12 @@ function getProjectOperationQueue(projectRootDir) {
         return true;
       }
     });
-    projectOperationQueues.set(projectRootDir, tmp);
+    _internal.projectOperationQueues.set(projectRootDir, tmp);
   }
-  return projectOperationQueues.get(projectRootDir);
-}
+  return _internal.projectOperationQueues.get(projectRootDir);
+};
 async function onProjectOperation(clientID, projectRootDir, operation, ack) {
-  const queue = getProjectOperationQueue(projectRootDir);
+  const queue = _internal.getProjectOperationQueue(projectRootDir);
   const rt = await queue.qsub({ operation, clientID, projectRootDir, ack });
   return rt;
 }
@@ -471,5 +476,6 @@ module.exports = {
   onCleanComponent,
   onUpdateProjectDescription,
   onUpdateProjectROStatus,
-  onProjectOperation
+  onProjectOperation,
+  _internal
 };

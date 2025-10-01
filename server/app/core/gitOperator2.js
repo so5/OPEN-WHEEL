@@ -110,7 +110,9 @@ async function gitSetup(rootDir, user, mail) {
   }
 
   //git lfs install does not affect if already installed
-  await gitPromise(rootDir, ["lfs", "install"], rootDir);
+  if (process.env.WHEEL_RUNNING_TEST !== "1") {
+    await gitPromise(rootDir, ["lfs", "install"], rootDir);
+  }
 
   const ignoreFile = path.join(rootDir, ".gitignore");
 
