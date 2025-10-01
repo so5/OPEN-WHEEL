@@ -17,19 +17,13 @@ const { gitInit, gitCommit, gitAdd, gitRm, gitResetHEAD, gitStatus, gitClean, gi
 
 describe("gitOperator2", ()=>{
   describe("#gitPromise", ()=>{
-    let gitPromise;
     let spawnStub;
-    let getLoggerStub;
     let traceStub;
 
     beforeEach(()=>{
-      gitPromise = _internal.gitPromise;
-      spawnStub = sinon.stub();
-      getLoggerStub = sinon.stub();
+      spawnStub = sinon.stub(_internal, "spawn");
       traceStub = sinon.stub();
-      getLoggerStub.returns({ trace: traceStub });
-      _internal.spawn = spawnStub;
-      _internal.getLogger = getLoggerStub;
+      sinon.stub(_internal, "getLogger").returns({ trace: traceStub });
     });
 
     afterEach(()=>{
@@ -50,7 +44,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      await gitPromise(cwd, args, rootDir);
+      await _internal.gitPromise(cwd, args, rootDir);
       expect(spawnStub.calledOnce).to.be.true;
       expect(spawnStub.calledWith("git", args, sinon.match({ cwd: cwd, env: process.env, shell: true }))).to.be.true;
     });
@@ -69,7 +63,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      await gitPromise(cwd, args, rootDir);
+      await _internal.gitPromise(cwd, args, rootDir);
       expect(traceStub.calledWith("stdout")).to.be.true;
       expect(traceStub.calledWith("stderr")).to.be.true;
     });
@@ -88,7 +82,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      const promise = gitPromise(cwd, args, rootDir);
+      const promise = _internal.gitPromise(cwd, args, rootDir);
       await promise.then(()=>{
         expect.fail();
       }).catch((err)=>{
@@ -115,7 +109,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      const promise = gitPromise(cwd, args, rootDir);
+      const promise = _internal.gitPromise(cwd, args, rootDir);
       await promise.then(()=>{
         expect.fail();
       }).catch((err)=>{
@@ -141,35 +135,23 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      const result = await gitPromise(cwd, args, rootDir);
+      const result = await _internal.gitPromise(cwd, args, rootDir);
       expect(result).to.equal("stdoutstderr");
     });
   });
 
   describe("#gitSetup", ()=>{
-    let gitSetup;
     const rootDir = "/repo";
     const user = "testuser";
     const mail = "testuser@example.com";
-    let outputFileStub;
-    let appendFileStub;
-    let gitAddStub;
-    let gitCommitStub;
-    let gitPromiseStub;
-    let readFileStub;
 
     beforeEach(()=>{
-      gitSetup = _internal.gitSetup;
-      outputFileStub = sinon.stub(fs, "outputFile").resolves();
-      appendFileStub = sinon.stub(fs, "appendFile").resolves();
-      gitPromiseStub = sinon.stub();
-      readFileStub = sinon.stub();
-      gitAddStub = sinon.stub();
-      gitCommitStub = sinon.stub();
-      _internal.gitAdd = gitAddStub;
-      _internal.gitCommit = gitCommitStub;
-      _internal.gitPromise = gitPromiseStub;
-      _internal.readFile = readFileStub;
+      sinon.stub(fs, "outputFile").resolves();
+      sinon.stub(fs, "appendFile").resolves();
+      sinon.stub(_internal, "gitPromise");
+      sinon.stub(_internal, "readFile");
+      sinon.stub(_internal, "gitAdd");
+      sinon.stub(_internal, "gitCommit");
     });
 
     afterEach(()=>{
@@ -180,83 +162,78 @@ describe("gitOperator2", ()=>{
       const err = new Error("dummy error object");
       err.rt = 1;
       err.code = "ENOENT";
-      gitPromiseStub.onCall(0).rejects(err);
-      gitPromiseStub.onCall(2).rejects(err);
-      readFileStub.rejects(err);
+      _internal.gitPromise.onCall(0).rejects(err);
+      _internal.gitPromise.onCall(2).rejects(err);
+      _internal.readFile.rejects(err);
 
-      await gitSetup(rootDir, user, mail);
-      expect(gitPromiseStub).to.have.callCount(5);
-      expect(gitPromiseStub.getCall(0)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.name"], rootDir);
-      expect(gitPromiseStub.getCall(1)).to.be.calledWithExactly(rootDir, ["config", "user.name", user], rootDir);
-      expect(gitPromiseStub.getCall(2)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.email"], rootDir);
-      expect(gitPromiseStub.getCall(3)).to.be.calledWithExactly(rootDir, ["config", "user.email", mail], rootDir);
-      expect(gitPromiseStub.getCall(4)).to.be.calledWithExactly(rootDir, ["lfs", "install"], rootDir);
+      await _internal.gitSetup(rootDir, user, mail);
+      expect(_internal.gitPromise).to.have.callCount(5);
+      expect(_internal.gitPromise.getCall(0)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.name"], rootDir);
+      expect(_internal.gitPromise.getCall(1)).to.be.calledWithExactly(rootDir, ["config", "user.name", user], rootDir);
+      expect(_internal.gitPromise.getCall(2)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.email"], rootDir);
+      expect(_internal.gitPromise.getCall(3)).to.be.calledWithExactly(rootDir, ["config", "user.email", mail], rootDir);
+      expect(_internal.gitPromise.getCall(4)).to.be.calledWithExactly(rootDir, ["lfs", "install"], rootDir);
 
-      expect(outputFileStub).to.be.calledOnceWithExactly(path.join(rootDir, ".gitignore"), "\nwheel.log\n");
-      expect(appendFileStub).not.to.be.called;
+      expect(fs.outputFile).to.be.calledOnceWithExactly(path.join(rootDir, ".gitignore"), "\nwheel.log\n");
+      expect(fs.appendFile).not.to.be.called;
 
-      expect(gitAddStub).calledOnceWithExactly(rootDir, ".gitignore");
-      expect(gitCommitStub).calledOnceWithExactly(rootDir, "initial commit");
+      expect(_internal.gitAdd).calledOnceWithExactly(rootDir, ".gitignore");
+      expect(_internal.gitCommit).calledOnceWithExactly(rootDir, "initial commit");
     });
     it("should setup lfs and create .gitignore", async ()=>{
       const err = new Error("dummy error object");
       err.code = "ENOENT";
-      readFileStub.rejects(err);
-      await gitSetup(rootDir, user, mail);
-      expect(gitPromiseStub).to.have.callCount(3);
-      expect(gitPromiseStub.getCall(0)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.name"], rootDir);
-      expect(gitPromiseStub.getCall(1)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.email"], rootDir);
-      expect(gitPromiseStub.getCall(2)).to.be.calledWithExactly(rootDir, ["lfs", "install"], rootDir);
+      _internal.readFile.rejects(err);
+      await _internal.gitSetup(rootDir, user, mail);
+      expect(_internal.gitPromise).to.have.callCount(3);
+      expect(_internal.gitPromise.getCall(0)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.name"], rootDir);
+      expect(_internal.gitPromise.getCall(1)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.email"], rootDir);
+      expect(_internal.gitPromise.getCall(2)).to.be.calledWithExactly(rootDir, ["lfs", "install"], rootDir);
 
-      expect(outputFileStub).to.be.calledOnceWithExactly(path.join(rootDir, ".gitignore"), "\nwheel.log\n");
-      expect(appendFileStub).not.to.be.called;
+      expect(fs.outputFile).to.be.calledOnceWithExactly(path.join(rootDir, ".gitignore"), "\nwheel.log\n");
+      expect(fs.appendFile).not.to.be.called;
 
-      expect(gitAddStub).calledOnceWithExactly(rootDir, ".gitignore");
-      expect(gitCommitStub).calledOnceWithExactly(rootDir, "initial commit");
+      expect(_internal.gitAdd).calledOnceWithExactly(rootDir, ".gitignore");
+      expect(_internal.gitCommit).calledOnceWithExactly(rootDir, "initial commit");
     });
     it("should use appendFile if .gitignore already exists and do not have .wheel", async ()=>{
-      readFileStub.resolves("hoge");
-      await gitSetup(rootDir, user, mail);
-      expect(gitPromiseStub).to.have.callCount(3);
-      expect(gitPromiseStub.getCall(0)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.name"], rootDir);
-      expect(gitPromiseStub.getCall(1)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.email"], rootDir);
-      expect(gitPromiseStub.getCall(2)).to.be.calledWithExactly(rootDir, ["lfs", "install"], rootDir);
+      _internal.readFile.resolves("hoge");
+      await _internal.gitSetup(rootDir, user, mail);
+      expect(_internal.gitPromise).to.have.callCount(3);
+      expect(_internal.gitPromise.getCall(0)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.name"], rootDir);
+      expect(_internal.gitPromise.getCall(1)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.email"], rootDir);
+      expect(_internal.gitPromise.getCall(2)).to.be.calledWithExactly(rootDir, ["lfs", "install"], rootDir);
 
-      expect(appendFileStub).to.be.calledOnceWithExactly(path.join(rootDir, ".gitignore"), "\nwheel.log\n");
-      expect(outputFileStub).not.to.be.called;
+      expect(fs.appendFile).to.be.calledOnceWithExactly(path.join(rootDir, ".gitignore"), "\nwheel.log\n");
+      expect(fs.outputFile).not.to.be.called;
 
-      expect(gitAddStub).calledOnceWithExactly(rootDir, ".gitignore");
-      expect(gitCommitStub).calledOnceWithExactly(rootDir, "initial commit");
+      expect(_internal.gitAdd).calledOnceWithExactly(rootDir, ".gitignore");
+      expect(_internal.gitCommit).calledOnceWithExactly(rootDir, "initial commit");
     });
     it("should not commit if the repo is already set up", async ()=>{
-      readFileStub.resolves("wheel.log");
-      await gitSetup(rootDir, user, mail);
-      expect(gitPromiseStub).to.have.callCount(3);
-      expect(gitPromiseStub.getCall(0)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.name"], rootDir);
-      expect(gitPromiseStub.getCall(1)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.email"], rootDir);
-      expect(gitPromiseStub.getCall(2)).to.be.calledWithExactly(rootDir, ["lfs", "install"], rootDir);
+      _internal.readFile.resolves("wheel.log");
+      await _internal.gitSetup(rootDir, user, mail);
+      expect(_internal.gitPromise).to.have.callCount(3);
+      expect(_internal.gitPromise.getCall(0)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.name"], rootDir);
+      expect(_internal.gitPromise.getCall(1)).to.be.calledWithExactly(rootDir, ["config", "--get", "user.email"], rootDir);
+      expect(_internal.gitPromise.getCall(2)).to.be.calledWithExactly(rootDir, ["lfs", "install"], rootDir);
 
-      expect(appendFileStub).not.to.be.called;
-      expect(outputFileStub).not.to.be.called;
+      expect(fs.appendFile).not.to.be.called;
+      expect(fs.outputFile).not.to.be.called;
 
-      expect(gitAddStub).not.to.be.called;
-      expect(gitCommitStub).not.to.be.called;
+      expect(_internal.gitAdd).not.to.be.called;
+      expect(_internal.gitCommit).not.to.be.called;
     });
   });
 
   describe("#gitInit", ()=>{
-    let gitPromiseStub;
-    let gitSetupStub;
-
     const rootDir = "/repo";
     const user = "testuser";
     const mail = "testuser@example.com";
 
     beforeEach(()=>{
-      gitPromiseStub = sinon.stub();
-      gitSetupStub = sinon.stub();
-      _internal.gitPromise = gitPromiseStub;
-      _internal.gitSetup = gitSetupStub;
+      sinon.stub(_internal, "gitPromise");
+      sinon.stub(_internal, "gitSetup");
       sinon.stub(fs, "ensureDir").resolves();
     });
 
@@ -281,28 +258,25 @@ describe("gitOperator2", ()=>{
     });
 
     it("should initialize git repository and set user config", async ()=>{
-      gitPromiseStub.resolves();
+      _internal.gitPromise.resolves();
 
       await gitInit(rootDir, user, mail);
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         sinon.match.string,
         ["init", "--", sinon.match.string],
         rootDir
       );
-      expect(gitSetupStub).to.be.calledWith(rootDir, user, mail);
+      expect(_internal.gitSetup).to.be.calledWith(rootDir, user, mail);
     });
   });
 
   describe("#gitCommit", ()=>{
-    let gitPromiseStub;
-
     const rootDir = "/repo";
     const defaultMessage = "save project";
 
     beforeEach(()=>{
-      gitPromiseStub = sinon.stub();
-      _internal.gitPromise = gitPromiseStub;
+      sinon.stub(_internal, "gitPromise");
     });
 
     afterEach(()=>{
@@ -310,14 +284,14 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitPromise with correct arguments when message and additionalOption are provided", async ()=>{
-      gitPromiseStub.resolves();
+      _internal.gitPromise.resolves();
       const message = "Initial commit";
       const additionalOption = ["--signoff"];
 
       await gitCommit(rootDir, message, additionalOption);
 
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         rootDir,
         ["commit", "-m", `"${message}"`, "--signoff"],
         rootDir
@@ -325,12 +299,12 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitPromise with default message when no message is provided", async ()=>{
-      gitPromiseStub.resolves();
+      _internal.gitPromise.resolves();
 
       await gitCommit(rootDir);
 
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         rootDir,
         ["commit", "-m", `"${defaultMessage}"`],
         rootDir
@@ -339,42 +313,39 @@ describe("gitOperator2", ()=>{
 
     it("should handle 'no changes to commit' error and not throw", async ()=>{
       const error = new Error("nothing to commit, working tree clean");
-      gitPromiseStub.rejects(error);
+      _internal.gitPromise.rejects(error);
 
       await expect(gitCommit(rootDir)).to.be.fulfilled;
     });
 
     it("should throw error if gitPromise fails with another error", async ()=>{
       const errorMessage = "some other error";
-      gitPromiseStub.rejects(new Error(errorMessage));
+      _internal.gitPromise.rejects(new Error(errorMessage));
 
       await expect(gitCommit(rootDir)).to.be.rejectedWith(Error, errorMessage);
     });
 
     it("should handle 'no changes added to commit' error and not throw", async ()=>{
       const error = new Error("no changes added to commit");
-      gitPromiseStub.rejects(error);
+      _internal.gitPromise.rejects(error);
 
       await expect(gitCommit(rootDir)).to.be.fulfilled;
     });
 
     it("should handle 'nothing to commit' error and not throw", async ()=>{
       const error = new Error("nothing to commit");
-      gitPromiseStub.rejects(error);
+      _internal.gitPromise.rejects(error);
 
       await expect(gitCommit(rootDir)).to.be.fulfilled;
     });
   });
 
   describe("#gitAdd", ()=>{
-    let promisifiedGitStub;
-
     const rootDir = "/repo";
     const filename = "file.txt";
 
     beforeEach(()=>{
-      promisifiedGitStub = sinon.stub();
-      _internal.promisifiedGit = promisifiedGitStub;
+      sinon.stub(_internal, "promisifiedGit");
     });
 
     afterEach(()=>{
@@ -382,12 +353,12 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitPromise with correct arguments (without -u)", async ()=>{
-      promisifiedGitStub.resolves();
+      _internal.promisifiedGit.resolves();
 
       await gitAdd(rootDir, filename, false);
 
       sinon.assert.calledWith(
-        promisifiedGitStub,
+        _internal.promisifiedGit,
         rootDir,
         ["add", "--", filename],
         rootDir
@@ -395,12 +366,12 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitPromise with correct arguments (with -u)", async ()=>{
-      promisifiedGitStub.resolves();
+      _internal.promisifiedGit.resolves();
 
       await gitAdd(rootDir, filename, true);
 
       sinon.assert.calledWith(
-        promisifiedGitStub,
+        _internal.promisifiedGit,
         rootDir,
         ["add", "-u", "--", filename],
         rootDir
@@ -412,12 +383,12 @@ describe("gitOperator2", ()=>{
       const error = new Error(
         "fatal: Unable to create '/repo/.git/index.lock': File exists"
       );
-      promisifiedGitStub.onCall(0).rejects(error);
-      promisifiedGitStub.onCall(1).rejects(error);
-      promisifiedGitStub.onCall(2).rejects(error);
-      promisifiedGitStub.onCall(3).rejects(error);
-      promisifiedGitStub.onCall(4).rejects(error);
-      promisifiedGitStub.onCall(5).resolves(undefined);
+      _internal.promisifiedGit.onCall(0).rejects(error);
+      _internal.promisifiedGit.onCall(1).rejects(error);
+      _internal.promisifiedGit.onCall(2).rejects(error);
+      _internal.promisifiedGit.onCall(3).rejects(error);
+      _internal.promisifiedGit.onCall(4).rejects(error);
+      _internal.promisifiedGit.onCall(5).resolves(undefined);
 
       await expect(gitAdd(rootDir, filename, false)).to.be.fulfilled;
     });
@@ -426,19 +397,19 @@ describe("gitOperator2", ()=>{
       const error = new Error(
         "fatal: Unable to create '/repo/.git/index.lock': File exists"
       );
-      promisifiedGitStub.onCall(0).rejects(error);
-      promisifiedGitStub.onCall(1).rejects(error);
-      promisifiedGitStub.onCall(2).rejects(error);
-      promisifiedGitStub.onCall(3).rejects(error);
-      promisifiedGitStub.onCall(4).rejects(error);
-      promisifiedGitStub.onCall(5).rejects(error);
+      _internal.promisifiedGit.onCall(0).rejects(error);
+      _internal.promisifiedGit.onCall(1).rejects(error);
+      _internal.promisifiedGit.onCall(2).rejects(error);
+      _internal.promisifiedGit.onCall(3).rejects(error);
+      _internal.promisifiedGit.onCall(4).rejects(error);
+      _internal.promisifiedGit.onCall(5).rejects(error);
 
       return expect(gitAdd(rootDir, filename, false)).to.be.rejected;
     });
 
     it("should throw error if gitPromise fails with another error", async ()=>{
       const error = new Error("some other error");
-      promisifiedGitStub.rejects(error);
+      _internal.promisifiedGit.rejects(error);
 
       await expect(gitAdd(rootDir, filename, false)).to.be.rejectedWith(
         Error,
@@ -448,14 +419,11 @@ describe("gitOperator2", ()=>{
   });
 
   describe("#gitRm", ()=>{
-    let gitPromiseStub;
-
     const rootDir = "/repo";
     const filename = "file.txt";
 
     beforeEach(()=>{
-      gitPromiseStub = sinon.stub();
-      _internal.gitPromise = gitPromiseStub;
+      sinon.stub(_internal, "gitPromise");
     });
 
     afterEach(()=>{
@@ -463,11 +431,11 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitPromise with correct arguments", async ()=>{
-      gitPromiseStub.resolves();
+      _internal.gitPromise.resolves();
       await gitRm(rootDir, filename);
 
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         rootDir,
         ["rm", "-r", "--cached", "--", filename],
         rootDir
@@ -478,14 +446,14 @@ describe("gitOperator2", ()=>{
       const error = new Error(
         "fatal: pathspec 'file.txt' did not match any files"
       );
-      gitPromiseStub.rejects(error);
+      _internal.gitPromise.rejects(error);
 
       await expect(gitRm(rootDir, filename)).to.be.fulfilled;
     });
 
     it("should throw error if gitPromise fails with another error", async ()=>{
       const error = new Error("some other error");
-      gitPromiseStub.rejects(error);
+      _internal.gitPromise.rejects(error);
 
       await expect(gitRm(rootDir, filename)).to.be.rejectedWith(
         Error,
@@ -495,13 +463,10 @@ describe("gitOperator2", ()=>{
   });
 
   describe("#gitResetHEAD", ()=>{
-    let gitPromiseStub;
-
     const rootDir = "/repo";
 
     beforeEach(()=>{
-      gitPromiseStub = sinon.stub();
-      _internal.gitPromise = gitPromiseStub;
+      sinon.stub(_internal, "gitPromise");
     });
 
     afterEach(()=>{
@@ -509,12 +474,12 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitPromise with reset HEAD --hard when filePatterns is empty", async ()=>{
-      gitPromiseStub.resolves();
+      _internal.gitPromise.resolves();
 
       await gitResetHEAD(rootDir, "");
 
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         rootDir,
         ["reset", "HEAD", "--hard"],
         rootDir
@@ -522,19 +487,19 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitPromise with reset HEAD -- <filePatterns> and then checkout HEAD -- <filePatterns>", async ()=>{
-      gitPromiseStub.resolves();
+      _internal.gitPromise.resolves();
       const filePatterns = "test.txt";
 
       await gitResetHEAD(rootDir, filePatterns);
 
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         rootDir,
         ["reset", "HEAD", "--", filePatterns],
         rootDir
       );
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         rootDir,
         ["checkout", "HEAD", "--", filePatterns],
         rootDir
@@ -543,7 +508,7 @@ describe("gitOperator2", ()=>{
 
     it("should throw an error if gitPromise fails", async ()=>{
       const errorMessage = "reset error";
-      gitPromiseStub.rejects(new Error(errorMessage));
+      _internal.gitPromise.rejects(new Error(errorMessage));
 
       await expect(gitResetHEAD(rootDir, "test.txt")).to.be.rejectedWith(
         Error,
@@ -553,13 +518,10 @@ describe("gitOperator2", ()=>{
   });
 
   describe("#gitStatus", ()=>{
-    let gitPromiseStub;
-
     const rootDir = "/repo";
 
     beforeEach(()=>{
-      gitPromiseStub = sinon.stub();
-      _internal.gitPromise = gitPromiseStub;
+      sinon.stub(_internal, "gitPromise");
     });
 
     afterEach(()=>{
@@ -567,22 +529,22 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitStatus with correct arguments without pathspec", async ()=>{
-      gitPromiseStub.resolves("");
+      _internal.gitPromise.resolves("");
       await gitStatus(rootDir);
 
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         rootDir,
         ["status", "--short"],
         rootDir
       );
     });
     it("should call gitStatus with correct arguments with pathspec", async ()=>{
-      gitPromiseStub.resolves("");
+      _internal.gitPromise.resolves("");
       await gitStatus(rootDir, "/tmp");
 
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         rootDir,
         ["status", "--short", "/tmp"],
         rootDir
@@ -590,37 +552,37 @@ describe("gitOperator2", ()=>{
     });
 
     it("should correctly parse added files", async function() {
-      gitPromiseStub.resolves("A  addedFile.txt");
+      _internal.gitPromise.resolves("A  addedFile.txt");
       const result = await gitStatus(rootDir);
       expect(result.added).to.deep.equal(["addedFile.txt"]);
     });
 
     it("should correctly parse modified files", async function() {
-      gitPromiseStub.resolves("M  modifiedFile.txt");
+      _internal.gitPromise.resolves("M  modifiedFile.txt");
       const result = await gitStatus(rootDir);
       expect(result.modified).to.deep.equal(["modifiedFile.txt"]);
     });
 
     it("should correctly parse deleted files", async function() {
-      gitPromiseStub.resolves("D  deletedFile.txt");
+      _internal.gitPromise.resolves("D  deletedFile.txt");
       const result = await gitStatus(rootDir);
       expect(result.deleted).to.deep.equal(["deletedFile.txt"]);
     });
 
     it("should correctly parse renamed files", async function() {
-      gitPromiseStub.resolves("R  oldName.txt -> newName.txt");
+      _internal.gitPromise.resolves("R  oldName.txt -> newName.txt");
       const result = await gitStatus(rootDir);
       expect(result.renamed).to.deep.equal(["newName.txt"]);
     });
 
     it("should correctly parse untracked files", async function() {
-      gitPromiseStub.resolves("?? untrackedFile.txt");
+      _internal.gitPromise.resolves("?? untrackedFile.txt");
       const result = await gitStatus(rootDir);
       expect(result.untracked).to.deep.equal(["untrackedFile.txt"]);
     });
 
     it("should return empty arrays for clean status", async function() {
-      gitPromiseStub.resolves("");
+      _internal.gitPromise.resolves("");
       const result = await gitStatus(rootDir);
       expect(result).to.deep.equal({
         added: [],
@@ -632,7 +594,7 @@ describe("gitOperator2", ()=>{
     });
 
     it("should throw an error for unknown git status output", async function() {
-      gitPromiseStub.resolves("X  unknownFile.txt");
+      _internal.gitPromise.resolves("X  unknownFile.txt");
       await expect(gitStatus(rootDir)).to.be.rejectedWith(
         "unkonw output from git status --short"
       );
@@ -640,13 +602,10 @@ describe("gitOperator2", ()=>{
   });
 
   describe("#gitClean", ()=>{
-    let gitPromiseStub;
-
     const rootDir = "/repo";
 
     beforeEach(()=>{
-      gitPromiseStub = sinon.stub();
-      _internal.gitPromise = gitPromiseStub;
+      sinon.stub(_internal, "gitPromise");
     });
 
     afterEach(()=>{
@@ -654,13 +613,13 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitPromise with correct arguments when filePatterns is provided", async ()=>{
-      gitPromiseStub.resolves();
+      _internal.gitPromise.resolves();
       const filePatterns = "*.log";
 
       await gitClean(rootDir, filePatterns);
 
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         rootDir,
         ["clean", "-df", "-e wheel.log", "--", filePatterns],
         rootDir
@@ -668,12 +627,12 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitPromise with correct arguments when filePatterns is empty", async ()=>{
-      gitPromiseStub.resolves();
+      _internal.gitPromise.resolves();
 
       await gitClean(rootDir);
 
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         rootDir,
         ["clean", "-df", "-e wheel.log"],
         rootDir
@@ -682,7 +641,7 @@ describe("gitOperator2", ()=>{
 
     it("should throw an error if gitPromise fails", async ()=>{
       const errorMessage = "git clean failed";
-      gitPromiseStub.rejects(new Error(errorMessage));
+      _internal.gitPromise.rejects(new Error(errorMessage));
 
       await expect(gitClean(rootDir)).to.be.rejectedWith(Error, errorMessage);
     });
@@ -690,14 +649,6 @@ describe("gitOperator2", ()=>{
 
   describe("#getRelativeFilename", ()=>{
     const rootDir = "/repo";
-
-    beforeEach(()=>{
-      _internal.path = path;
-    });
-
-    afterEach(()=>{
-      sinon.restore();
-    });
 
     it("should return the relative path of a file inside the repo", ()=>{
       const filename = "src/index.js";
@@ -725,13 +676,10 @@ describe("gitOperator2", ()=>{
   });
 
   describe("#getUnsavedFiles", ()=>{
-    let gitStatusStub;
-
     const rootDir = "/repo";
 
     beforeEach(()=>{
-      gitStatusStub = sinon.stub();
-      _internal.gitStatus = gitStatusStub;
+      sinon.stub(_internal, "gitStatus");
     });
 
     afterEach(()=>{
@@ -739,7 +687,7 @@ describe("gitOperator2", ()=>{
     });
 
     it("should return unsaved files correctly", async function() {
-      gitStatusStub.resolves({
+      _internal.gitStatus.resolves({
         added: ["newFile.txt"],
         modified: ["modifiedFile.txt"],
         deleted: ["deletedFile.txt"],
@@ -756,7 +704,7 @@ describe("gitOperator2", ()=>{
     });
 
     it("should return an empty array when no unsaved files exist", async function() {
-      gitStatusStub.resolves({
+      _internal.gitStatus.resolves({
         added: [],
         modified: [],
         deleted: [],
@@ -768,7 +716,7 @@ describe("gitOperator2", ()=>{
     });
 
     it("should call gitStatus with correct arguments", async ()=>{
-      gitStatusStub.resolves({
+      _internal.gitStatus.resolves({
         added: [],
         modified: [],
         deleted: [],
@@ -778,18 +726,15 @@ describe("gitOperator2", ()=>{
 
       await getUnsavedFiles(rootDir);
 
-      sinon.assert.calledWith(gitStatusStub, rootDir);
+      sinon.assert.calledWith(_internal.gitStatus, rootDir);
     });
   });
 
   describe("#makeLFSPattern", ()=>{
-    let getRelativeFilenameStub;
-
     const rootDir = "/repo";
 
     beforeEach(()=>{
-      getRelativeFilenameStub = sinon.stub();
-      _internal.getRelativeFilename = getRelativeFilenameStub;
+      sinon.stub(_internal, "getRelativeFilename");
     });
 
     afterEach(()=>{
@@ -798,7 +743,7 @@ describe("gitOperator2", ()=>{
 
     it("should return a valid LFS pattern for a given file", ()=>{
       const filename = "src/index.js";
-      getRelativeFilenameStub.withArgs(rootDir, filename).returns("src/index.js");
+      _internal.getRelativeFilename.withArgs(rootDir, filename).returns("src/index.js");
 
       const result = _internal.makeLFSPattern(rootDir, filename);
       expect(result).to.equal("/src/index.js");
@@ -806,7 +751,7 @@ describe("gitOperator2", ()=>{
 
     it("should return a valid LFS pattern for a file at the root", ()=>{
       const filename = "index.js";
-      getRelativeFilenameStub.withArgs(rootDir, filename).returns("index.js");
+      _internal.getRelativeFilename.withArgs(rootDir, filename).returns("index.js");
 
       const result = _internal.makeLFSPattern(rootDir, filename);
       expect(result).to.equal("/index.js");
@@ -814,7 +759,7 @@ describe("gitOperator2", ()=>{
 
     it("should return a valid LFS pattern for a file outside the repo", ()=>{
       const filename = "/other_dir/file.js";
-      getRelativeFilenameStub
+      _internal.getRelativeFilename
         .withArgs(rootDir, filename)
         .returns("../other_dir/file.js");
 
@@ -824,16 +769,11 @@ describe("gitOperator2", ()=>{
   });
 
   describe("#isLFS", ()=>{
-    let getRelativeFilenameStub;
-    let gitPromiseStub;
-
     const rootDir = "/repo";
 
     beforeEach(()=>{
-      getRelativeFilenameStub = sinon.stub();
-      _internal.getRelativeFilename = getRelativeFilenameStub;
-      gitPromiseStub = sinon.stub();
-      _internal.gitPromise = gitPromiseStub;
+      sinon.stub(_internal, "getRelativeFilename");
+      sinon.stub(_internal, "gitPromise");
     });
 
     afterEach(()=>{
@@ -842,10 +782,10 @@ describe("gitOperator2", ()=>{
 
     it("should return true if the file is tracked by LFS", async ()=>{
       const filename = "src/image.png";
-      getRelativeFilenameStub
+      _internal.getRelativeFilename
         .withArgs(rootDir, filename)
         .returns("src/image.png");
-      gitPromiseStub.resolves(
+      _internal.gitPromise.resolves(
         "Listing tracked patterns\nsrc/image.png (.gitattributes)\nListing excluded patterns"
       );
 
@@ -855,8 +795,8 @@ describe("gitOperator2", ()=>{
 
     it("should return false if the file is not tracked by LFS", async ()=>{
       const filename = "src/text.txt";
-      getRelativeFilenameStub.withArgs(rootDir, filename).returns("src/text.txt");
-      gitPromiseStub.resolves("*.png (filter=lfs diff=lfs merge=lfs -text)");
+      _internal.getRelativeFilename.withArgs(rootDir, filename).returns("src/text.txt");
+      _internal.gitPromise.resolves("*.png (filter=lfs diff=lfs merge=lfs -text)");
 
       const result = await isLFS(rootDir, filename);
       expect(result).to.be.false;
@@ -864,10 +804,10 @@ describe("gitOperator2", ()=>{
 
     it("should handle an empty LFS track list and return false", async ()=>{
       const filename = "src/unknown.dat";
-      getRelativeFilenameStub
+      _internal.getRelativeFilename
         .withArgs(rootDir, filename)
         .returns("src/unknown.dat");
-      gitPromiseStub.resolves("");
+      _internal.gitPromise.resolves("");
 
       const result = await isLFS(rootDir, filename);
       expect(result).to.be.false;
@@ -875,10 +815,10 @@ describe("gitOperator2", ()=>{
 
     it("should throw an error if gitPromise fails", async ()=>{
       const filename = "src/error.png";
-      getRelativeFilenameStub
+      _internal.getRelativeFilename
         .withArgs(rootDir, filename)
         .returns("src/error.png");
-      gitPromiseStub.rejects(new Error("Git command failed"));
+      _internal.gitPromise.rejects(new Error("Git command failed"));
 
       await expect(isLFS(rootDir, filename)).to.be.rejectedWith(
         "Git command failed"
@@ -887,24 +827,17 @@ describe("gitOperator2", ()=>{
   });
 
   describe("#gitLFSTrack", ()=>{
-    let gitPromiseStub;
-    let getLoggerStub;
     let traceStub;
-    let gitAddStub;
 
     const rootDir = "/repo";
     const filename = "src/image.png";
 
     beforeEach(()=>{
-      gitPromiseStub = sinon.stub();
-      getLoggerStub = sinon.stub();
       traceStub = sinon.stub();
-      gitAddStub = sinon.stub();
-      getLoggerStub.returns({ trace: traceStub });
-      _internal.gitPromise = gitPromiseStub;
-      _internal.getLogger = getLoggerStub;
-      _internal.gitAdd = gitAddStub;
-      _internal.makeLFSPattern = (rootDir, filename)=>`/${filename}`;
+      sinon.stub(_internal, "gitPromise");
+      sinon.stub(_internal, "getLogger").returns({ trace: traceStub });
+      sinon.stub(_internal, "gitAdd");
+      sinon.stub(_internal, "makeLFSPattern").callsFake((rootDir, filename)=>`/${filename}`);
     });
 
     afterEach(()=>{
@@ -912,12 +845,12 @@ describe("gitOperator2", ()=>{
     });
 
     it("should track a file from LFS and log the action", async ()=>{
-      gitPromiseStub.resolves();
+      _internal.gitPromise.resolves();
 
       await gitLFSTrack(rootDir, filename);
 
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         rootDir,
         ["lfs", "track", "--", "/src/image.png"],
         rootDir
@@ -929,36 +862,27 @@ describe("gitOperator2", ()=>{
     });
 
     it("should add .gitattributes to git", async ()=>{
-      gitPromiseStub.resolves();
+      _internal.gitPromise.resolves();
 
       await gitLFSTrack(rootDir, filename);
 
-      sinon.assert.calledWith(gitAddStub, rootDir, ".gitattributes");
+      sinon.assert.calledWith(_internal.gitAdd, rootDir, ".gitattributes");
     });
   });
 
   describe("#gitLFSUntrack", ()=>{
-    let gitPromiseStub;
-    let getLoggerStub;
     let traceStub;
-    let pathExistsStub;
-    let gitAddStub;
 
     const rootDir = "/repo";
     const filename = "src/image.png";
 
     beforeEach(()=>{
-      gitPromiseStub = sinon.stub();
-      getLoggerStub = sinon.stub();
       traceStub = sinon.stub();
-      pathExistsStub = sinon.stub();
-      gitAddStub = sinon.stub();
-      getLoggerStub.returns({ trace: traceStub });
-      _internal.gitPromise = gitPromiseStub;
-      _internal.getLogger = getLoggerStub;
-      _internal.fs = { pathExists: pathExistsStub };
-      _internal.gitAdd = gitAddStub;
-      _internal.makeLFSPattern = (rootDir, filename)=>`/${filename}`;
+      sinon.stub(_internal, "gitPromise");
+      sinon.stub(_internal, "getLogger").returns({ trace: traceStub });
+      sinon.stub(_internal.fs, "pathExists");
+      sinon.stub(_internal, "gitAdd");
+      sinon.stub(_internal, "makeLFSPattern").callsFake((rootDir, filename)=>`/${filename}`);
     });
 
     afterEach(()=>{
@@ -966,13 +890,13 @@ describe("gitOperator2", ()=>{
     });
 
     it("should untrack a file from LFS and log the action", async ()=>{
-      pathExistsStub.resolves(false);
-      gitPromiseStub.resolves();
+      _internal.fs.pathExists.resolves(false);
+      _internal.gitPromise.resolves();
 
       await gitLFSUntrack(rootDir, filename);
 
       sinon.assert.calledWith(
-        gitPromiseStub,
+        _internal.gitPromise,
         rootDir,
         ["lfs", "untrack", "--", "/src/image.png"],
         rootDir
@@ -984,12 +908,12 @@ describe("gitOperator2", ()=>{
     });
 
     it("should add .gitattributes to git if it exists", async ()=>{
-      pathExistsStub.resolves(true);
-      gitPromiseStub.resolves();
+      _internal.fs.pathExists.resolves(true);
+      _internal.gitPromise.resolves();
 
       await gitLFSUntrack(rootDir, filename);
 
-      sinon.assert.calledWith(gitAddStub, rootDir, ".gitattributes");
+      sinon.assert.calledWith(_internal.gitAdd, rootDir, ".gitattributes");
     });
   });
 });

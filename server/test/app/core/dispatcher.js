@@ -39,7 +39,7 @@ const wait = ()=>{
 const { remoteHost } = require("../../../app/db/db.js");
 const { addSsh } = require("../../../app/core/sshManager.js");
 
-describe("UT for Dispatcher class", function() {
+describe("UT for Dispatcher class", function () {
   this.timeout(0);
   let rootWF;
   let projectJson;
@@ -65,30 +65,30 @@ describe("UT for Dispatcher class", function() {
     };
     const replaceByNunjucksForBulkjob = _internal.replaceByNunjucksForBulkjob;
 
-    beforeEach(async function() {
+    beforeEach(async function () {
       await fs.ensureDir(templateRoot);
 
       for (const [file, content] of Object.entries(templates)) {
         await fs.outputFile(path.join(templateRoot, file), content);
       }
     });
-    afterEach(async function() {
+    afterEach(async function () {
       await fs.remove(testDirRoot);
     });
-    it("should replace target files and save with new filenames", async function() {
+    it("should replace target files and save with new filenames", async function () {
       await replaceByNunjucksForBulkjob(templateRoot, targetFiles, params, bulkNumber);
       const newFile1 = path.resolve(templateRoot, `${bulkNumber}.template1.txt`);
       const newFile2 = path.resolve(templateRoot, `${bulkNumber}.template2.txt`);
       expect(newFile1).to.be.a.file().with.content("Hello, value1!");
       expect(newFile2).to.be.a.file().with.content("Goodbye, value2!");
     });
-    it("should throw an error if a target file does not exist", async function() {
+    it("should throw an error if a target file does not exist", async function () {
       const invalidFiles = ["template1.txt", "nonexistent.txt"];
       await expect(
         replaceByNunjucksForBulkjob(templateRoot, invalidFiles, params, bulkNumber)
       ).to.be.rejectedWith(Error);
     });
-    it("should handle empty targetFiles gracefully", async function() {
+    it("should handle empty targetFiles gracefully", async function () {
       await replaceByNunjucksForBulkjob(templateRoot, [], params, bulkNumber);
       //ファイルが作成されていないことを確認
       const files = await fs.readdir(templateRoot);
@@ -96,23 +96,23 @@ describe("UT for Dispatcher class", function() {
     });
   });
 
-  describe("writeParameterSetFile test", function() {
+  describe("writeParameterSetFile test", function () {
     const templateRoot = path.resolve(testDirRoot, "templates");
     const targetFiles = ["file1.txt", "file2.txt"];
     const params = { key1: "value1", key2: "value2" };
     const bulkNumber = 42;
     const writeParameterSetFile = _internal.writeParameterSetFile;
-    beforeEach(async function() {
+    beforeEach(async function () {
       await fs.ensureDir(templateRoot);
 
       for (const file of targetFiles) {
         await fs.outputFile(path.join(templateRoot, file), "content");
       }
     });
-    afterEach(async function() {
+    afterEach(async function () {
       await fs.remove(testDirRoot);
     });
-    it("should write parameters to parameterSet.wheel.txt", async function() {
+    it("should write parameters to parameterSet.wheel.txt", async function () {
       const parameterSetFilePath = path.resolve(templateRoot, "parameterSet.wheel.txt");
       await writeParameterSetFile(templateRoot, targetFiles, params, bulkNumber);
       expect(parameterSetFilePath).to.be.a.file();
@@ -127,12 +127,12 @@ describe("UT for Dispatcher class", function() {
       const actualContent = await fs.readFile(parameterSetFilePath, "utf-8");
       expect(actualContent).to.equal(expectedContent);
     });
-    it("should handle empty targetFiles gracefully", async function() {
+    it("should handle empty targetFiles gracefully", async function () {
       const parameterSetFilePath = path.resolve(templateRoot, "parameterSet.wheel.txt");
       await writeParameterSetFile(templateRoot, [], {}, bulkNumber);
       expect(parameterSetFilePath).not.to.be.a.path();
     });
-    it("should append parameters to an existing file", async function() {
+    it("should append parameters to an existing file", async function () {
       const parameterSetFilePath = path.resolve(templateRoot, "parameterSet.wheel.txt");
       await fs.outputFile(parameterSetFilePath, "Initial content\n");
       await writeParameterSetFile(templateRoot, targetFiles, params, bulkNumber);
@@ -147,7 +147,7 @@ describe("UT for Dispatcher class", function() {
       const actualContent = await fs.readFile(parameterSetFilePath, "utf-8");
       expect(actualContent).to.equal(expectedContent);
     });
-    it("should throw an error if a file cannot be written", async function() {
+    it("should throw an error if a file cannot be written", async function () {
       const nonWritableDir = path.resolve(testDirRoot, "nonWritable");
       await fs.ensureDir(nonWritableDir);
       await fs.chmod(nonWritableDir, 0o400); //読み取り専用に設定
@@ -241,7 +241,7 @@ describe("UT for Dispatcher class", function() {
       let ssh;
       const remotehostName = process.env.WHEEL_TEST_REMOTEHOST;
       const password = process.env.WHEEL_TEST_REMOTE_PASSWORD;
-      before(async function() {
+      before(async function () {
         if (!remotehostName) {
           console.log("remote exec test will be skipped because WHEEL_TEST_REMOTEHOST is not set");
           this.skip();

@@ -194,11 +194,7 @@ describe("#isJobFailed", ()=>{
 });
 
 describe("#getStatusCode", ()=>{
-  let getLoggerMock;
   let loggerMock;
-  let getFirstCaptureMock;
-  let getBulkFirstCaptureMock;
-  let createBulkStatusFileMock;
 
   beforeEach(()=>{
     //loggerのMockオブジェクト作成
@@ -208,15 +204,10 @@ describe("#getStatusCode", ()=>{
     };
 
     //依存関数のMock化
-    getLoggerMock = sinon.stub().returns(loggerMock);
-    getFirstCaptureMock = sinon.stub();
-    getBulkFirstCaptureMock = sinon.stub();
-    createBulkStatusFileMock = sinon.stub().resolves();
-
-    _internal.getLogger = getLoggerMock;
-    _internal.getFirstCapture = getFirstCaptureMock;
-    _internal.getBulkFirstCapture = getBulkFirstCaptureMock;
-    _internal.createBulkStatusFile = createBulkStatusFileMock;
+    sinon.stub(_internal, "getLogger").returns(loggerMock);
+    sinon.stub(_internal, "getFirstCapture");
+    sinon.stub(_internal, "getBulkFirstCapture");
+    sinon.stub(_internal, "createBulkStatusFile").resolves();
   });
 
   afterEach(()=>{
@@ -239,8 +230,8 @@ describe("#getStatusCode", ()=>{
     const outputText = "RE_JOB_STATUSCODE_123=0\nRE_RETURNCODE_123=5"; //jobStatus=0, returnCode=5
 
     //getFirstCaptureの戻り値を設定
-    getFirstCaptureMock.onFirstCall().returns("0"); //jobStatus
-    getFirstCaptureMock.onSecondCall().returns("5"); //returnCode
+    _internal.getFirstCapture.onFirstCall().returns("0"); //jobStatus
+    _internal.getFirstCapture.onSecondCall().returns("5"); //returnCode
 
     const result = await getStatusCode(JS, task, statCmdRt, outputText);
 
@@ -268,8 +259,8 @@ describe("#getStatusCode", ()=>{
     const outputText = "FALLBACK_999=2\nFALLBACK_RET_999=4";
 
     //Stub応答をセット
-    getFirstCaptureMock.onFirstCall().returns("2"); //jobStatus
-    getFirstCaptureMock.onSecondCall().returns("4"); //returnCode
+    _internal.getFirstCapture.onFirstCall().returns("2"); //jobStatus
+    _internal.getFirstCapture.onSecondCall().returns("4"); //returnCode
 
     const result = await getStatusCode(JS, task, statCmdRt, outputText);
 
@@ -293,9 +284,9 @@ describe("#getStatusCode", ()=>{
     const outputText = "SOME_OTHER_TEXT"; //マッチしない => jobStatus=null
 
     //getFirstCaptureでjobStatus用をnullに
-    getFirstCaptureMock.onFirstCall().returns(null);
+    _internal.getFirstCapture.onFirstCall().returns(null);
     //returnCodeは一応5を返しておく(最後まで進む)
-    getFirstCaptureMock.onSecondCall().returns("5");
+    _internal.getFirstCapture.onSecondCall().returns("5");
 
     const result = await getStatusCode(JS, task, statCmdRt, outputText);
 
@@ -360,9 +351,9 @@ describe("#getStatusCode", ()=>{
     const outputText = "JS_444=0"; //returnCodeにマッチしない => null
 
     //jobStatus=0 を返すように
-    getFirstCaptureMock.onFirstCall().returns("0");
+    _internal.getFirstCapture.onFirstCall().returns("0");
     //returnCodeはnull
-    getFirstCaptureMock.onSecondCall().returns(null);
+    _internal.getFirstCapture.onSecondCall().returns(null);
 
     const result = await getStatusCode(JS, task, statCmdRt, outputText);
     expect(result).to.equal(-2);
@@ -385,9 +376,9 @@ describe("#getStatusCode", ()=>{
     const outputText = "JS_555=3\nRET_555=6";
 
     //jobStatus=3を適当に返す
-    getFirstCaptureMock.onFirstCall().returns("3");
+    _internal.getFirstCapture.onFirstCall().returns("3");
     //returnCodeに'6'を返す
-    getFirstCaptureMock.onSecondCall().returns("6");
+    _internal.getFirstCapture.onSecondCall().returns("6");
 
     const result = await getStatusCode(JS, task, statCmdRt, outputText);
     expect(result).to.equal(0);
@@ -410,11 +401,11 @@ describe("#getStatusCode", ()=>{
     const statCmdRt = 0;
     const outputText = "SUBSTATUS_666=0\nSUBRET_666=1\nSUBSTATUS_666=0\nSUBRET_666=0";
 
-    //getBulkFirstCaptureMockの戻り値
+    //getBulkFirstCaptureの戻り値
     //[jobStatus, jobStatusList], [rt, rtCodeList]
     //例: jobStatus=0, jobStatusList=[0,0],  returnCode=1(または0), rtCodeList=[1,0]みたいなイメージ
-    getBulkFirstCaptureMock.onFirstCall().returns([0, ["0", "0"]]); //jobStatus=0
-    getBulkFirstCaptureMock.onSecondCall().returns([1, ["1", "0"]]); //returnCode=1 (最後にparseInt => 1)
+    _internal.getBulkFirstCapture.onFirstCall().returns([0, ["0", "0"]]); //jobStatus=0
+    _internal.getBulkFirstCapture.onSecondCall().returns([1, ["1", "0"]]); //returnCode=1 (最後にparseInt => 1)
 
     const result = await getStatusCode(JS, task, statCmdRt, outputText);
 
@@ -422,7 +413,7 @@ describe("#getStatusCode", ()=>{
     expect(task.jobStatus).to.equal(0); //最初の getBulkFirstCapture で取得した値
     expect(task.rt).to.equal(1);
     //createBulkStatusFileが呼ばれているか
-    expect(createBulkStatusFileMock.calledOnce).to.be.true;
+    expect(_internal.createBulkStatusFile.calledOnce).to.be.true;
     //debugログが呼ばれているか
     expect(loggerMock.debug.calledWithMatch("JobStatus: 0 ,jobStatusList: 0,0")).to.be.true;
     expect(loggerMock.debug.calledWithMatch("rt: 1 ,rtCodeList: 1,0")).to.be.true;
@@ -598,23 +589,12 @@ describe("#createRequest", ()=>{
 const EventEmitter = require("events");
 
 describe("#registerJob", ()=>{
-  //モック用変数
-  let jobSchedulerMock;
-  let addRequestMock;
-  let getRequestMock;
-  let delRequestMock;
-  let getLoggerMock;
-  let createRequestForWebAPIMock;
-  let createRequestMock;
-  let getStatusCodeMock;
-  let isJobFailedMock;
-
   let hostinfo;
   let task;
 
   beforeEach(()=>{
     //jobSchedulerのモック
-    jobSchedulerMock = {
+    const jobSchedulerMock = {
       dummyJS: {
         maxStatusCheckError: 2,
         stat: "dummyStatCommand",
@@ -627,29 +607,19 @@ describe("#registerJob", ()=>{
         acceptableRt: [0]
       }
     };
-
-    addRequestMock = sinon.stub();
-    getRequestMock = sinon.stub();
-    delRequestMock = sinon.stub();
-    getLoggerMock = sinon.stub().returns({
+    sinon.replace(_internal, "jobScheduler", jobSchedulerMock);
+    sinon.stub(_internal, "addRequest");
+    sinon.stub(_internal, "getRequest");
+    sinon.stub(_internal, "delRequest");
+    sinon.stub(_internal, "getLogger").returns({
       debug: sinon.stub(),
       trace: sinon.stub(),
       warn: sinon.stub()
     });
-    createRequestForWebAPIMock = sinon.stub();
-    createRequestMock = sinon.stub();
-    getStatusCodeMock = sinon.stub();
-    isJobFailedMock = sinon.stub();
-
-    _internal.jobScheduler = jobSchedulerMock;
-    _internal.addRequest = addRequestMock;
-    _internal.getRequest = getRequestMock;
-    _internal.delRequest = delRequestMock;
-    _internal.getLogger = getLoggerMock;
-    _internal.createRequestForWebAPI = createRequestForWebAPIMock;
-    _internal.createRequest = createRequestMock;
-    _internal.getStatusCode = getStatusCodeMock;
-    _internal.isJobFailed = isJobFailedMock;
+    sinon.stub(_internal, "createRequestForWebAPI");
+    sinon.stub(_internal, "createRequest");
+    sinon.stub(_internal, "getStatusCode");
+    sinon.stub(_internal, "isJobFailed");
 
     //hostinfo, taskの初期化
     hostinfo = {
@@ -692,20 +662,20 @@ describe("#registerJob", ()=>{
       event: eventEmitter
     };
 
-    createRequestForWebAPIMock.returns(requestObj);
-    addRequestMock.returns("req-999");
-    getRequestMock.returns(requestObj);
+    _internal.createRequestForWebAPI.returns(requestObj);
+    _internal.addRequest.returns("req-999");
+    _internal.getRequest.returns(requestObj);
 
     //テスト実行
     const p = registerJob(hostinfo, task);
 
     //createRequestForWebAPIが呼ばれていることを確認
-    expect(createRequestForWebAPIMock.calledOnce).to.be.true;
-    expect(createRequestMock.notCalled).to.be.true;
+    expect(_internal.createRequestForWebAPI.calledOnce).to.be.true;
+    expect(_internal.createRequest.notCalled).to.be.true;
 
     //finishedLocalHookを参照 => "finished"イベント
-    getStatusCodeMock.resolves(0);
-    isJobFailedMock.returns(false);
+    _internal.getStatusCode.resolves(0);
+    _internal.isJobFailed.returns(false);
 
     eventEmitter.emit("finished", {
       argument: "12345",
@@ -728,10 +698,10 @@ describe("#registerJob", ()=>{
       hostInfo: { host: "dummyHost" },
       event: firstEmitter
     };
-    createRequestMock.returns(firstRequestObj);
+    _internal.createRequest.returns(firstRequestObj);
 
     let addRequestCallCount = 0;
-    addRequestMock.callsFake(()=>{
+    _internal.addRequest.callsFake(()=>{
       if (addRequestCallCount === 0) {
         addRequestCallCount++;
         return "req-987"; //1回目
@@ -752,7 +722,7 @@ describe("#registerJob", ()=>{
       hostInfo: { host: "dummyHost" },
       event: secondEmitter
     };
-    getRequestMock.callsFake((id)=>{
+    _internal.getRequest.callsFake((id)=>{
       //返すオブジェクトを場合分け
       if (id === "req-987") {
         return firstRequestObj;
@@ -772,8 +742,8 @@ describe("#registerJob", ()=>{
       finishedHook: { rt: 0, output: "" }
     });
 
-    getStatusCodeMock.resolves(0);
-    isJobFailedMock.returns(false);
+    _internal.getStatusCode.resolves(0);
+    _internal.isJobFailed.returns(false);
 
     //2回目finished
     secondEmitter.emit("finished", {
@@ -786,7 +756,7 @@ describe("#registerJob", ()=>{
     expect(result).to.equal(0);
 
     //2回addRequestされたか
-    expect(addRequestMock.callCount).to.equal(2);
+    expect(_internal.addRequest.callCount).to.equal(2);
   });
 
   it("should use createRequest if useWebAPI=false", async ()=>{
@@ -797,19 +767,19 @@ describe("#registerJob", ()=>{
       hostInfo: { host: "dummyHost" },
       event: eventEmitter
     };
-    createRequestMock.returns(requestObj);
-    addRequestMock.returns("req-123");
-    getRequestMock.returns(requestObj);
+    _internal.createRequest.returns(requestObj);
+    _internal.addRequest.returns("req-123");
+    _internal.getRequest.returns(requestObj);
 
     const p = registerJob(hostinfo, task);
 
     //createRequest が呼ばれる
-    expect(createRequestForWebAPIMock.notCalled).to.be.true;
-    expect(createRequestMock.calledOnce).to.be.true;
+    expect(_internal.createRequestForWebAPI.notCalled).to.be.true;
+    expect(_internal.createRequest.calledOnce).to.be.true;
 
     //finishedHook を参照 => "finished"イベント
-    getStatusCodeMock.resolves(0);
-    isJobFailedMock.returns(false);
+    _internal.getStatusCode.resolves(0);
+    _internal.isJobFailed.returns(false);
 
     eventEmitter.emit("finished", {
       argument: "12345",
@@ -832,9 +802,9 @@ describe("#registerJob", ()=>{
       hostInfo: { host: "dummyHost" },
       event: eventEmitter
     };
-    createRequestMock.returns(requestObj);
-    addRequestMock.returns("req-abc");
-    getRequestMock.returns(requestObj);
+    _internal.createRequest.returns(requestObj);
+    _internal.addRequest.returns("req-abc");
+    _internal.getRequest.returns(requestObj);
 
     //実行
     const p = registerJob(hostinfo, task);
@@ -867,7 +837,7 @@ describe("#registerJob", ()=>{
       expect.fail("Expected to reject, but resolved");
     } catch (err) {
       expect(err.message).to.equal("max status check error exceeded");
-      expect(delRequestMock.calledOnceWithExactly("req-abc")).to.be.true;
+      expect(_internal.delRequest.calledOnceWithExactly("req-abc")).to.be.true;
     }
   });
 
@@ -881,14 +851,14 @@ describe("#registerJob", ()=>{
       hostInfo: { host: "dummyHost" },
       event: eventEmitter
     };
-    createRequestMock.returns(requestObj);
-    addRequestMock.returns("req-555");
-    getRequestMock.returns(requestObj);
+    _internal.createRequest.returns(requestObj);
+    _internal.addRequest.returns("req-555");
+    _internal.getRequest.returns(requestObj);
 
     const p = registerJob(hostinfo, task);
 
-    getStatusCodeMock.resolves(123);
-    isJobFailedMock.returns(true);
+    _internal.getStatusCode.resolves(123);
+    _internal.isJobFailed.returns(true);
 
     eventEmitter.emit("finished", {
       argument: "12345",
@@ -915,14 +885,14 @@ describe("#registerJob", ()=>{
       hostInfo: { host: "dummyHost" },
       event: eventEmitter
     };
-    createRequestMock.returns(requestObj);
-    addRequestMock.returns("req-666");
-    getRequestMock.returns(requestObj);
+    _internal.createRequest.returns(requestObj);
+    _internal.addRequest.returns("req-666");
+    _internal.getRequest.returns(requestObj);
 
     const p = registerJob(hostinfo, task);
 
-    getStatusCodeMock.resolves(0);
-    isJobFailedMock.returns(false);
+    _internal.getStatusCode.resolves(0);
+    _internal.isJobFailed.returns(false);
 
     eventEmitter.emit("finished", {
       argument: "12345",
@@ -944,9 +914,9 @@ describe("#registerJob", ()=>{
       hostInfo: { host: "dummyHost" },
       event: eventEmitter
     };
-    createRequestMock.returns(requestObj);
-    addRequestMock.returns("req-failTest");
-    getRequestMock.returns(requestObj);
+    _internal.createRequest.returns(requestObj);
+    _internal.addRequest.returns("req-failTest");
+    _internal.getRequest.returns(requestObj);
 
     const p = registerJob(hostinfo, task);
 

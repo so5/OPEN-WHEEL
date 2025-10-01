@@ -25,10 +25,6 @@ const commUtils = require("../../app/handlers/commUtils.js");
 //testee
 const { getLogger, log4js, logSettings } = require("../../app/logSettings.js");
 
-//stubs
-const emitAll = sinon.stub();
-sinon.stub(commUtils, "emitAll").callsFake(emitAll);
-
 describe("Unit test for log4js's helper functions", ()=>{
   let logger;
   const settings = logSettings;
@@ -53,12 +49,15 @@ describe("Unit test for log4js's helper functions", ()=>{
     });
   });
   describe("#log", ()=>{
+    let emitAll;
     beforeEach(async ()=>{
       await fs.remove(projectRootDir);
       await fs.mkdir(projectRootDir);
-      emitAll.resetHistory();
+      emitAll = sinon.stub();
+      sinon.stub(commUtils, "emitAll").callsFake(emitAll);
     });
     afterEach(async ()=>{
+      sinon.restore();
       if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {
         await fs.remove(path.resolve(__dirname, logFilename));
         await fs.remove(projectRootDir);

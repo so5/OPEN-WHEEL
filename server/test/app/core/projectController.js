@@ -17,6 +17,7 @@ chai.use(require("chai-fs"));
 chai.use(require("chai-json-schema"));
 
 const { runProject, cleanProject, stopProject, updateProjectState, _internal } = require("../../../app/core/projectController.js");
+const { _internal: gitOpe2Internal } = require("../../../app/core/gitOperator2.js");
 const gitOperator2 = require("../../../app/core/gitOperator2");
 const projectFilesOperator = require("../../../app/core/projectFilesOperator");
 
@@ -36,8 +37,18 @@ const scriptPwd = `${scriptHeader}\n${pwdCmd}`;
 describe("project Controller UT", function() {
   this.timeout(0);
   beforeEach(async ()=>{
+    const originalGitPromise = gitOpe2Internal.gitPromise;
+    sinon.stub(gitOpe2Internal, "gitPromise").callsFake(async (cwd, args, rootDir)=>{
+      if (Array.isArray(args) && args[0] === "lfs" && args[1] === "install") {
+        return Promise.resolve();
+      }
+      return originalGitPromise(cwd, args, rootDir);
+    });
     await fs.remove(testDirRoot);
     await createNewProject(projectRootDir, "test project", null, "test", "test@example.com");
+  });
+  afterEach(()=>{
+    sinon.restore();
   });
   after(async ()=>{
     if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {
@@ -1576,32 +1587,23 @@ describe("project Controller UT", function() {
     });
   });
   describe("#cleanProject", ()=>{
-    let pathExistsStub, removeStub, gitResetHEADStub, gitCleanStub;
     beforeEach(()=>{
-      pathExistsStub = sinon.stub(fs, "pathExists");
-      removeStub = sinon.stub(fs, "remove");
-      gitResetHEADStub = sinon.stub(gitOperator2, "gitResetHEAD");
-      gitCleanStub = sinon.stub(gitOperator2, "gitClean");
+      sinon.stub(_internal, "gitResetHEAD").resolves();
+      sinon.stub(_internal, "gitClean").resolves();
     });
     afterEach(()=>{
       sinon.restore();
     });
     it("should call gitResetHEAD and gitClean", async ()=>{
-      pathExistsStub.resolves(true);
-      removeStub.resolves();
-      gitResetHEADStub.resolves();
-      gitCleanStub.resolves();
-      _internal.gitResetHEAD = gitResetHEADStub;
-      _internal.gitClean = gitCleanStub;
       await cleanProject("/test/project");
-      sinon.assert.calledOnceWithExactly(gitResetHEADStub, "/test/project", undefined);
-      sinon.assert.calledOnceWithExactly(gitCleanStub, "/test/project", undefined);
+      sinon.assert.calledOnceWithExactly(_internal.gitResetHEAD, "/test/project", undefined);
+      sinon.assert.calledOnceWithExactly(_internal.gitClean, "/test/project", undefined);
     });
   });
   describe("#updateProjectState", ()=>{
-    let setProjectStateStub, eventEmitStub, eventEmitterStub;
+    let eventEmitStub, eventEmitterStub;
     beforeEach(()=>{
-      setProjectStateStub = sinon.stub(projectFilesOperator, "setProjectState");
+      sinon.stub(_internal, "setProjectState");
       eventEmitterStub = { emit: sinon.stub() };
       eventEmitStub = sinon.stub(_internal.eventEmitters, "get");
     });
@@ -1612,11 +1614,10 @@ describe("project Controller UT", function() {
       const projectRootDir = "/test/project";
       const state = "running";
       const mockProjectJson = { state: "running" };
-      setProjectStateStub.resolves(mockProjectJson);
+      _internal.setProjectState.resolves(mockProjectJson);
       eventEmitStub.withArgs(projectRootDir).returns(eventEmitterStub);
-      _internal.setProjectState = setProjectStateStub;
       await updateProjectState(projectRootDir, state);
-      sinon.assert.calledOnceWithExactly(setProjectStateStub, projectRootDir, state);
+      sinon.assert.calledOnceWithExactly(_internal.setProjectState, projectRootDir, state);
       sinon.assert.calledOnceWithExactly(eventEmitStub, projectRootDir);
       sinon.assert.calledOnceWithExactly(eventEmitterStub.emit, "projectStateChanged", mockProjectJson);
     });
@@ -1624,20 +1625,18 @@ describe("project Controller UT", function() {
       const projectRootDir = "/test/project";
       const state = "stopped";
       const mockProjectJson = { state: "stopped" };
-      setProjectStateStub.resolves(mockProjectJson);
+      _internal.setProjectState.resolves(mockProjectJson);
       eventEmitStub.withArgs(projectRootDir).returns(undefined);
-      _internal.setProjectState = setProjectStateStub;
       await updateProjectState(projectRootDir, state);
-      sinon.assert.calledOnceWithExactly(setProjectStateStub, projectRootDir, state);
+      sinon.assert.calledOnceWithExactly(_internal.setProjectState, projectRootDir, state);
       sinon.assert.calledOnceWithExactly(eventEmitStub, projectRootDir);
       sinon.assert.notCalled(eventEmitterStub.emit);
     });
     it("should handle errors if setProjectState fails", async ()=>{
       const projectRootDir = "/test/project";
       const state = "failed";
-      setProjectStateStub.rejects(new Error("Failed to update project state"));
+      _internal.setProjectState.rejects(new Error("Failed to update project state"));
       eventEmitStub.withArgs(projectRootDir).returns(eventEmitterStub);
-      _internal.setProjectState = setProjectStateStub;
 
       try {
         await updateProjectState(projectRootDir, state);
@@ -1645,7 +1644,7 @@ describe("project Controller UT", function() {
       } catch (error) {
         expect(error.message).to.equal("Failed to update project state");
       }
-      sinon.assert.calledOnceWithExactly(setProjectStateStub, projectRootDir, state);
+      sinon.assert.calledOnceWithExactly(_internal.setProjectState, projectRootDir, state);
       sinon.assert.notCalled(eventEmitStub);
       sinon.assert.notCalled(eventEmitterStub.emit);
     });

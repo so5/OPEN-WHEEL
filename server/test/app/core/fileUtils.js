@@ -51,8 +51,8 @@ describe("#readJsonGreedy", ()=>{
     });
 
     //rewireを使ってfs, promise-retryを差し替え
-    _internal.fs = fsMock;
-    _internal.promiseRetry = promiseRetryMock;
+    sinon.replace(_internal, "fs", fsMock);
+    sinon.replace(_internal, "promiseRetry", promiseRetryMock);
   });
 
   afterEach(()=>{
@@ -166,8 +166,8 @@ describe("#addX", ()=>{
     };
     modeMock = sinon.stub();
 
-    _internal.fs = fsMock;
-    _internal.Mode = modeMock;
+    sinon.replace(_internal, "fs", fsMock);
+    sinon.replace(_internal, "Mode", modeMock);
   });
 
   afterEach(()=>{
@@ -312,9 +312,9 @@ describe("#openFile", ()=>{
     //readJsonGreedy のスタブ
     readJsonGreedyMock = sinon.stub();
 
-    _internal.fs = fsMock;
-    _internal.getLogger = getLoggerMock;
-    _internal.readJsonGreedy = readJsonGreedyMock;
+    sinon.replace(_internal, "fs", fsMock);
+    sinon.replace(_internal, "getLogger", getLoggerMock);
+    sinon.replace(_internal, "readJsonGreedy", readJsonGreedyMock);
   });
 
   afterEach(()=>{
@@ -464,9 +464,9 @@ describe("#saveFile", ()=>{
     };
     gitAddMock = sinon.stub().resolves();
 
-    _internal.fs = fsMock;
-    _internal.path = pathMock;
-    _internal.gitAdd = gitAddMock;
+    sinon.replace(_internal, "fs", fsMock);
+    sinon.replace(_internal, "path", pathMock);
+    sinon.replace(_internal, "gitAdd", gitAddMock);
   });
 
   afterEach(()=>{
@@ -618,7 +618,10 @@ describe("#getUnusedPath", ()=>{
       pathExists: sinon.stub()
     };
 
-    _internal.fs = fsMock;
+    sinon.replace(_internal, "fs", fsMock);
+  });
+  afterEach(()=>{
+    sinon.restore();
   });
 
   it("should return the desired path if it does not exist", async ()=>{
@@ -670,7 +673,7 @@ describe("#replaceCRLF", ()=>{
       writeFile: sinon.stub()
     };
 
-    _internal.fs = fsMock;
+    sinon.replace(_internal, "fs", fsMock);
   });
 
   afterEach(()=>{
