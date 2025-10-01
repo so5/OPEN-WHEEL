@@ -4,69 +4,70 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { getSsh, getSshHostinfo } = require("./sshManager");
-const { cancel } = require("./executerManager.js");
+const sshManager = require("./sshManager");
+const executerManager = require("./executerManager.js");
 const { jobScheduler } = require("../db/db");
-const { getLogger } = require("../logSettings.js");
+const logSettings = require("../logSettings.js");
 
+const _internal = {};
 /**
  * cancel job on remotehost
  * @param {object} task - task component
  */
-async function cancelRemoteJob(task) {
+_internal.cancelRemoteJob = async function(task) {
   if (!task.jobID) {
-    getLogger(task.projectRootDir).debug(`try to cancel ${task.name} but it have not been submitted.`);
+    logSettings.getLogger(task.projectRootDir).debug(`try to cancel ${task.name} but it have not been submitted.`);
     return;
   }
-  const ssh = getSsh(task.projectRootDir, task.remotehostID);
-  const hostinfo = getSshHostinfo(task.projectRootDir, task.remotehostID);
+  const ssh = sshManager.getSsh(task.projectRootDir, task.remotehostID);
+  const hostinfo = sshManager.getSshHostinfo(task.projectRootDir, task.remotehostID);
   const JS = jobScheduler[hostinfo.jobScheduler];
   const cancelCmd = `${JS.del} ${task.jobID}`;
-  getLogger(task.projectRootDir).debug(`cancel job: ${cancelCmd}`);
+  logSettings.getLogger(task.projectRootDir).debug(`cancel job: ${cancelCmd}`);
   const output = [];
   await ssh.exec(cancelCmd, 60, (data)=>{
     output.push(data);
   });
-  getLogger(task.projectRootDir).debug("cacnel done", output.join());
-}
+  logSettings.getLogger(task.projectRootDir).debug("cacnel done", output.join());
+};
 
 /**
  * cancel job on localhost but not implemented
  */
-async function cancelLocalJob() {
+_internal.cancelLocalJob = async function() {
   console.log("not implimented yet!!");
-}
+};
 
 /**
  * kill process which was invoked from specified task
  * @param {object} task - task component
  */
-async function killLocalProcess(task) {
+_internal.killLocalProcess = async function(task) {
   if (task.handler && task.handler.killed === false) {
     task.handler.kill();
   }
-}
+};
 
 /**
  * cancel dispatched task
  * @param {object} task - task component
  */
-async function killTask(task) {
+_internal.killTask = async function(task) {
   if (task.remotehostID !== "localhost") {
     if (task.useJobScheduler) {
-      await cancelRemoteJob(task);
+      await _internal.cancelRemoteJob(task);
     } else {
 
       //do nothing for remoteExec at this time
     }
   } else {
     if (task.useJobScheduler) {
-      await cancelLocalJob(task);
+      await _internal.cancelLocalJob(task);
     } else {
-      await killLocalProcess(task);
+      await _internal.killLocalProcess(task);
     }
   }
-}
+};
 
 /**
  * cancel dispatched tasks
@@ -79,9 +80,9 @@ async function cancelDispatchedTasks(tasks) {
     if (task.state === "finished" || task.state === "failed") {
       continue;
     }
-    const canceled = cancel(task);
+    const canceled = executerManager.cancel(task);
     if (!canceled) {
-      p.push(killTask(task));
+      p.push(_internal.killTask(task));
     }
     task.state = "not-started";
   }
@@ -116,5 +117,6 @@ function taskStateFilter(task) {
 
 module.exports = {
   cancelDispatchedTasks,
-  taskStateFilter
+  taskStateFilter,
+  _internal
 };
