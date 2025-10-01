@@ -6,7 +6,7 @@
 "use strict";
 const uuid = require("uuid");
 const { defaultPSconfigFilename } = require("../db/db.js");
-const { readComponentJsonByID } = require("./componentJsonIO.js");
+const componentJsonIO = require("./componentJsonIO.js");
 
 class BaseWorkflowComponent {
   constructor(pos, parent) {
@@ -423,7 +423,14 @@ function hasChild(component) {
  * @param {object} component - Component object
  * @returns  {boolean} -
  */
-async function isBehindIfComponent(projectRootDir, component) {
+const _internal = {};
+
+_internal.isBehindIfComponent = async function(projectRootDir, component, visited = new Set()) {
+  if (visited.has(component.ID)) {
+    return false;
+  }
+  visited.add(component.ID);
+
   const hasPrevious = Array.isArray(component.previous) && component.previous.length > 0;
   const hasConnectedInputFiles = Array.isArray(component.inputFiles) && component.inputFiles.some((inputFile)=>{
     return inputFile.src.length > 0;
@@ -434,15 +441,12 @@ async function isBehindIfComponent(projectRootDir, component) {
   }
 
   if (hasPrevious) {
-    for (const previous of component.previous) {
-      const previousComponent = await readComponentJsonByID(projectRootDir, previous);
-
+    for (const previousID of component.previous) {
+      const previousComponent = await _internal.readComponentJsonByID(projectRootDir, previousID);
       if (previousComponent.type === "if") {
         return true;
       }
-      const rt = await isBehindIfComponent(projectRootDir, previousComponent);
-
-      if (rt) {
+      if (await _internal.isBehindIfComponent(projectRootDir, previousComponent, visited)) {
         return true;
       }
     }
@@ -451,32 +455,29 @@ async function isBehindIfComponent(projectRootDir, component) {
   if (hasConnectedInputFiles) {
     for (const inputFile of component.inputFiles) {
       for (const src of inputFile.src) {
-        const srcComponent = await readComponentJsonByID(projectRootDir, src.srcNode);
-
+        const srcComponent = await _internal.readComponentJsonByID(projectRootDir, src.srcNode);
         if (srcComponent.type === "if") {
           return true;
         }
-        const rt = await isBehindIfComponent(projectRootDir, srcComponent);
-
-        if (rt) {
+        if (await _internal.isBehindIfComponent(projectRootDir, srcComponent, visited)) {
           return true;
         }
       }
     }
   }
   return false;
-}
+};
 
 /**
  * determine if component has outputfile which will be used by other components
  * @param {object} component - Component object
  * @returns  {boolean} -
  */
-function hasNeededOutputFiles(component) {
+_internal.hasNeededOutputFiles = function(component) {
   return component.outputFiles.some((outputFile)=>{
     return outputFile.dst.length > 0;
   });
-}
+};
 
 /**
  * determine if component has one of more inputFile which is connected to sibling component
@@ -484,16 +485,16 @@ function hasNeededOutputFiles(component) {
  * @param {object} component - Component object
  * @returns  {boolean} -
  */
-async function hasConnecteddInputFiles(projectRootDir, component) {
+_internal.hasConnectedInputFiles = function(projectRootDir, component) {
   return component.inputFiles.some((inputFile)=>{
     if (inputFile.src.length === 0) {
-      false;
+      return false;
     }
     return inputFile.src.some((src)=>{
       return src.srcNode !== "parent" && src.srcNode !== component.parent;
     });
   });
-}
+};
 
 /**
  * determine if specified component is initial component
@@ -502,11 +503,11 @@ async function hasConnecteddInputFiles(projectRootDir, component) {
  * @returns  {boolean} -
  */
 async function isInitialComponent(projectRootDir, component) {
-  if (await isBehindIfComponent(projectRootDir, component)) {
+  if (await _internal.isBehindIfComponent(projectRootDir, component)) {
     return false;
   }
   if (["storage", "hpciss", "hpcisstar"].includes(component.type)) {
-    return hasNeededOutputFiles(component);
+    return _internal.hasNeededOutputFiles(component);
   }
   if (component.type === "source") {
     return component.outputFiles[0].dst.length > 0;
@@ -518,12 +519,14 @@ async function isInitialComponent(projectRootDir, component) {
     return false;
   }
   if (Array.isArray(component.inputFiles) && component.inputFiles.length > 0) {
-    const result = await hasConnecteddInputFiles(projectRootDir, component);
+    const result = await _internal.hasConnectedInputFiles(projectRootDir, component);
     return !result;
   }
 
   return true;
 }
+_internal.isInitialComponent = isInitialComponent;
+_internal.readComponentJsonByID = componentJsonIO.readComponentJsonByID;
 
 /**
  * remove duplicated component from array
@@ -588,6 +591,10 @@ module.exports = {
   isLocalComponent,
   removeDuplicatedComponent,
   getComponentDefaultName,
-  hasNeededOutputFiles,
+  hasNeededOutputFiles: _internal.hasNeededOutputFiles,
   hasStoragePath
 };
+
+if (process.env.WHEEL_RUNNING_TEST) {
+  module.exports._internal = _internal;
+}
