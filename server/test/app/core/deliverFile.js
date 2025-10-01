@@ -11,42 +11,32 @@ const { deliverFile, deliverFilesOnRemote, deliverFilesFromRemote, _internal } =
 const { rsyncExcludeOptionOfWheelSystemFiles } = require("../../../app/db/db");
 
 describe("#deliverFile", ()=>{
-  let fsMock; //fsモジュールをstub化
-  let statsMock; //fs.lstatで返されるstatオブジェクトをstub化
+  let lstatStub;
+  let copyStub;
+  let removeStub;
+  let ensureSymlinkStub;
+  const statsMock = { isDirectory: sinon.stub() };
 
   beforeEach(()=>{
-    //fsモックを用意し、呼び出しをすべてsinon.stub()化
-    fsMock = {
-      lstat: sinon.stub(),
-      copy: sinon.stub(),
-      remove: sinon.stub(),
-      ensureSymlink: sinon.stub()
-    };
-    _internal.fs = fsMock;
-
-    //isDirectory()の結果を切り替えるためのstatsオブジェクトMock
-    statsMock = {
-      isDirectory: sinon.stub()
-    };
+    lstatStub = sinon.stub(_internal.fs, "lstat").resolves(statsMock);
+    copyStub = sinon.stub(_internal.fs, "copy").resolves();
+    removeStub = sinon.stub(_internal.fs, "remove").resolves();
+    ensureSymlinkStub = sinon.stub(_internal.fs, "ensureSymlink").resolves();
+  });
+  afterEach(()=>{
+    sinon.restore();
   });
 
+
   it("should deliver directory with symlink if not forced to copy", async ()=>{
-    //isDirectory() => true
     statsMock.isDirectory.returns(true);
-    fsMock.lstat.resolves(statsMock);
-
-    //remove/ensureSymlink成功を想定
-    fsMock.remove.resolves();
-    fsMock.ensureSymlink.resolves();
-
     const src = "/path/to/srcDir";
     const dst = "/path/to/dstDir";
-
     const result = await deliverFile(src, dst, false);
 
-    expect(fsMock.lstat.calledOnceWithExactly(src)).to.be.true;
-    expect(fsMock.remove.calledOnceWithExactly(dst)).to.be.true;
-    expect(fsMock.ensureSymlink.calledOnceWithExactly(src, dst, "dir")).to.be.true;
+    expect(lstatStub.calledOnceWithExactly(src)).to.be.true;
+    expect(removeStub.calledOnceWithExactly(dst)).to.be.true;
+    expect(ensureSymlinkStub.calledOnceWithExactly(src, dst, "dir")).to.be.true;
     expect(result).to.deep.equal({
       type: "link-dir",
       src,
@@ -55,21 +45,14 @@ describe("#deliverFile", ()=>{
   });
 
   it("should deliver file with symlink if not forced to copy", async ()=>{
-    //isDirectory() => false
     statsMock.isDirectory.returns(false);
-    fsMock.lstat.resolves(statsMock);
-
-    fsMock.remove.resolves();
-    fsMock.ensureSymlink.resolves();
-
     const src = "/path/to/srcFile";
     const dst = "/path/to/dstFile";
-
     const result = await deliverFile(src, dst, false);
 
-    expect(fsMock.lstat.calledOnceWithExactly(src)).to.be.true;
-    expect(fsMock.remove.calledOnceWithExactly(dst)).to.be.true;
-    expect(fsMock.ensureSymlink.calledOnceWithExactly(src, dst, "file")).to.be.true;
+    expect(lstatStub.calledOnceWithExactly(src)).to.be.true;
+    expect(removeStub.calledOnceWithExactly(dst)).to.be.true;
+    expect(ensureSymlinkStub.calledOnceWithExactly(src, dst, "file")).to.be.true;
     expect(result).to.deep.equal({
       type: "link-file",
       src,
@@ -78,21 +61,16 @@ describe("#deliverFile", ()=>{
   });
 
   it("should deliver by copying if forceCopy is true", async ()=>{
-    statsMock.isDirectory.returns(true); //dir/file どちらでも可
-    fsMock.lstat.resolves(statsMock);
-
-    fsMock.copy.resolves();
+    statsMock.isDirectory.returns(true);
 
     const src = "/path/to/srcAny";
     const dst = "/path/to/dstAny";
 
     const result = await deliverFile(src, dst, true);
 
-    //remove()やensureSymlink()は呼ばれない
-    expect(fsMock.remove.notCalled).to.be.true;
-    expect(fsMock.ensureSymlink.notCalled).to.be.true;
-
-    expect(fsMock.copy.calledOnceWithExactly(src, dst, { overwrite: true })).to.be.true;
+    expect(removeStub.notCalled).to.be.true;
+    expect(ensureSymlinkStub.notCalled).to.be.true;
+    expect(copyStub.calledOnceWithExactly(src, dst, { overwrite: true })).to.be.true;
     expect(result).to.deep.equal({
       type: "copy",
       src,
@@ -101,27 +79,19 @@ describe("#deliverFile", ()=>{
   });
 
   it("should fallback to copy when ensureSymlink throws EPERM error", async ()=>{
-    //symlink作成時にEPERMエラーを投げる
     statsMock.isDirectory.returns(false);
-    fsMock.lstat.resolves(statsMock);
-    fsMock.remove.resolves();
-
     const epermError = new Error("EPERM error");
     epermError.code = "EPERM";
-    fsMock.ensureSymlink.rejects(epermError);
-
-    //fallbackのcopy
-    fsMock.copy.resolves();
+    ensureSymlinkStub.rejects(epermError);
 
     const src = "/dir/src";
     const dst = "/dir/dst";
 
     const result = await deliverFile(src, dst, false);
 
-    //remove -> ensureSymlink(EPERM) -> copy(overwrite: false)
-    expect(fsMock.remove.calledOnceWithExactly(dst)).to.be.true;
-    expect(fsMock.ensureSymlink.calledOnce).to.be.true;
-    expect(fsMock.copy.calledOnceWithExactly(src, dst, { overwrite: false })).to.be.true;
+    expect(removeStub.calledOnceWithExactly(dst)).to.be.true;
+    expect(ensureSymlinkStub.calledOnce).to.be.true;
+    expect(copyStub.calledOnceWithExactly(src, dst, { overwrite: false })).to.be.true;
 
     expect(result).to.deep.equal({
       type: "copy",
@@ -132,15 +102,9 @@ describe("#deliverFile", ()=>{
 
   it("should reject promise if ensureSymlink throws error with non-EPERM code", async ()=>{
     statsMock.isDirectory.returns(false);
-    fsMock.lstat.resolves(statsMock);
-    fsMock.remove.resolves();
-
     const otherError = new Error("Some other error");
-    otherError.code = "EACCES"; //例: EPERM以外のコード
-    fsMock.ensureSymlink.rejects(otherError);
-
-    //copyは呼ばれない
-    fsMock.copy.resolves();
+    otherError.code = "EACCES";
+    ensureSymlinkStub.rejects(otherError);
 
     const src = "/some/src";
     const dst = "/some/dst";
@@ -152,45 +116,37 @@ describe("#deliverFile", ()=>{
       expect(err).to.equal(otherError);
     }
 
-    expect(fsMock.remove.calledOnceWithExactly(dst)).to.be.true;
-    expect(fsMock.ensureSymlink.calledOnce).to.be.true;
-    //EPERMでないのでコピーも行われない
-    expect(fsMock.copy.notCalled).to.be.true;
+    expect(removeStub.calledOnceWithExactly(dst)).to.be.true;
+    expect(ensureSymlinkStub.calledOnce).to.be.true;
+    expect(copyStub.notCalled).to.be.true;
   });
 });
 
 describe("#deliverFilesOnRemote", ()=>{
-  let getLoggerMock;
-  let loggerMock;
-  let getSshMock;
-  let sshMock;
+  const loggerMock = {
+    warn: sinon.stub(),
+    debug: sinon.stub()
+  };
+  const sshMock = {
+    exec: sinon.stub()
+  };
 
   beforeEach(()=>{
-    //logger のモックを準備
-    loggerMock = {
-      warn: sinon.stub(),
-      debug: sinon.stub()
-    };
-    getLoggerMock = sinon.stub().returns(loggerMock);
-
-    //getSsh のモックを準備
-    sshMock = {
-      exec: sinon.stub()
-    };
-    getSshMock = sinon.stub().returns(sshMock);
-
-    _internal.getLogger = getLoggerMock;
-    _internal.getSsh = getSshMock;
-    _internal.path = require("path");
+    sinon.stub(_internal, "getLogger").returns(loggerMock);
+    sinon.stub(_internal, "getSsh").returns(sshMock);
+    sinon.stub(_internal, "path").value(require("path"));
   });
 
   afterEach(()=>{
     sinon.restore();
+    loggerMock.warn.resetHistory();
+    loggerMock.debug.resetHistory();
+    sshMock.exec.resetHistory();
   });
 
   it("should return null and log a warning if recipe.onSameRemote is false", async ()=>{
     const recipe = {
-      onSameRemote: false, //onSameRemoteがfalseの場合のテスト
+      onSameRemote: false,
       projectRootDir: "/dummy/dir",
       remotehostID: "hostID"
     };
@@ -198,8 +154,7 @@ describe("#deliverFilesOnRemote", ()=>{
 
     expect(result).to.be.null;
     expect(loggerMock.warn.calledOnceWithExactly("deliverFilesOnRemote must be called with onSameRemote flag")).to.be.true;
-    //getSsh は呼ばれない
-    expect(getSshMock.notCalled).to.be.true;
+    expect(_internal.getSsh.notCalled).to.be.true;
   });
 
   it("should execute ln -sf if forceCopy is false and ssh.exec returns 0 (success)", async ()=>{
@@ -213,21 +168,15 @@ describe("#deliverFilesOnRemote", ()=>{
       dstRoot: "/remote/dest",
       dstName: "fileB"
     };
-    //exec結果が成功(0)を返すようにする
     sshMock.exec.resolves(0);
 
     const result = await deliverFilesOnRemote(recipe);
 
-    //cmd: ln -sf
     const expectedCmdPart = "ln -sf";
     expect(sshMock.exec.callCount).to.equal(1);
     const calledCmd = sshMock.exec.getCall(0).args[0];
     expect(calledCmd).to.include(expectedCmdPart);
-
-    //logger.debug が実行されているか
     expect(loggerMock.debug.calledWithExactly("execute on remote", sinon.match.string)).to.be.true;
-
-    //正常完了の場合はオブジェクトを返す
     expect(result).to.deep.equal({
       type: "copy",
       src: "/remote/src/fileA",
@@ -250,7 +199,6 @@ describe("#deliverFilesOnRemote", ()=>{
 
     const result = await deliverFilesOnRemote(recipe);
 
-    //forceCopy=true => cmd: cp -r
     const expectedCmdPart = "cp -r";
     expect(sshMock.exec.callCount).to.equal(1);
     const calledCmd = sshMock.exec.getCall(0).args[0];
@@ -274,7 +222,6 @@ describe("#deliverFilesOnRemote", ()=>{
       dstRoot: "/remote/destX",
       dstName: "destfile"
     };
-    //exec結果が失敗(非0)を返すようにする
     sshMock.exec.resolves(1);
 
     try {
@@ -283,64 +230,45 @@ describe("#deliverFilesOnRemote", ()=>{
     } catch (err) {
       expect(err).to.be.instanceOf(Error);
       expect(err.message).to.equal("deliver file on remote failed");
-      //logger.warn にも記録されているか
       expect(loggerMock.warn.calledWithExactly("deliver file on remote failed", 1)).to.be.true;
-      //付与される err.rt が 1 になっているか
       expect(err).to.have.property("rt", 1);
     }
   });
 });
 
 describe("#deliverFilesFromRemote", ()=>{
-  let getLoggerMock;
-  let loggerMock;
-  let getSshMock;
-  let sshMock;
+  const loggerMock = {
+    warn: sinon.stub(),
+    debug: sinon.stub()
+  };
+  const sshMock = {
+    recv: sinon.stub()
+  };
 
   beforeEach(()=>{
-    //getLoggerをスタブ化
-    getLoggerMock = sinon.stub();
-    //loggerとして warnやdebugをモック化
-    loggerMock = {
-      warn: sinon.stub(),
-      debug: sinon.stub()
-    };
-    getLoggerMock.returns(loggerMock);
-
-    //getSshをスタブ化
-    getSshMock = sinon.stub();
-    //sshオブジェクトのrecvメソッドをモック化
-    sshMock = {
-      recv: sinon.stub()
-    };
-    getSshMock.returns(sshMock);
-
-    _internal.getLogger = getLoggerMock;
-    _internal.getSsh = getSshMock;
-    _internal.rsyncExcludeOptionOfWheelSystemFiles = rsyncExcludeOptionOfWheelSystemFiles;
+    sinon.stub(_internal, "getLogger").returns(loggerMock);
+    sinon.stub(_internal, "getSsh").returns(sshMock);
+    sinon.stub(_internal, "rsyncExcludeOptionOfWheelSystemFiles").value(rsyncExcludeOptionOfWheelSystemFiles);
   });
 
   afterEach(()=>{
     sinon.restore();
+    loggerMock.warn.resetHistory();
+    sshMock.recv.resetHistory();
   });
 
   it("should return null and log a warning if recipe.remoteToLocal is false", async ()=>{
-    //準備
     const recipe = {
       projectRootDir: "/dummy/project",
       remoteToLocal: false
     };
-
-    //実行
     const result = await deliverFilesFromRemote(recipe);
 
-    //検証
     expect(result).to.be.null;
     expect(loggerMock.warn.calledOnceWithExactly("deliverFilesFromRemote must be called with remoteToLocal flag")).to.be.true;
   });
 
   it("should reject with an error if ssh.recv throws an error", async ()=>{
-    //準備
     const recipe = {
       projectRootDir: "/dummy/project",
       remoteToLocal: true,
@@ -354,7 +282,6 @@ describe("#deliverFilesFromRemote", ()=>{
     const fakeError = new Error("recv failed");
     sshMock.recv.rejects(fakeError);
 
-    //実行 & 検証
     try {
       await deliverFilesFromRemote(recipe);
       expect.fail("Expected deliverFilesFromRemote to reject, but it resolved");
@@ -364,7 +291,6 @@ describe("#deliverFilesFromRemote", ()=>{
   });
 
   it("should call ssh.recv and return an object if successful", async ()=>{
-    //準備
     const recipe = {
       projectRootDir: "/dummy/project",
       remoteToLocal: true,
@@ -374,14 +300,9 @@ describe("#deliverFilesFromRemote", ()=>{
       dstRoot: "/local/dst",
       dstName: "fileB.dat"
     };
-
-    //recvが正常終了するようにする
     sshMock.recv.resolves();
-
-    //実行
     const result = await deliverFilesFromRemote(recipe);
 
-    //検証
     expect(result).to.deep.equal({
       type: "copy",
       src: "/remote/src/fileB.dat",
