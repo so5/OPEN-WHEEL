@@ -14,13 +14,7 @@ const _internal = {
   getLogger
 };
 
-/**
- * determine hostMap is valid
- * @param {object} hostMap - old and new remotehost label map
- * @param {string[]} hosts - array of old remoteshot labels
- * @returns {boolean} -
- */
-function isValidHostMap(hostMap, hosts) {
+_internal.isValidHostMap = (hostMap, hosts)=>{
   const remotehostLabels = _internal.remoteHost.getAll().map((host)=>{
     return host.name;
   });
@@ -43,8 +37,7 @@ function isValidHostMap(hostMap, hosts) {
     }
     return true;
   });
-}
-_internal.isValidHostMap = isValidHostMap;
+};
 
 /**
  * ask how to map host settings to user
@@ -75,7 +68,7 @@ async function askHostMap(clientID, hosts) {
 
 module.exports = {
   askHostMap,
-  isValidHostMap
+  isValidHostMap: _internal.isValidHostMap
 };
 
 if (process.env.NODE_ENV === "test") {
