@@ -8,7 +8,25 @@ const path = require("path");
 const { promisify } = require("util");
 const log4js = require("log4js");
 const logger = log4js.getLogger();
-const { logFilename, numLogFiles, maxLogSize, compressLogFile } = require("./db/db");
+
+let logFilename;
+let numLogFiles;
+let maxLogSize;
+let compressLogFile;
+
+if (process.env.NODE_ENV !== "test") {
+  const db = require("./db/db");
+  logFilename = db.logFilename;
+  numLogFiles = db.numLogFiles;
+  maxLogSize = db.maxLogSize;
+  compressLogFile = db.compressLogFile;
+} else {
+  logFilename = "wheel.log";
+  numLogFiles = 5;
+  maxLogSize = 1024 * 1024;
+  compressLogFile = true;
+}
+
 const { emitAll } = require("./handlers/commUtils.js");
 function getLoglevel(ignoreEnv = false) {
   const wheelLoglevel = process.env.WHEEL_LOGLEVEL;
