@@ -12,27 +12,21 @@ const sinon = require("sinon");
 const { isFinishedState, evalCondition, getRemoteRootWorkingDir, getRemoteWorkingDir, isSubComponent, _internal } = require("../../../app/core/dispatchUtils");
 
 describe("#pspawn", ()=>{
-  let pspawn;
   let spawnStub;
   let onStub;
   let stdoutStub;
   let stderrStub;
-  let getLoggerStub;
   let debugStub;
   let traceStub;
 
   beforeEach(()=>{
-    pspawn = _internal.pspawn;
-    spawnStub = sinon.stub();
     onStub = sinon.stub();
     stdoutStub = sinon.stub();
     stderrStub = sinon.stub();
-    getLoggerStub = sinon.stub();
     debugStub = sinon.stub();
     traceStub = sinon.stub();
-    _internal.childProcess = { spawn: spawnStub };
-    _internal.getLogger = getLoggerStub;
-    getLoggerStub.returns({ debug: debugStub, trace: traceStub });
+    spawnStub = sinon.stub(_internal.childProcess, "spawn");
+    sinon.stub(_internal, "getLogger").returns({ debug: debugStub, trace: traceStub });
   });
 
   afterEach(()=>{
@@ -49,7 +43,7 @@ describe("#pspawn", ()=>{
     onStub.withArgs("close").callsFake((event, callback)=>{
       closingCallback = callback;
     });
-    let promise = pspawn("projectRootDir", "command", {});
+    let promise = _internal.pspawn("projectRootDir", "command", {});
     closingCallback(0);
     await expect(promise).to.eventually.be.true;
   });
@@ -64,7 +58,7 @@ describe("#pspawn", ()=>{
     onStub.withArgs("close").callsFake((event, callback)=>{
       closingCallback = callback;
     });
-    let promise = pspawn("projectRootDir", "command", {});
+    let promise = _internal.pspawn("projectRootDir", "command", {});
     closingCallback(1);
     await expect(promise).to.eventually.be.false;
   });
@@ -79,7 +73,7 @@ describe("#pspawn", ()=>{
     onStub.withArgs("error").callsFake((event, callback)=>{
       errorCallback = callback;
     });
-    let promise = pspawn("projectRootDir", "nonexistent_command", {});
+    let promise = _internal.pspawn("projectRootDir", "nonexistent_command", {});
     errorCallback();
     await expect(promise).to.be.rejected;
   });
@@ -94,7 +88,7 @@ describe("#pspawn", ()=>{
     onStub.withArgs("close").callsFake((event, callback)=>{
       closingCallback = callback;
     });
-    let promise = pspawn("projectRootDir", "command", {});
+    let promise = _internal.pspawn("projectRootDir", "command", {});
     closingCallback(123);
     await promise;
     expect(
@@ -116,7 +110,7 @@ describe("#pspawn", ()=>{
     stdoutStub.callsFake((event, callback)=>{
       stdoutCallback = callback;
     });
-    let promise = pspawn("projectRootDir", "command", {});
+    let promise = _internal.pspawn("projectRootDir", "command", {});
     stdoutCallback("processing");
     closingCallback(0);
     await promise;
@@ -137,7 +131,7 @@ describe("#pspawn", ()=>{
     stderrStub.callsFake((event, callback)=>{
       stderrCallback = callback;
     });
-    let promise = pspawn("projectRootDir", "command", {});
+    let promise = _internal.pspawn("projectRootDir", "command", {});
     stderrCallback("error occurred");
     errorCallback();
     await promise.catch(()=>{});
@@ -147,25 +141,18 @@ describe("#pspawn", ()=>{
 
 describe("#evalCondition", ()=>{
   let pathExistsStub;
-  let getLoggerStub;
   let debugStub;
   let warnStub;
   let addXStub;
   let pspawnStub;
 
   beforeEach(()=>{
-    pathExistsStub = sinon.stub();
-    getLoggerStub = sinon.stub();
     debugStub = sinon.stub();
     warnStub = sinon.stub();
-    addXStub = sinon.stub();
-    pspawnStub = sinon.stub();
-    _internal.fs = { pathExists: pathExistsStub };
-    _internal.getLogger = getLoggerStub;
-    _internal.addX = addXStub;
-    _internal.pspawn = pspawnStub;
-    _internal.path = require("path");
-    getLoggerStub.returns({ debug: debugStub, warn: warnStub });
+    pathExistsStub = sinon.stub(_internal.fs, "pathExists");
+    sinon.stub(_internal, "getLogger").returns({ debug: debugStub, warn: warnStub });
+    addXStub = sinon.stub(_internal, "addX");
+    pspawnStub = sinon.stub(_internal, "pspawn");
   });
 
   afterEach(()=>{
@@ -173,18 +160,18 @@ describe("#evalCondition", ()=>{
   });
 
   it("should return condition if the condition is boolean", async ()=>{
-    const result = await evalCondition("/projectRootDir", true, "/cwd", {});
+    const result = await _internal.evalCondition("/projectRootDir", true, "/cwd", {});
     expect(result).to.be.true;
   });
 
   it("should return error if the condition is not string or boolean", async ()=>{
-    const result = await evalCondition("/projectRootDir", 123, "/cwd", {});
+    const result = await _internal.evalCondition("/projectRootDir", 123, "/cwd", {});
     expect(result).to.be.an.instanceOf(Error);
     expect(result.message).to.equal("illegal condition specified number \n123");
   });
 
   it("should log warning if the condition is not string or boolean", async ()=>{
-    await evalCondition("/projectRootDir", 123, "/cwd", {});
+    await _internal.evalCondition("/projectRootDir", 123, "/cwd", {});
     expect(warnStub.calledWith("condition must be string or boolean")).to.be
       .true;
   });
@@ -203,7 +190,7 @@ describe("#evalCondition", ()=>{
         })
       )
       .resolves(true);
-    const result = await evalCondition("/projectRootDir", "condition", "/cwd", {
+    const result = await _internal.evalCondition("/projectRootDir", "condition", "/cwd", {
       key: "value"
     });
     expect(result).to.be.true;
@@ -223,7 +210,7 @@ describe("#evalCondition", ()=>{
         })
       )
       .resolves(true);
-    await evalCondition("/projectRootDir", "condition", "/cwd", {
+    await _internal.evalCondition("/projectRootDir", "condition", "/cwd", {
       key: "value"
     });
     expect(debugStub.calledWith("execute ", "/cwd/condition")).to.be.true;
@@ -231,7 +218,7 @@ describe("#evalCondition", ()=>{
 
   it("should log evaluation of the condition", async ()=>{
     pathExistsStub.resolves(false);
-    await evalCondition("/projectRootDir", "true", "/cwd", {});
+    await _internal.evalCondition("/projectRootDir", "true", "/cwd", {});
     expect(debugStub.calledWith("evalute ", "true")).to.be.true;
   });
 });
@@ -242,12 +229,9 @@ describe("#getRemoteRootWorkingDir", ()=>{
   let replacePathsepStub;
 
   beforeEach(()=>{
-    getIDStub = sinon.stub();
-    getSshHostinfoStub = sinon.stub();
-    replacePathsepStub = sinon.stub();
-    _internal.remoteHost = { getID: getIDStub };
-    _internal.getSshHostinfo = getSshHostinfoStub;
-    _internal.replacePathsep = replacePathsepStub;
+    getIDStub = sinon.stub(_internal.remoteHost, "getID");
+    getSshHostinfoStub = sinon.stub(_internal, "getSshHostinfo");
+    replacePathsepStub = sinon.stub(_internal, "replacePathsep");
   });
 
   afterEach(()=>{
@@ -263,7 +247,7 @@ describe("#getRemoteRootWorkingDir", ()=>{
     replacePathsepStub
       .withArgs("/remote/root/20230101-1231")
       .returns("/remote/root/20230101-1231");
-    const result = getRemoteRootWorkingDir(
+    const result = _internal.getRemoteRootWorkingDir(
       "projectRootDir",
       "20230101-1231",
       {
@@ -283,7 +267,7 @@ describe("#getRemoteRootWorkingDir", ()=>{
     replacePathsepStub
       .withArgs("/remote/root/20230101-1231")
       .returns("/remote/root/20230101-1231");
-    const result = getRemoteRootWorkingDir(
+    const result = _internal.getRemoteRootWorkingDir(
       "projectRootDir",
       "20230101-1231",
       {
@@ -303,7 +287,7 @@ describe("#getRemoteRootWorkingDir", ()=>{
     replacePathsepStub
       .withArgs("/remote/shared/20230101-1231")
       .returns("/remote/shared/20230101-1231");
-    const result = getRemoteRootWorkingDir(
+    const result = _internal.getRemoteRootWorkingDir(
       "projectRootDir",
       "20230101-1231",
       {
@@ -321,7 +305,7 @@ describe("#getRemoteRootWorkingDir", ()=>{
       path: 456
     });
     replacePathsepStub.withArgs("20230101-1231").returns("20230101-1231");
-    const result = getRemoteRootWorkingDir(
+    const result = _internal.getRemoteRootWorkingDir(
       "projectRootDir",
       "20230101-1231",
       {
@@ -338,10 +322,8 @@ describe("#getRemoteWorkingDir", ()=>{
   let replacePathsepStub;
 
   beforeEach(()=>{
-    getRemoteRootWorkingDirStub = sinon.stub();
-    replacePathsepStub = sinon.stub();
-    _internal.getRemoteRootWorkingDir = getRemoteRootWorkingDirStub;
-    _internal.replacePathsep = replacePathsepStub;
+    getRemoteRootWorkingDirStub = sinon.stub(_internal, "getRemoteRootWorkingDir");
+    replacePathsepStub = sinon.stub(_internal, "replacePathsep");
   });
 
   afterEach(()=>{
@@ -357,7 +339,7 @@ describe("#getRemoteWorkingDir", ()=>{
       .withArgs("/remote/root/20230101-1231/workingDir")
       .returns("/remote/root/20230101-1231/workingDir");
 
-    const result = getRemoteWorkingDir(
+    const result = _internal.getRemoteWorkingDir(
       "/project/root",
       "20230101-1231",
       "/project/root/workingDir",
@@ -370,7 +352,7 @@ describe("#getRemoteWorkingDir", ()=>{
   it("should return null if getRemoteRootWorkingDir returns null", ()=>{
     getRemoteRootWorkingDirStub.returns(null);
 
-    const result = getRemoteWorkingDir(
+    const result = _internal.getRemoteWorkingDir(
       "/project/root",
       "20230101-1234",
       "/project/root/workingDir",
@@ -383,35 +365,35 @@ describe("#getRemoteWorkingDir", ()=>{
 
 describe("#isFinishedState", ()=>{
   it("should return true if the status is finished", ()=>{
-    expect(isFinishedState("finished")).to.be.true;
+    expect(_internal.isFinishedState("finished")).to.be.true;
   });
 
   it("should return true if the status is failed", ()=>{
-    expect(isFinishedState("failed")).to.be.true;
+    expect(_internal.isFinishedState("failed")).to.be.true;
   });
 
   it("should return true if the status is unknown", ()=>{
-    expect(isFinishedState("unknown")).to.be.true;
+    expect(_internal.isFinishedState("unknown")).to.be.true;
   });
 
   it("should return false if the status is not finished, failed or unkown", ()=>{
-    expect(isFinishedState("processing")).to.be.false;
+    expect(_internal.isFinishedState("processing")).to.be.false;
   });
 
   it("judgement of the status should be case-sensitive", ()=>{
-    expect(isFinishedState("Finished")).to.be.false;
+    expect(_internal.isFinishedState("Finished")).to.be.false;
   });
 
   it("should return false if the status is empty", ()=>{
-    expect(isFinishedState("")).to.be.false;
+    expect(_internal.isFinishedState("")).to.be.false;
   });
 
   it("should return false if the status is null", ()=>{
-    expect(isFinishedState(null)).to.be.false;
+    expect(_internal.isFinishedState(null)).to.be.false;
   });
 
   it("should return false if the status is undefined", ()=>{
-    expect(isFinishedState(undefined)).to.be.false;
+    expect(_internal.isFinishedState(undefined)).to.be.false;
   });
 });
 
@@ -421,11 +403,9 @@ describe("#isSubComponent", ()=>{
   let readJsonGreedyStub;
 
   beforeEach(()=>{
-    statStub = sinon.stub();
     isDirectoryStub = sinon.stub();
-    readJsonGreedyStub = sinon.stub();
-    _internal.fs = { stat: statStub };
-    _internal.readJsonGreedy = readJsonGreedyStub;
+    statStub = sinon.stub(_internal.fs, "stat");
+    readJsonGreedyStub = sinon.stub(_internal, "readJsonGreedy");
   });
 
   afterEach(()=>{
@@ -440,7 +420,7 @@ describe("#isSubComponent", ()=>{
     readJsonGreedyStub
       .withArgs("/componentDir/cmp.wheel.json")
       .resolves({ subComponent: true });
-    const result = await isSubComponent("/componentDir");
+    const result = await _internal.isSubComponent("/componentDir");
     expect(result).to.be.true;
   });
 
@@ -452,7 +432,7 @@ describe("#isSubComponent", ()=>{
     readJsonGreedyStub
       .withArgs("/componentDir/cmp.wheel.json")
       .resolves({ subComponent: false });
-    const result = await isSubComponent("/componentDir");
+    const result = await _internal.isSubComponent("/componentDir");
     expect(result).to.be.false;
   });
 
@@ -464,7 +444,7 @@ describe("#isSubComponent", ()=>{
     readJsonGreedyStub
       .withArgs("/componentDir/cmp.wheel.json")
       .resolves({ subComponent: true });
-    const result = await isSubComponent("/componentDir");
+    const result = await _internal.isSubComponent("/componentDir");
     expect(result).to.be.false;
   });
 
@@ -476,7 +456,7 @@ describe("#isSubComponent", ()=>{
     readJsonGreedyStub
       .withArgs("/invalidDir/cmp.wheel.json")
       .resolves({ subComponent: true });
-    const result = await isSubComponent("/invalidDir");
+    const result = await _internal.isSubComponent("/invalidDir");
     expect(result).to.be.false;
   });
 
@@ -488,9 +468,9 @@ describe("#isSubComponent", ()=>{
     readJsonGreedyStub
       .withArgs("/componentDir/cmp.wheel.json")
       .resolves({ subComponent: true });
-    await expect(isSubComponent("/componentDir"))
+    await expect(_internal.isSubComponent("/componentDir"))
       .to.be.rejectedWith(Error)
-      .and.eventually.satisfy((err)=>err.code === "EACCES");
+      .and.eventually.satisfy((err)=>{ return err.code === "EACCES"; });
   });
 
   it("should return false if the ENOENT error is occurred when trying to read json of subcompoment", async ()=>{
@@ -501,7 +481,7 @@ describe("#isSubComponent", ()=>{
     const error = new Error();
     error.code = "ENOENT";
     readJsonGreedyStub.withArgs("/componentDir/cmp.wheel.json").throws(error);
-    const result = await isSubComponent("/componentDir");
+    const result = await _internal.isSubComponent("/componentDir");
     expect(result).to.be.false;
   });
 
@@ -513,8 +493,8 @@ describe("#isSubComponent", ()=>{
     const error = new Error();
     error.code = "EACCES";
     readJsonGreedyStub.withArgs("/componentDir/cmp.wheel.json").throws(error);
-    await expect(isSubComponent("/componentDir"))
+    await expect(_internal.isSubComponent("/componentDir"))
       .to.be.rejectedWith(Error)
-      .and.eventually.satisfy((err)=>err.code === "EACCES");
+      .and.eventually.satisfy((err)=>{ return err.code === "EACCES"; });
   });
 });

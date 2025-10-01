@@ -61,7 +61,7 @@ _internal.initialize = async function () {
  * @param {string} username - new user's name
  * @param {string} password - new user's password
  */
-async function addUser(username, password) {
+_internal.addUser = async function (username, password) {
   if (!_internal.initialized) {
     await _internal.initialize();
   }
@@ -74,7 +74,7 @@ async function addUser(username, password) {
   const salt = _internal.crypto.randomBytes(16);
   const hashedPassword = await _internal.getHashedPassword(password, salt);
   await _internal.db.run("INSERT OR IGNORE INTO users (id, username, hashed_password, salt) VALUES (?, ?, ?, ?)", id, username, hashedPassword, salt);
-}
+};
 
 /**
  * check if specified user and password pair is valid
@@ -82,7 +82,7 @@ async function addUser(username, password) {
  * @param {string} password - user's password in plain text
  * @returns {boolean | object} - return user data if valid pair, or false if invalid
  */
-async function isValidUser(username, password) {
+_internal.isValidUser = async function (username, password) {
   if (!_internal.initialized) {
     await _internal.initialize();
   }
@@ -98,9 +98,9 @@ async function isValidUser(username, password) {
     return false;
   }
   return row;
-}
+};
 
-async function listUser() {
+_internal.listUser = async function () {
   if (!_internal.initialized) {
     await _internal.initialize();
   }
@@ -108,21 +108,21 @@ async function listUser() {
   return tmp.map((e)=>{
     return e.username;
   });
-}
+};
 
-async function delUser(username) {
+_internal.delUser = async function (username) {
   if (!_internal.initialized) {
     await _internal.initialize();
   }
   return _internal.db.run(`DELETE FROM users WHERE username = '${username}'`);
-}
+};
 
 module.exports = {
   initialize: _internal.initialize,
-  addUser,
-  isValidUser,
-  listUser,
-  delUser,
+  addUser: _internal.addUser,
+  isValidUser: _internal.isValidUser,
+  listUser: _internal.listUser,
+  delUser: _internal.delUser,
   getHashedPassword: _internal.getHashedPassword,
   getUserData: _internal.getUserData,
   _internal

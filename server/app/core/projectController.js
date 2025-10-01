@@ -17,9 +17,11 @@ const Dispatcher = require("./dispatcher");
 const { getDateString } = require("../lib/utility");
 const { getLogger } = require("../logSettings.js");
 const { eventEmitters } = require("./global.js");
+const { EventEmitter } = require("events");
 
 const _internal = {
   path,
+  EventEmitter,
   readJsonGreedy,
   gitResetHEAD,
   gitClean,
@@ -37,7 +39,6 @@ const _internal = {
   eventEmitters,
   rootDispatchers: new Map()
 };
-
 
 /**
  * @event projectStateChanged
@@ -58,33 +59,35 @@ const _internal = {
  * @param {string} projectRootDir - project's root path
  * @param {string} state - status
  */
-async function updateProjectState(projectRootDir, state) {
-  const projectJson = await _internal.setProjectState(projectRootDir, state);
-  if (projectJson) {
+_internal.updateProjectState = async (projectRootDir, state, projectJson)=>{
+  const updatedProjectJson = await _internal.setProjectState(projectRootDir, state, false, projectJson);
+  if (updatedProjectJson) {
     const ee = _internal.eventEmitters.get(projectRootDir);
     if (ee) {
-      ee.emit("projectStateChanged", projectJson);
+      ee.emit("projectStateChanged", updatedProjectJson);
     }
+    return updatedProjectJson;
   }
-}
+  return projectJson;
+};
 
 /**
  * clean up project
  * @param {string} projectRootDir - project's root path
  * @param {string} targetDir - If this argument is specified, limit git clean operations to under this directory
  */
-async function cleanProject(projectRootDir, targetDir) {
+_internal.cleanProject = async (projectRootDir, targetDir)=>{
   await _internal.gitResetHEAD(projectRootDir, targetDir);
   await _internal.gitClean(projectRootDir, targetDir);
   //project state must be updated by onCleanProject()
   //temp dirs also removed by onCleanProject()
-}
+};
 
 /**
  * stop project run
  * @param {string} projectRootDir - project's root path
  */
-async function stopProject(projectRootDir) {
+_internal.stopProject = async (projectRootDir)=>{
   const rootDispatcher = _internal.rootDispatchers.get(projectRootDir);
   if (rootDispatcher) {
     await rootDispatcher.remove();
@@ -94,14 +97,17 @@ async function stopProject(projectRootDir) {
   _internal.removeTransferrers(projectRootDir);
   _internal.removeSsh(projectRootDir);
   //project state must be updated by onStopProject()
-}
+};
 
 /**
  * run project
  * @param {string} projectRootDir - project's root path
  * @returns {string} - project status after run
  */
-async function runProject(projectRootDir) {
+_internal.runProject = async (projectRootDir)=>{
+  if (!_internal.eventEmitters.has(projectRootDir)) {
+    _internal.eventEmitters.set(projectRootDir, new _internal.EventEmitter());
+  }
   if (_internal.rootDispatchers.has(projectRootDir)) {
     return new Error(`project is already running ${projectRootDir}`);
   }
@@ -120,29 +126,24 @@ async function runProject(projectRootDir) {
   }
   _internal.rootDispatchers.set(projectRootDir, rootDispatcher);
 
-  await updateProjectState(projectRootDir, "running", projectJson);
+  const projectJsonRunning = await _internal.updateProjectState(projectRootDir, "running", projectJson);
   _internal.getLogger(projectRootDir).info("project start");
   rootWF.state = await rootDispatcher.start();
   _internal.getLogger(projectRootDir).info(`project ${rootWF.state}`);
-  await updateProjectState(projectRootDir, rootWF.state, projectJson);
+  await _internal.updateProjectState(projectRootDir, rootWF.state, projectJsonRunning);
   await _internal.writeComponentJson(projectRootDir, projectRootDir, rootWF, true);
   _internal.rootDispatchers.delete(projectRootDir);
   _internal.removeExecuters(projectRootDir);
   _internal.removeTransferrers(projectRootDir);
   _internal.removeSsh(projectRootDir);
   return rootWF.state;
-}
-
-_internal.updateProjectState = updateProjectState;
-_internal.cleanProject = cleanProject;
-_internal.stopProject = stopProject;
-_internal.runProject = runProject;
+};
 
 module.exports = {
-  cleanProject,
-  runProject,
-  stopProject,
-  updateProjectState
+  cleanProject: _internal.cleanProject,
+  runProject: _internal.runProject,
+  stopProject: _internal.stopProject,
+  updateProjectState: _internal.updateProjectState
 };
 
 if (process.env.NODE_ENV === "test") {

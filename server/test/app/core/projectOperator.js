@@ -13,30 +13,16 @@ const expect = chai.expect;
 const sinon = require("sinon");
 chai.use(require("sinon-chai"));
 
-const { createNewProject } = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const { createNewProject } = projectFilesOperator;
+const originalFs = projectFilesOperator._internal.fs;
 const senders = require("../../../app/handlers/senders.js");
 
 //testee
 const projectController = require("../../../app/handlers/projectController.js");
 const { onProjectOperation } = projectController;
 const { _internal } = projectController;
-const onRunProject = sinon.stub();
-const onStopProject = sinon.stub();
-const onCleanProject = sinon.stub();
-const onRevertProject = sinon.stub();
-const onSaveProject = sinon.stub();
 const queues = _internal.projectOperationQueues;
-
-_internal.onRunProject = onRunProject;
-_internal.onStopProject = onStopProject;
-_internal.onCleanProject = onCleanProject;
-_internal.onRevertProject = onRevertProject;
-_internal.onSaveProject = onSaveProject;
-
-sinon.stub(senders, "sendWorkflow");
-sinon.stub(senders, "sendTaskStateList");
-sinon.stub(senders, "sendProjectJson");
-sinon.stub(senders, "sendComponentTree");
 
 const ack = sinon.stub();
 async function sleep(time) {
@@ -51,7 +37,22 @@ const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 
 describe("UT for projectOperation callback function", function () {
   this.timeout(10000);
+  let onRunProject;
+  let onStopProject;
+  let onCleanProject;
+  let onRevertProject;
+  let onSaveProject;
   beforeEach(async ()=>{
+    onRunProject = sinon.stub(_internal, "onRunProject");
+    onStopProject = sinon.stub(_internal, "onStopProject");
+    onCleanProject = sinon.stub(_internal, "onCleanProject");
+    onRevertProject = sinon.stub(_internal, "onRevertProject");
+    onSaveProject = sinon.stub(_internal, "onSaveProject");
+    sinon.stub(senders, "sendWorkflow");
+    sinon.stub(senders, "sendTaskStateList");
+    sinon.stub(senders, "sendProjectJson");
+    sinon.stub(senders, "sendComponentTree");
+    projectFilesOperator._internal.fs = originalFs;
     await fs.remove(testDirRoot);
     await createNewProject(projectRootDir, "test project", null, "test", "test@example.com");
     const sbs = queues.get(projectRootDir);
@@ -59,17 +60,14 @@ describe("UT for projectOperation callback function", function () {
       sbs.clear();
     }
     queues.clear();
-    onRunProject.resetHistory();
-    onStopProject.resetHistory();
-    onCleanProject.resetHistory();
-    onRevertProject.resetHistory();
-    onSaveProject.resetHistory();
+  });
+  afterEach(()=>{
+    sinon.restore();
   });
   after(async ()=>{
     if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {
       await fs.remove(testDirRoot);
     }
-    sinon.restore();
   });
   describe("test with not-started project", ()=>{
     it("should call onRunProject", async ()=>{

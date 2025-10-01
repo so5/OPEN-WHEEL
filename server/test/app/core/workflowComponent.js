@@ -105,8 +105,7 @@ describe("UT for workflowComponents class", ()=>{
   describe("#isInitialComponent", ()=>{
     let isBehindIfComponentStub;
     beforeEach(()=>{
-      isBehindIfComponentStub = sinon.stub();
-      _internal.isBehindIfComponent = isBehindIfComponentStub;
+      isBehindIfComponentStub = sinon.stub(_internal, "isBehindIfComponent");
     });
     afterEach(()=>{
       sinon.restore();
@@ -191,8 +190,7 @@ describe("UT for workflowComponents class", ()=>{
     let readComponentJsonByIDStub;
 
     beforeEach(()=>{
-      readComponentJsonByIDStub = sinon.stub();
-      _internal.readComponentJsonByID = readComponentJsonByIDStub;
+      readComponentJsonByIDStub = sinon.stub(_internal, "readComponentJsonByID");
     });
 
     afterEach(()=>{

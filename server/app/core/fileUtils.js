@@ -19,228 +19,237 @@ const _internal = {
   Mode,
   getLogger,
   gitAdd,
-  projectJsonFilename
-};
+  projectJsonFilename,
 
-/**
- * read Json file until get some valid JSON data
- * @param {string} filename - filename to be read
- * @param {number} retry - max number of retry
- */
-async function readJsonGreedy(filename, retry) {
-  const retries = typeof retry === "number" ? retry : 10;
-  return _internal.promiseRetry(async (retry)=>{
-    const buf = await _internal.fs.readFile(filename)
-      .catch((e)=>{
-        if (e.code === "ENOENT") {
+  /**
+   * read Json file until get some valid JSON data
+   * @param {string} filename - filename to be read
+   * @param {number} retry - max number of retry
+   */
+  async readJsonGreedy(filename, retry) {
+    const retries = typeof retry === "number" ? retry : 10;
+    return _internal.promiseRetry(async (retry)=>{
+      const buf = await _internal.fs.readFile(filename)
+        .catch((e)=>{
+          if (e.code === "ENOENT") {
+            return retry(e);
+          }
+          throw e;
+        });
+      const strData = buf.toString("utf8").replace(/^\uFEFF/, "");
+      if (strData.length === 0) {
+        return retry(new Error("read failed"));
+      }
+      let jsonData;
+      try {
+        jsonData = JSON.parse(strData);
+      } catch (e) {
+        if (e instanceof SyntaxError) {
           return retry(e);
         }
         throw e;
-      });
-    const strData = buf.toString("utf8").replace(/^\uFEFF/, "");
-    if (strData.length === 0) {
-      return retry(new Error("read failed"));
-    }
-    let jsonData;
-    try {
-      jsonData = JSON.parse(strData);
-    } catch (e) {
-      if (e instanceof SyntaxError) {
-        return retry(e);
       }
-      throw e;
-    }
-    return jsonData;
-  },
-  {
-    retries,
-    minTimeout: 500,
-    factor: 1
-  });
-}
-
-/**
- * add execute permission to file
- * @param {string} file - filename in absolute path
- */
-async function addX(file) {
-  const stat = await _internal.fs.stat(file);
-  const mode = new _internal.Mode(stat);
-  let u = 4;
-  let g = 4;
-  let o = 4;
-  if (mode.owner.read) {
-    u += 1;
-  }
-  if (mode.owner.write) {
-    u += 2;
-  }
-  if (mode.group.read) {
-    g += 1;
-  }
-  if (mode.group.write) {
-    g += 2;
-  }
-  if (mode.others.read) {
-    o += 1;
-  }
-  if (mode.others.write) {
-    o += 2;
-  }
-  const modeString = u.toString() + g.toString() + o.toString();
-  return _internal.fs.chmod(file, modeString);
-}
-
-/**
- * @typedef File
- * @param {object} File
- * @param {string} File.filename - filename
- * @param {string} File.dirname - dirname of the file
- * @param {string} File.content - file content
- */
-
-/**
- * open file or target Files which is listed in parameter setting file
- * @param {string} projectRootDir - project's root path"
- * @param {string} argFilename - target file's name
- * @param {boolean} forceNormal - if true absFilename is not treated as parameter setting file
- * @returns {File[]} - array of file object which is read
- */
-async function openFile(projectRootDir, argFilename, forceNormal = false) {
-  const absFilename = _internal.path.resolve(argFilename);
-  let content;
-  try {
-    const bufffer = await _internal.fs.readFile(absFilename);
-    content = bufffer.toString();
-  } catch (err) {
-    if (err.code === "ENOENT") {
-      await _internal.fs.ensureFile(absFilename);
-      return [{ content: "", filename: _internal.path.basename(absFilename), dirname: _internal.path.dirname(absFilename) }];
-    }
-    throw err;
-  }
-  if (forceNormal) {
-    return [{ content, filename: _internal.path.basename(absFilename), dirname: _internal.path.dirname(absFilename) }];
-  }
-
-  //try to parse specified file as parameter setting file
-  let contentJson = {};
-  try {
-    contentJson = JSON.parse(content);
-  } catch (err) {
-    //read file is not parameter setting file
-    return [{ content, filename: _internal.path.basename(absFilename), dirname: _internal.path.dirname(absFilename) }];
-  }
-  if (!Object.prototype.hasOwnProperty.call(contentJson, "targetFiles") || !Array.isArray(contentJson.targetFiles)) {
-    return [{ content, filename: _internal.path.basename(absFilename), dirname: _internal.path.dirname(absFilename) }];
-  }
-
-  const rt = [{ content, filename: _internal.path.basename(absFilename), dirname: _internal.path.dirname(absFilename), isParameterSettingFile: true }];
-
-  //resolve targetFile's path
-  const dirname = _internal.path.dirname(absFilename);
-  const { componentPath } = await _internal.readJsonGreedy(_internal.path.resolve(projectRootDir, _internal.projectJsonFilename));
-  const absTargetFiles = contentJson.targetFiles
-    .map((targetFile)=>{
-      if (typeof targetFile === "string") {
-        return _internal.path.resolve(dirname, targetFile);
-      }
-      if (!Object.prototype.hasOwnProperty.call(targetFile, "targetName")) {
-        return null;
-      }
-      if (Object.prototype.hasOwnProperty.call(targetFile, "targetNode")) {
-        //to avoid circurler dependency, do not use getComponentDir in projectFilesOperator.js
-        const relativePath = componentPath[targetFile.targetNode];
-        if (typeof relativePath !== "string") {
-          _internal.getLogger(projectRootDir).warn("illegal targetNode: ", targetFile.targetNode);
-        }
-        return _internal.path.resolve(projectRootDir, relativePath, targetFile.targetName);
-      }
-      return _internal.path.resolve(dirname, targetFile.targetName);
-    })
-    .filter((e)=>{
-      return e !== null;
+      return jsonData;
+    },
+    {
+      retries,
+      minTimeout: 500,
+      factor: 1
     });
+  },
 
-  //read all targetFiles
-  const contents = await Promise.all(absTargetFiles.map((targetFile)=>{
-    return _internal.fs.readFile(targetFile);
-  }));
+  /**
+   * add execute permission to file
+   * @param {string} file - filename in absolute path
+   */
+  async addX(file) {
+    const stat = await _internal.fs.stat(file);
+    const mode = new _internal.Mode(stat);
+    let u = 4;
+    let g = 4;
+    let o = 4;
+    if (mode.owner.read) {
+      u += 1;
+    }
+    if (mode.owner.write) {
+      u += 2;
+    }
+    if (mode.group.read) {
+      g += 1;
+    }
+    if (mode.group.write) {
+      g += 2;
+    }
+    if (mode.others.read) {
+      o += 1;
+    }
+    if (mode.others.write) {
+      o += 2;
+    }
+    const modeString = u.toString() + g.toString() + o.toString();
+    return _internal.fs.chmod(file, modeString);
+  },
 
-  rt.push(...absTargetFiles
-    .map((targetFile, i)=>{
-      return {
-        content: contents[i].toString(),
-        dirname: _internal.path.dirname(targetFile),
-        filename: _internal.path.basename(targetFile)
-      };
-    }));
+  /**
+   * @typedef File
+   * @param {object} File
+   * @param {string} File.filename - filename
+   * @param {string} File.dirname - dirname of the file
+   * @param {string} File.content - file content
+   */
 
-  return rt;
-}
-
-/**
- * write content to the file
- * @param {string} argFilename - target file's name
- * @param {*} content - content to write
- * @returns {Promise} -
- */
-async function saveFile(argFilename, content) {
-  const absFilename = _internal.path.resolve(argFilename);
-  await _internal.fs.writeFile(absFilename, content);
-
-  const { root } = _internal.path.parse(absFilename);
-  let repoDir = _internal.path.dirname(absFilename);
-  while (!await _internal.fs.pathExists(_internal.path.join(repoDir, ".git"))) {
-    if (repoDir === root) {
-      const err = new Error("git repository not found");
-      err.filename = argFilename;
-      err.absFilename = absFilename;
+  /**
+   * open file or target Files which is listed in parameter setting file
+   * @param {string} projectRootDir - project's root path"
+   * @param {string} argFilename - target file's name
+   * @param {boolean} forceNormal - if true absFilename is not treated as parameter setting file
+   * @returns {File[]} - array of file object which is read
+   */
+  async openFile(projectRootDir, argFilename, forceNormal = false) {
+    const absFilename = _internal.path.resolve(argFilename);
+    let content;
+    try {
+      const bufffer = await _internal.fs.readFile(absFilename);
+      content = bufffer.toString();
+    } catch (err) {
+      if (err.code === "ENOENT") {
+        await _internal.fs.ensureFile(absFilename);
+        return [{ content: "", filename: _internal.path.basename(absFilename), dirname: _internal.path.dirname(absFilename) }];
+      }
       throw err;
     }
-    repoDir = _internal.path.dirname(repoDir);
+    if (forceNormal) {
+      return [{ content, filename: _internal.path.basename(absFilename), dirname: _internal.path.dirname(absFilename) }];
+    }
+
+    //try to parse specified file as parameter setting file
+    let contentJson = {};
+    try {
+      contentJson = JSON.parse(content);
+    } catch (err) {
+      //read file is not parameter setting file
+      return [{ content, filename: _internal.path.basename(absFilename), dirname: _internal.path.dirname(absFilename) }];
+    }
+    if (!Object.prototype.hasOwnProperty.call(contentJson, "targetFiles") || !Array.isArray(contentJson.targetFiles)) {
+      return [{ content, filename: _internal.path.basename(absFilename), dirname: _internal.path.dirname(absFilename) }];
+    }
+
+    const rt = [{ content, filename: _internal.path.basename(absFilename), dirname: _internal.path.dirname(absFilename), isParameterSettingFile: true }];
+
+    //resolve targetFile's path
+    const dirname = _internal.path.dirname(absFilename);
+    const { componentPath } = await _internal.readJsonGreedy(_internal.path.resolve(projectRootDir, _internal.projectJsonFilename));
+    const absTargetFiles = contentJson.targetFiles
+      .map((targetFile)=>{
+        if (typeof targetFile === "string") {
+          return _internal.path.resolve(dirname, targetFile);
+        }
+        if (!Object.prototype.hasOwnProperty.call(targetFile, "targetName")) {
+          return null;
+        }
+        if (Object.prototype.hasOwnProperty.call(targetFile, "targetNode")) {
+          //to avoid circurler dependency, do not use getComponentDir in projectFilesOperator.js
+          const relativePath = componentPath[targetFile.targetNode];
+          if (typeof relativePath !== "string") {
+            _internal.getLogger(projectRootDir).warn("illegal targetNode: ", targetFile.targetNode);
+          }
+          return _internal.path.resolve(projectRootDir, relativePath, targetFile.targetName);
+        }
+        return _internal.path.resolve(dirname, targetFile.targetName);
+      })
+      .filter((e)=>{
+        return e !== null;
+      });
+
+    //read all targetFiles
+    const contents = await Promise.all(absTargetFiles.map((targetFile)=>{
+      return _internal.fs.readFile(targetFile);
+    }));
+
+    rt.push(...absTargetFiles
+      .map((targetFile, i)=>{
+        return {
+          content: contents[i].toString(),
+          dirname: _internal.path.dirname(targetFile),
+          filename: _internal.path.basename(targetFile)
+        };
+      }));
+
+    return rt;
+  },
+
+  /**
+   * write content to the file
+   * @param {string} argFilename - target file's name
+   * @param {*} content - content to write
+   * @returns {Promise} -
+   */
+  async saveFile(argFilename, content) {
+    const absFilename = _internal.path.resolve(argFilename);
+    await _internal.fs.writeFile(absFilename, content);
+
+    const { root } = _internal.path.parse(absFilename);
+    let repoDir = _internal.path.dirname(absFilename);
+    while (!await _internal.fs.pathExists(_internal.path.join(repoDir, ".git"))) {
+      if (repoDir === root) {
+        const err = new Error("git repository not found");
+        err.filename = argFilename;
+        err.absFilename = absFilename;
+        throw err;
+      }
+      repoDir = _internal.path.dirname(repoDir);
+    }
+
+    await _internal.gitAdd(repoDir, absFilename);
+  },
+
+  /**
+   * get unused path string
+   * @param {string} parent - parent directory
+   * @param {string} name - desired name
+   * @returns {string} - file or directory name with suffix
+   */
+  async getUnusedPath(parent, name) {
+    const desiredPath = _internal.path.resolve(parent, name);
+    if (!await _internal.fs.pathExists(desiredPath)) {
+      return desiredPath;
+    }
+    let suffix = 1;
+    while (await _internal.fs.pathExists(_internal.path.resolve(parent, `${name}.${suffix}`))) {
+      ++suffix;
+    }
+    return _internal.path.resolve(parent, `${name}.${suffix}`);
+  },
+
+  /**
+   * replace CRLF to LF
+   * @param {string} filename - tareget file name
+   */
+  async replaceCRLF(filename) {
+    let contents = await _internal.fs.readFile(filename);
+    contents = contents.toString().replace(/\r\n/g, "\n");
+    return _internal.fs.writeFile(filename, contents);
+  },
+
+  /**
+   * read Json file
+   * @param {string} filename - filename to be read
+   */
+  async readJson(filename) {
+    const buf = await _internal.fs.readFile(filename);
+    const strData = buf.toString("utf8").replace(/^\uFEFF/, "");
+    return JSON.parse(strData);
   }
-
-  await _internal.gitAdd(repoDir, absFilename);
-}
-
-/**
- * get unused path string
- * @param {string} parent - parent directory
- * @param {string} name - desired name
- * @returns {string} - file or directory name with suffix
- */
-async function getUnusedPath(parent, name) {
-  const desiredPath = _internal.path.resolve(parent, name);
-  if (!await _internal.fs.pathExists(desiredPath)) {
-    return desiredPath;
-  }
-  let suffix = 1;
-  while (await _internal.fs.pathExists(_internal.path.resolve(parent, `${name}.${suffix}`))) {
-    ++suffix;
-  }
-  return _internal.path.resolve(parent, `${name}.${suffix}`);
-}
-
-/**
- * replace CRLF to LF
- * @param {string} filename - tareget file name
- */
-async function replaceCRLF(filename) {
-  let contents = await _internal.fs.readFile(filename);
-  contents = contents.toString().replace(/\r\n/g, "\n");
-  return _internal.fs.writeFile(filename, contents);
-}
-
-_internal.readJsonGreedy = readJsonGreedy;
+};
 
 module.exports = {
-  readJsonGreedy,
-  addX,
-  openFile,
-  saveFile,
-  getUnusedPath,
-  replaceCRLF
+  readJson: _internal.readJson,
+  readJsonGreedy: _internal.readJsonGreedy,
+  addX: _internal.addX,
+  openFile: _internal.openFile,
+  saveFile: _internal.saveFile,
+  getUnusedPath: _internal.getUnusedPath,
+  replaceCRLF: _internal.replaceCRLF
 };
 
 if (process.env.NODE_ENV === "test") {

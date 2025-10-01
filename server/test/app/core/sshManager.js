@@ -16,11 +16,9 @@ const {
   getSshPW,
   getSshPH,
   removeSsh,
-  askPassword,
   createSsh,
   _internal
 } = require("../../../app/core/sshManager.js");
-
 
 describe("#hasEntry", ()=>{
   let dbMock;
@@ -201,7 +199,7 @@ describe("#getSshPW", ()=>{
   });
 
   it("should return the password (function) if pw is defined as a function", ()=>{
-    const pwFunc = ()=>"secretFromFunction";
+    const pwFunc = ()=>{ return "secretFromFunction"; };
     dbMock.set("/path/to/project", new Map([
       ["hostID", { pw: pwFunc }]
     ]));
@@ -250,7 +248,10 @@ describe("#removeSsh", ()=>{
 
   beforeEach(()=>{
     dbMock = new Map();
-    _internal.db = dbMock;
+    sinon.replace(_internal, "db", dbMock);
+  });
+  afterEach(()=>{
+    sinon.restore();
   });
 
   it("should return immediately if db does not have projectRootDir", ()=>{
@@ -293,11 +294,10 @@ describe("#removeSsh", ()=>{
 });
 
 describe("#askPassword", ()=>{
-  let emitAllMock;
+  let emitAllStub;
 
   beforeEach(()=>{
-    emitAllMock = sinon.stub();
-    _internal.emitAll = emitAllMock;
+    emitAllStub = sinon.stub(_internal, "emitAll");
   });
 
   afterEach(()=>{
@@ -305,28 +305,28 @@ describe("#askPassword", ()=>{
   });
 
   it("should resolve with data if the user provides a non-null password", async ()=>{
-    emitAllMock.callsFake((clientID, event, hostname, mode, JWTServerURL, callback)=>{
+    emitAllStub.callsFake((clientID, event, hostname, mode, JWTServerURL, callback)=>{
       callback("secretPW");
     });
-    const result = await askPassword("dummyClientID", "Please enter your password");
+    const result = await _internal.askPassword("dummyClientID", "Please enter your password");
     expect(result).to.equal("secretPW");
-    expect(emitAllMock.calledOnce).to.be.true;
+    expect(emitAllStub.calledOnce).to.be.true;
   });
 
   it("should reject with an error if the user cancels the password input (data === null)", async ()=>{
-    emitAllMock.callsFake((clientID, event, hostname, mode, JWTServerURL, callback)=>{
+    emitAllStub.callsFake((clientID, event, hostname, mode, JWTServerURL, callback)=>{
       callback(null);
     });
 
     try {
-      await askPassword("dummyClientID", "Please enter your password");
+      await _internal.askPassword("dummyClientID", "Please enter your password");
       expect.fail("Expected askPassword to reject, but it resolved");
     } catch (err) {
       expect(err).to.be.an("error");
       expect(err.message).to.equal("user canceled ssh password prompt");
       expect(err.reason).to.equal("CANCELED");
     }
-    expect(emitAllMock.calledOnce).to.be.true;
+    expect(emitAllStub.calledOnce).to.be.true;
   });
 });
 
@@ -337,16 +337,13 @@ describe("#createSsh", ()=>{
   let originalWheelVerboseSsh;
 
   beforeEach(()=>{
-    askPasswordStub = sinon.stub();
     canConnectStub = sinon.stub();
-    SshClientWrapperStub = sinon.stub().callsFake(function () {
+    askPasswordStub = sinon.stub(_internal, "askPassword");
+    SshClientWrapperStub = sinon.stub(_internal, "SshClientWrapper").callsFake(function () {
       return {
         canConnect: canConnectStub
       };
     });
-
-    _internal.askPassword = askPasswordStub;
-    _internal.SshClientWrapper = SshClientWrapperStub;
     _internal.db.clear();
 
     originalWheelVerboseSsh = process.env.WHEEL_VERBOSE_SSH;

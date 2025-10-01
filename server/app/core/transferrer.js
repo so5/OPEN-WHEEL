@@ -23,7 +23,6 @@ const _internal = {
   register: actualRegister
 };
 
-
 /**
  * prepare task component on remotehost
  * @param {object} task - component to be executed on remotehost

@@ -14,7 +14,6 @@ const { getLogger } = require("../logSettings");
 const { eventEmitters } = require("./global.js");
 
 const _internal = {
-  path,
   fs,
   statusFilename,
   replacePathsep,
@@ -63,9 +62,9 @@ async function needDownload(projectRootDir, componentID, outputFile) {
 function formatSrcFilename(remoteWorkingDir, filename) {
   if (filename.endsWith("/") || filename.endsWith("\\")) {
     const dirname = _internal.replacePathsep(filename);
-    return _internal.path.posix.join(remoteWorkingDir, `${dirname}/*`);
+    return path.posix.join(remoteWorkingDir, `${dirname}/*`);
   }
-  return _internal.path.posix.join(remoteWorkingDir, filename);
+  return path.posix.join(remoteWorkingDir, filename);
 }
 
 /**
@@ -93,7 +92,7 @@ function makeDownloadRecipe(projectRootDir, filename, remoteWorkingDir, workingD
  * @param {object} task - task component
  */
 async function createStatusFile(task) {
-  const filename = _internal.path.resolve(task.workingDir, _internal.statusFilename);
+  const filename = path.resolve(task.workingDir, _internal.statusFilename);
   const statusFile = `${task.state}\n${task.rt}\n${task.jobStatus}`;
   return _internal.fs.writeFile(filename, statusFile);
 }
@@ -105,7 +104,7 @@ async function createStatusFile(task) {
  * @param {string[]} jobStatusList - array of job status codes from bulk job
  */
 async function createBulkStatusFile(task, rtList, jobStatusList) {
-  const filename = _internal.path.resolve(task.workingDir, `subjob_${_internal.statusFilename}`);
+  const filename = path.resolve(task.workingDir, `subjob_${_internal.statusFilename}`);
   let statusFile = "";
   for (let bulkNum = task.startBulkNumber; bulkNum <= task.endBulkNumber; bulkNum++) {
     statusFile += `RT_${bulkNum}=${rtList[bulkNum]}\nJOBSTATUS_${bulkNum}=${jobStatusList[bulkNum]}\n`;

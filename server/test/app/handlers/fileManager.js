@@ -25,15 +25,11 @@ const {
 } = require("../../../app/handlers/fileManager.js");
 
 //stubs
-const emit = sinon.stub();
 const cb = sinon.stub();
 
 //helper function
-const { gitInit } = require("../../../app/core/gitOperator2");
-
-//fileManager.__set__("getLogger", ()=>{
-//return { tarace: console.log, info: console.log, debug: console.log, error: console.log, warn: console.log };
-//});
+const gitOperator2 = require("../../../app/core/gitOperator2");
+const { gitInit } = gitOperator2;
 
 const testDirRoot = path.resolve("./WHEEL_TEST_TMP");
 
@@ -42,7 +38,6 @@ describe("fileManager UT", ()=>{
     this.timeout(10000);
     await fs.remove(testDirRoot);
     cb.reset();
-    emit.reset();
     await gitInit(testDirRoot, "test user", "testUser@exeample.com");
     await Promise.all([
       fs.ensureDir(path.join(testDirRoot, "foo")),

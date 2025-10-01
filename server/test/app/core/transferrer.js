@@ -18,17 +18,11 @@ describe("#stageIn", ()=>{
   let registerMock;
 
   beforeEach(()=>{
-    setTaskStateMock = sinon.stub().resolves();
-    getSshHostinfoMock = sinon.stub().returns({ host: "mock-host" });
-    replaceCRLFMock = sinon.stub().resolves();
-    addXMock = sinon.stub().resolves();
-    registerMock = sinon.stub().resolves("register-result");
-
-    _internal.setTaskState = setTaskStateMock;
-    _internal.getSshHostinfo = getSshHostinfoMock;
-    _internal.replaceCRLF = replaceCRLFMock;
-    _internal.addX = addXMock;
-    _internal.register = registerMock;
+    setTaskStateMock = sinon.stub(_internal, "setTaskState").resolves();
+    getSshHostinfoMock = sinon.stub(_internal, "getSshHostinfo").returns({ host: "mock-host" });
+    replaceCRLFMock = sinon.stub(_internal, "replaceCRLF").resolves();
+    addXMock = sinon.stub(_internal, "addX").resolves();
+    registerMock = sinon.stub(_internal, "register").resolves("register-result");
   });
 
   afterEach(()=>{
@@ -80,31 +74,24 @@ describe("#stageOut", ()=>{
   let sshMock;
 
   beforeEach(()=>{
-    setTaskStateMock = sinon.stub();
-    getSshHostinfoMock = sinon.stub();
-    needDownloadMock = sinon.stub();
-    makeDownloadRecipeMock = sinon.stub();
-    registerMock = sinon.stub();
-    getSshMock = sinon.stub();
+    setTaskStateMock = sinon.stub(_internal, "setTaskState").resolves();
+    getSshHostinfoMock = sinon.stub(_internal, "getSshHostinfo").returns({ host: "mock-host" });
+    registerMock = sinon.stub(_internal, "register").resolves("register-result");
+
+    needDownloadMock = sinon.stub(_internal, "needDownload");
+    makeDownloadRecipeMock = sinon.stub(_internal, "makeDownloadRecipe");
 
     sshMock = {
       exec: sinon.stub()
     };
-    getSshMock.returns(sshMock);
+    getSshMock = sinon.stub(_internal, "getSsh").returns(sshMock); ;
 
     const loggerStub = {
       debug: sinon.stub(),
       trace: sinon.stub(),
       warn: sinon.stub()
     };
-
-    _internal.setTaskState = setTaskStateMock;
-    _internal.getSshHostinfo = getSshHostinfoMock;
-    _internal.getLogger = ()=>loggerStub;
-    _internal.needDownload = needDownloadMock;
-    _internal.makeDownloadRecipe = makeDownloadRecipeMock;
-    _internal.register = registerMock;
-    _internal.getSsh = getSshMock;
+    sinon.stub(_internal, "getLogger").returns(loggerStub);
   });
 
   afterEach(()=>{

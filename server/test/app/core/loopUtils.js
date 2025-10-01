@@ -172,7 +172,8 @@ describe("#keepLoopInstance", ()=>{
       keep: 1,
       step: 2
     };
-    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 1).returns("dummy");
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 1)
+      .returns("dummy");
     await keepLoopInstance(component, "/cwdDir");
     expect(removeStub.calledWith("/cwdDir/dummy")).to.be.true;
   });
@@ -182,7 +183,8 @@ describe("#keepLoopInstance", ()=>{
       currentIndex: 3,
       keep: 1
     };
-    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 2).returns("dummy");
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 2)
+      .returns("dummy");
     await keepLoopInstance(component, "/cwdDir");
     expect(removeStub.calledWith("/cwdDir/dummy")).to.be.true;
   });
@@ -588,23 +590,25 @@ describe("UT foreachKeepLoopInstance()", ()=>{
       currentIndex: 3,
       keep: 1
     };
-    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 2).returns("dummy");
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 2)
+      .returns("dummy");
     await foreachKeepLoopInstance(component, "/cwdDir");
     expect(removeStub.calledWith("/cwdDir/dummy")).to.be.true;
   });
 
-  it("should use component.indexList.length for calculation of removing target when component.currentIndex is null", async ()=>{
+  it("should use last index for calculation of removing target when component.currentIndex is null", async ()=>{
     const component = {
       indexList: [1, 2, 3, 4],
       currentIndex: null,
       keep: 1
     };
-    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 4).returns("dummy");
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 3)
+      .returns("dummy");
     await foreachKeepLoopInstance(component, "/cwdDir");
     expect(removeStub.calledWith("/cwdDir/dummy")).to.be.true;
   });
 
-  it("should not remove anything when keep is greater than indexList.length", async ()=>{
+  it("should not remove anything when keep is greater than or equal to indexList.length", async ()=>{
     const component = {
       indexList: [1, 2, 3, 4],
       currentIndex: null,
@@ -634,7 +638,8 @@ describe("#foreachSearchLatestFinishedIndex", ()=>{
     const component = {
       indexList: [1]
     };
-    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 1).returns("dummy");
+    sinon.stub(loopUtils._internal, "getInstanceDirectoryName").withArgs(sinon.match(component), 1)
+      .returns("dummy");
     readComponentJsonStub.withArgs("/cwdDir/dummy").resolves({ state: "running" });
     expect(await foreachSearchLatestFinishedIndex(component, "/cwdDir")).to.be.null;
   });
@@ -644,9 +649,12 @@ describe("#foreachSearchLatestFinishedIndex", ()=>{
       indexList: [1, 2, 3]
     };
     sinon.stub(loopUtils._internal, "getInstanceDirectoryName")
-      .withArgs(sinon.match(component), 1).returns("dummy1")
-      .withArgs(sinon.match(component), 2).returns("dummy2")
-      .withArgs(sinon.match(component), 3).returns("dummy3");
+      .withArgs(sinon.match(component), 1)
+      .returns("dummy1")
+      .withArgs(sinon.match(component), 2)
+      .returns("dummy2")
+      .withArgs(sinon.match(component), 3)
+      .returns("dummy3");
     readComponentJsonStub.withArgs("/cwdDir/dummy1").resolves({ state: "finished" });
     readComponentJsonStub.withArgs("/cwdDir/dummy2").resolves({ state: "finished" });
     readComponentJsonStub.withArgs("/cwdDir/dummy3").resolves({ state: "running" });
@@ -660,9 +668,12 @@ describe("#foreachSearchLatestFinishedIndex", ()=>{
     const error = new Error("dummy");
     error.code = "ENOENT";
     sinon.stub(loopUtils._internal, "getInstanceDirectoryName")
-      .withArgs(sinon.match(component), 1).returns("dummy1")
-      .withArgs(sinon.match(component), 2).returns("dummy2")
-      .withArgs(sinon.match(component), 3).returns("dummy3");
+      .withArgs(sinon.match(component), 1)
+      .returns("dummy1")
+      .withArgs(sinon.match(component), 2)
+      .returns("dummy2")
+      .withArgs(sinon.match(component), 3)
+      .returns("dummy3");
     readComponentJsonStub.withArgs("/cwdDir/dummy1").resolves({ state: "finished" });
     readComponentJsonStub.withArgs("/cwdDir/dummy2").resolves({ state: "finished" });
     readComponentJsonStub.withArgs("/cwdDir/dummy3").rejects(error);
@@ -675,9 +686,12 @@ describe("#foreachSearchLatestFinishedIndex", ()=>{
     };
     const error = new Error("dummy");
     sinon.stub(loopUtils._internal, "getInstanceDirectoryName")
-      .withArgs(sinon.match(component), 1).returns("dummy1")
-      .withArgs(sinon.match(component), 2).returns("dummy2")
-      .withArgs(sinon.match(component), 3).returns("dummy3");
+      .withArgs(sinon.match(component), 1)
+      .returns("dummy1")
+      .withArgs(sinon.match(component), 2)
+      .returns("dummy2")
+      .withArgs(sinon.match(component), 3)
+      .returns("dummy3");
     readComponentJsonStub.withArgs("/cwdDir/dummy1").resolves({ state: "finished" });
     readComponentJsonStub.withArgs("/cwdDir/dummy2").resolves({ state: "finished" });
     readComponentJsonStub.withArgs("/cwdDir/dummy3").rejects(error);

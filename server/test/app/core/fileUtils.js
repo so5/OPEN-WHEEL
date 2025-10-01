@@ -50,9 +50,8 @@ describe("#readJsonGreedy", ()=>{
       throw lastError;
     });
 
-    //rewireを使ってfs, promise-retryを差し替え
-    _internal.fs = fsMock;
-    _internal.promiseRetry = promiseRetryMock;
+    sinon.replace(_internal, "fs", fsMock);
+    sinon.replace(_internal, "promiseRetry", promiseRetryMock);
   });
 
   afterEach(()=>{
@@ -166,8 +165,8 @@ describe("#addX", ()=>{
     };
     modeMock = sinon.stub();
 
-    _internal.fs = fsMock;
-    _internal.Mode = modeMock;
+    sinon.replace(_internal, "fs", fsMock);
+    sinon.replace(_internal, "Mode", modeMock);
   });
 
   afterEach(()=>{
@@ -306,15 +305,10 @@ describe("#openFile", ()=>{
       readFile: sinon.stub(),
       ensureFile: sinon.stub()
     };
-    //logger のスタブ
+    sinon.replace(_internal, "fs", fsMock);
     loggerMock = { warn: sinon.stub() };
-    getLoggerMock = sinon.stub().returns(loggerMock);
-    //readJsonGreedy のスタブ
-    readJsonGreedyMock = sinon.stub();
-
-    _internal.fs = fsMock;
-    _internal.getLogger = getLoggerMock;
-    _internal.readJsonGreedy = readJsonGreedyMock;
+    getLoggerMock = sinon.stub(_internal, "getLogger").returns(loggerMock);
+    readJsonGreedyMock = sinon.stub(_internal, "readJsonGreedy");
   });
 
   afterEach(()=>{
@@ -464,9 +458,9 @@ describe("#saveFile", ()=>{
     };
     gitAddMock = sinon.stub().resolves();
 
-    _internal.fs = fsMock;
-    _internal.path = pathMock;
-    _internal.gitAdd = gitAddMock;
+    sinon.replace(_internal, "fs", fsMock);
+    sinon.replace(_internal, "path", pathMock);
+    sinon.replace(_internal, "gitAdd", gitAddMock);
   });
 
   afterEach(()=>{
@@ -484,7 +478,7 @@ describe("#saveFile", ()=>{
       ext: ".txt"
     });
     pathMock.dirname.onCall(0).returns("/home/user/project"); //最初の dirname 呼び出し
-    pathMock.join.callsFake((dir, file)=>`${dir}/${file}`);
+    pathMock.join.callsFake((dir, file)=>{ return `${dir}/${file}`; });
 
     //1回目の pathExists で true (.git が見つかる)
     fsMock.pathExists.resolves(true);
@@ -521,7 +515,7 @@ describe("#saveFile", ()=>{
     pathMock.dirname.onCall(1).returns("/home/user/project");
     pathMock.dirname.onCall(2).returns("/home/user");
 
-    pathMock.join.callsFake((dir, file)=>`${dir}/${file}`);
+    pathMock.join.callsFake((dir, file)=>{ return `${dir}/${file}`; });
 
     //.git が最初のチェックでは見つからない(false) -> 次の階層で見つかる(true)
     fsMock.pathExists.onCall(0).resolves(false);
@@ -618,7 +612,10 @@ describe("#getUnusedPath", ()=>{
       pathExists: sinon.stub()
     };
 
-    _internal.fs = fsMock;
+    sinon.replace(_internal, "fs", fsMock);
+  });
+  afterEach(()=>{
+    sinon.restore();
   });
 
   it("should return the desired path if it does not exist", async ()=>{
@@ -670,7 +667,7 @@ describe("#replaceCRLF", ()=>{
       writeFile: sinon.stub()
     };
 
-    _internal.fs = fsMock;
+    sinon.replace(_internal, "fs", fsMock);
   });
 
   afterEach(()=>{

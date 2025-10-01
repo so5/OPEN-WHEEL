@@ -136,7 +136,7 @@ function removeSsh(projectRootDir) {
  * @param {string | null} JWTServerURL - URL of JWT server if requesting JWT-server passphrase this arg must be specified
  * @returns {Promise} - resolve when get password from browser, rejected if user cancel password input
  */
-function askPassword(clientID, hostname, mode, JWTServerURL = null) {
+_internal.askPassword = (clientID, hostname, mode, JWTServerURL = null)=>{
   return new Promise((resolve, reject)=>{
     _internal.emitAll(clientID, "askPassword", hostname, mode, JWTServerURL, (data)=>{
       if (data === null) {
@@ -147,7 +147,7 @@ function askPassword(clientID, hostname, mode, JWTServerURL = null) {
       resolve(data);
     });
   });
-}
+};
 
 /**
  * create necessary ssh instance
@@ -173,7 +173,7 @@ async function createSsh(projectRootDir, remoteHostName, hostinfo, clientID, isS
         }
       }
       //pw will be used after canConnect
-      pw = await askPassword(clientID, remoteHostName, "password", null);
+      pw = await _internal.askPassword(clientID, remoteHostName, "password", null);
       return pw;
     };
   } else {
@@ -188,7 +188,7 @@ async function createSsh(projectRootDir, remoteHostName, hostinfo, clientID, isS
         return ph;
       }
     }
-    ph = await askPassword(clientID, remoteHostName, "passphrase ", null);
+    ph = await _internal.askPassword(clientID, remoteHostName, "passphrase ", null);
     return ph;
   };
   if (hostinfo.renewInterval) {
@@ -237,7 +237,6 @@ module.exports = {
   getSsh,
   getSshHostinfo,
   removeSsh,
-  askPassword,
   createSsh,
   hasEntry,
   getSshPW,

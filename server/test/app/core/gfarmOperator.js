@@ -19,7 +19,7 @@ chai.use(require("chai-as-promised"));
 const { checkJWTAgent, startJWTAgent, stopJWTAgent, gfcp, gfpcopy, gfptarCreate, gfptarExtract, gfptarList, gfls, gfrm, gfmkdir, _internal } = require("../../../app/core/gfarmOperator.js");
 
 function checkEnv() {
-  ["WHEEL_GFARMTEST_HOST",
+  return ["WHEEL_GFARMTEST_HOST",
     "WHEEL_GFARMTEST_PASSPHRASE",
     "WHEEL_GFARMTEST_USER",
     "WHEEL_GFARMTEST_ROOT",
@@ -27,13 +27,13 @@ function checkEnv() {
   ].some((e)=>{
     if (typeof process.env[e] !== "string" || process.env[e] === "") {
       console.log(`environment variable ${e} must be set`);
-      return false;
+      return true;
     }
-    return true;
+    return false;
   });
 }
 
-describe("UT for gfarmOperator", function() {
+describe("UT for gfarmOperator", function () {
   this.timeout(0);
   const host = process.env.WHEEL_GFARMTEST_HOST;
   let JWTServerPassphrase = process.env.WHEEL_GFARMTEST_PASSPHRASE;
@@ -51,7 +51,7 @@ describe("UT for gfarmOperator", function() {
   const getJWTServerPassphrase = sinon.spy(()=>{
     return JWTServerPassphrase;
   });
-  before(function() {
+  before(function () {
     if (checkEnv()) {
       this.skip();
     }
@@ -120,9 +120,10 @@ describe("UT for gfarmOperator", function() {
       });
     });
   });
-  describe("actual gfarm file opration test", async ()=>{
-    const target = path.join(gfarmRoot, "GFARM_TEST_DIR");
+  describe("actual gfarm file opration test", ()=>{
+    let target;
     before(async ()=>{
+      target = path.join(gfarmRoot, "GFARM_TEST_DIR");
       if (!await checkJWTAgent(null, "dummyHostID")) {
         await startJWTAgent(null, "dummyHostID");
       }

@@ -20,35 +20,35 @@ const _internal = {
   componentJsonFilename,
   getComponentDir,
   readComponentJson,
-  hasChild
+  hasChild,
+
+  /**
+   * get array of child components
+   * @param {string} projectRootDir - project's root path
+   * @param {string} parentID - parent component's ID
+   * @param {boolean} isParentDir - treat parentID as parent component dir path
+   * @returns {object[]} - array of components
+   */
+  async getChildren(projectRootDir, parentID, isParentDir) {
+    const dir = isParentDir ? parentID : parentID === null ? projectRootDir : await _internal.getComponentDir(projectRootDir, parentID, true);
+    if (!dir) {
+      return [];
+    }
+
+    const children = await _internal.promisify(_internal.glob)(_internal.path.join(dir, "*", _internal.componentJsonFilename));
+    if (children.length === 0) {
+      return [];
+    }
+
+    const rt = await Promise.all(children.map((e)=>{
+      return _internal.readJsonGreedy(e);
+    }));
+
+    return rt.filter((e)=>{
+      return !e.subComponent;
+    });
+  }
 };
-
-/**
- * get array of child components
- * @param {string} projectRootDir - project's root path
- * @param {string} parentID - parent component's ID
- * @returns {object[]} - array of components
- */
-async function getChildren(projectRootDir, parentID) {
-  const dir = await _internal.getComponentDir(projectRootDir, parentID, true);
-  if (!dir) {
-    return [];
-  }
-
-  const children = await _internal.promisify(_internal.glob)(_internal.path.join(dir, "*", _internal.componentJsonFilename));
-  if (children.length === 0) {
-    return [];
-  }
-
-  const rt = await Promise.all(children.map((e)=>{
-    return _internal.readJsonGreedy(e);
-  }));
-
-  return rt.filter((e)=>{
-    return !e.subComponent;
-  });
-}
-_internal.getChildren = getChildren;
 
 /**
  * return component,  its children, and grandsons
@@ -79,7 +79,7 @@ async function getThreeGenerationFamily(projectRootDir, rootComponentDir) {
 }
 
 module.exports = {
-  getChildren,
+  getChildren: _internal.getChildren,
   getThreeGenerationFamily
 };
 
