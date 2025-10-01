@@ -7,7 +7,6 @@
 
 //setup test framework
 const { expect } = require("chai");
-const rewire = require("rewire");
 const { getParamSpacev2 } = require("../../../app/core/parameterParser");
 
 const sinon = require("sinon");
@@ -16,12 +15,14 @@ const path = require("path");
 const nunjucks = require("nunjucks");
 
 //testee
-const psUtils = rewire("../../../app/core/psUtils.js");
-const makeCmd = psUtils.__get__("makeCmd");
-const getScatterFilesV2 = psUtils.__get__("getScatterFilesV2");
-const scatterFilesV2 = psUtils.__get__("scatterFilesV2");
-const gatherFilesV2 = psUtils.__get__("gatherFilesV2");
-const replaceByNunjucks = psUtils.__get__("replaceByNunjucks");
+const {
+  makeCmd,
+  getScatterFilesV2,
+  scatterFilesV2,
+  gatherFilesV2,
+  replaceByNunjucks,
+  _internal
+} = require("../../../app/core/psUtils.js");
 
 describe("UT for psUtils class", function () {
   describe("#makeCmd", ()=>{

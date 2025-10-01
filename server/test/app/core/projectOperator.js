@@ -11,29 +11,32 @@ const path = require("path");
 const chai = require("chai");
 const expect = chai.expect;
 const sinon = require("sinon");
-const rewire = require("rewire");
 chai.use(require("sinon-chai"));
 
 const { createNewProject } = require("../../../app/core/projectFilesOperator.js");
+const senders = require("../../../app/handlers/senders.js");
+
 //testee
-const projectController = rewire("../../../app/handlers/projectController.js");
-const onProjectOperation = projectController.__get__("onProjectOperation");
+const projectController = require("../../../app/handlers/projectController.js");
+const { onProjectOperation } = projectController;
+const { _internal } = projectController;
 const onRunProject = sinon.stub();
 const onStopProject = sinon.stub();
 const onCleanProject = sinon.stub();
 const onRevertProject = sinon.stub();
 const onSaveProject = sinon.stub();
-const queues = projectController.__get__("projectOperationQueues");
+const queues = _internal.projectOperationQueues;
 
-projectController.__set__("onRunProject", onRunProject);
-projectController.__set__("onStopProject", onStopProject);
-projectController.__set__("onCleanProject", onCleanProject);
-projectController.__set__("onRevertProject", onRevertProject);
-projectController.__set__("onSaveProject", onSaveProject);
-projectController.__set__("sendWorkflow", sinon.stub());
-projectController.__set__("sendTaskStateList", sinon.stub());
-projectController.__set__("sendProjectJson", sinon.stub());
-projectController.__set__("sendComponentTree", sinon.stub());
+_internal.onRunProject = onRunProject;
+_internal.onStopProject = onStopProject;
+_internal.onCleanProject = onCleanProject;
+_internal.onRevertProject = onRevertProject;
+_internal.onSaveProject = onSaveProject;
+
+sinon.stub(senders, "sendWorkflow");
+sinon.stub(senders, "sendTaskStateList");
+sinon.stub(senders, "sendProjectJson");
+sinon.stub(senders, "sendComponentTree");
 
 const ack = sinon.stub();
 async function sleep(time) {
@@ -56,16 +59,17 @@ describe("UT for projectOperation callback function", function () {
       sbs.clear();
     }
     queues.clear();
-    onRunProject.reset();
-    onStopProject.reset();
-    onCleanProject.reset();
-    onRevertProject.reset();
-    onSaveProject.reset();
+    onRunProject.resetHistory();
+    onStopProject.resetHistory();
+    onCleanProject.resetHistory();
+    onRevertProject.resetHistory();
+    onSaveProject.resetHistory();
   });
   after(async ()=>{
     if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {
       await fs.remove(testDirRoot);
     }
+    sinon.restore();
   });
   describe("test with not-started project", ()=>{
     it("should call onRunProject", async ()=>{

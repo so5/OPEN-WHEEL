@@ -7,8 +7,14 @@
 const fs = require("fs-extra");
 const path = require("path");
 const { sanitizePath } = require("./pathUtils");
-const { evalCondition } = require("./dispatchUtils");
-const { readComponentJson } = require("./componentJsonIO.js");
+const { evalCondition: actualEvalCondition } = require("./dispatchUtils");
+const { readComponentJson: actualReadComponentJson } = require("./componentJsonIO.js");
+
+const _internal = {
+  evalCondition: actualEvalCondition,
+  readComponentJson: actualReadComponentJson,
+  fs
+};
 
 /**
  * return instance directory name
@@ -17,7 +23,7 @@ const { readComponentJson } = require("./componentJsonIO.js");
  * @param {string} originalName - template component's name (default component.originalName);
  * @returns {string} - instance directory's name
  */
-function getInstanceDirectoryName(component, index, originalName) {
+_internal.getInstanceDirectoryName = (component, index, originalName)=>{
   const suffix = typeof index !== "undefined" ? index : component.currentIndex;
   const name = typeof originalName === "string" ? originalName : component.originalName;
   return `${name}_${sanitizePath(suffix)}`;
@@ -54,8 +60,8 @@ async function keepLoopInstance(component, cwfDir) {
   const step = component.step || 1;
   const deleteComponentInstance = component.currentIndex - (component.keep * step);
   if (deleteComponentInstance >= 0) {
-    const target = path.resolve(cwfDir, getInstanceDirectoryName(component, deleteComponentInstance));
-    return fs.remove(target);
+    const target = path.resolve(cwfDir, _internal.getInstanceDirectoryName(component, deleteComponentInstance));
+    return _internal.fs.remove(target);
   }
 }
 
@@ -113,7 +119,7 @@ async function whileIsFinished(cwfDir, projectRootDir, component, env) {
   //for first loop trip. so we add this prop here. this only used in evalCondition
   //and never affect component.env and Dispatcher.env
   env.WHEEL_CURRENT_INDEX = component.currentIndex || 0;
-  const condition = await evalCondition(projectRootDir, component.condition, cwd, env);
+  const condition = await _internal.evalCondition(projectRootDir, component.condition, cwd, env);
   return !condition;
 }
 
@@ -186,9 +192,9 @@ async function foreachKeepLoopInstance(component, cwfDir) {
 
   const currentIndexNumber = component.currentIndex !== null ? component.indexList.indexOf(component.currentIndex) : component.indexList.length;
   const deleteComponentNumber = currentIndexNumber - component.keep;
-  const deleteComponentName = deleteComponentNumber >= 0 ? getInstanceDirectoryName(component, component.indexList[deleteComponentNumber]) : "";
+  const deleteComponentName = deleteComponentNumber >= 0 ? _internal.getInstanceDirectoryName(component, component.indexList[deleteComponentNumber]) : "";
   if (deleteComponentName) {
-    return fs.remove(path.resolve(cwfDir, deleteComponentName));
+    return _internal.fs.remove(path.resolve(cwfDir, deleteComponentName));
   }
 }
 
@@ -201,9 +207,9 @@ async function foreachKeepLoopInstance(component, cwfDir) {
 async function foreachSearchLatestFinishedIndex(component, cwfDir) {
   let rt = null;
   for (const index of component.indexList) {
-    const dir = path.resolve(cwfDir, getInstanceDirectoryName(component, index));
+    const dir = path.resolve(cwfDir, _internal.getInstanceDirectoryName(component, index));
     try {
-      const { state } = await readComponentJson(dir);
+      const { state } = await _internal.readComponentJson(dir);
       if (state === "finished") {
         rt = index;
       } else {
@@ -259,9 +265,9 @@ function loopInitialize(component, getTripCount) {
   component.initialized = true;
 }
 
-module.exports = {
+const loopUtils = {
   getPrevIndex,
-  getInstanceDirectoryName,
+  getInstanceDirectoryName: _internal.getInstanceDirectoryName,
   keepLoopInstance,
   forGetNextIndex,
   forIsFinished,
@@ -276,3 +282,9 @@ module.exports = {
   foreachSearchLatestFinishedIndex,
   loopInitialize
 };
+
+if (process.env.NODE_ENV === "test") {
+  loopUtils._internal = _internal;
+}
+
+module.exports = loopUtils;
