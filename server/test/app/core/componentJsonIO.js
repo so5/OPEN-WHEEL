@@ -15,13 +15,13 @@ chai.use(chaiAsPromised);
 
 describe("UT for componentJsonIO class", ()=>{
   describe("#readComponentJsonByID", ()=>{
-    let getComponentDirStub, readComponentJsonStub;
+    let getComponentDirStub;
+    let readComponentJsonStub;
     beforeEach(()=>{
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-
-      _internal.getComponentDir = getComponentDirStub;
-      _internal.readComponentJson = readComponentJsonStub;
+      sinon.stub(_internal, "getComponentDir");
+      getComponentDirStub = _internal.getComponentDir;
+      sinon.stub(_internal, "readComponentJson");
+      readComponentJsonStub = _internal.readComponentJson;
     });
 
     afterEach(()=>{
