@@ -62,9 +62,7 @@ describe("#getHashedPassword", ()=>{
   });
 
   it("should return a Buffer with hashed password if pbkdf2 succeeds", async ()=>{
-    pbkdf2Stub.callsFake((password, salt, iterations, keylen, digest, callback)=>{
-      callback(null, Buffer.from("fake hashed password"));
-    });
+    pbkdf2Stub.yields(null, Buffer.from("fake hashed password"));
     const password = "testPassword";
     const salt = "testSalt";
     const result = await getHashedPassword(password, salt);
@@ -74,9 +72,7 @@ describe("#getHashedPassword", ()=>{
   });
 
   it("should throw an error if pbkdf2 fails", async ()=>{
-    pbkdf2Stub.callsFake((password, salt, iterations, keylen, digest, callback)=>{
-      callback(new Error("pbkdf2 error"));
-    });
+    pbkdf2Stub.yields(new Error("pbkdf2 error"));
     const password = "testPassword";
     const salt = "testSalt";
     try {
@@ -110,6 +106,7 @@ describe("#addUser", ()=>{
 
   afterEach(()=>{
     sinon.restore();
+    _internal.db = null;
   });
 
   it("should initialize if not initialized, then insert user if the user does not exist", async ()=>{
@@ -176,6 +173,7 @@ describe("#getUserData", ()=>{
   });
   afterEach(()=>{
     sinon.restore();
+    _internal.db = null;
   });
 
   it("should return null if user does not exist in DB", async ()=>{
@@ -297,6 +295,7 @@ describe("#listUser", ()=>{
 
   afterEach(()=>{
     sinon.restore();
+    _internal.db = null;
   });
 
   it("should call initialize if not yet initialized (db is not ready yet)", async ()=>{
@@ -345,6 +344,7 @@ describe("#delUser", ()=>{
 
   afterEach(()=>{
     sinon.restore();
+    _internal.db = null;
   });
 
   it("should call initialize if not initialized", async ()=>{
