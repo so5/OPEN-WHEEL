@@ -427,7 +427,11 @@ function hasChild(component) {
  * @param {object} component - Component object
  * @returns  {boolean} -
  */
-_internal.isBehindIfComponent = async function (projectRootDir, component) {
+_internal.isBehindIfComponent = async function (projectRootDir, component, visited = new Set()) {
+  if (visited.has(component.ID)) {
+    return false;
+  }
+  visited.add(component.ID);
   const hasPrevious = Array.isArray(component.previous) && component.previous.length > 0;
   const hasConnectedInputFiles = Array.isArray(component.inputFiles) && component.inputFiles.some((inputFile)=>{
     return inputFile.src.length > 0;
@@ -444,7 +448,7 @@ _internal.isBehindIfComponent = async function (projectRootDir, component) {
       if (previousComponent.type === "if") {
         return true;
       }
-      const rt = await _internal.isBehindIfComponent(projectRootDir, previousComponent);
+      const rt = await _internal.isBehindIfComponent(projectRootDir, previousComponent, visited);
 
       if (rt) {
         return true;
@@ -460,7 +464,7 @@ _internal.isBehindIfComponent = async function (projectRootDir, component) {
         if (srcComponent.type === "if") {
           return true;
         }
-        const rt = await _internal.isBehindIfComponent(projectRootDir, srcComponent);
+        const rt = await _internal.isBehindIfComponent(projectRootDir, srcComponent, visited);
 
         if (rt) {
           return true;
