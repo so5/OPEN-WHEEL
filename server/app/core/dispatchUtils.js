@@ -8,6 +8,7 @@ const path = require("path");
 const childProcess = require("child_process");
 const fs = require("fs-extra");
 const { addX, readJsonGreedy } = require("./fileUtils");
+const nunjucks = require("nunjucks");
 const { getLogger } = require("../logSettings.js");
 const { replacePathsep } = require("./pathUtils");
 const { remoteHost, componentJsonFilename } = require("../db/db");
@@ -73,15 +74,22 @@ const _internal = {
     const script = _internal.path.resolve(cwd, condition);
     if (await _internal.fs.pathExists(script)) {
       _internal.getLogger(projectRootDir).debug("execute ", script);
-      await _internal.addX(script);
+      const scriptContent = await _internal.fs.readFile(script);
+      const renderedScript = nunjucks.renderString(scriptContent.toString(), env);
+      const tmpScript = `${script}.rendered`;
+      await _internal.fs.writeFile(tmpScript, renderedScript);
+      await _internal.addX(tmpScript);
       const dir = _internal.path.dirname(script);
       const options = {
         env: Object.assign({}, process.env, env),
         cwd: dir,
         shell: "bash"
       };
-
-      return _internal.pspawn(projectRootDir, script, options);
+      const p = _internal.pspawn(projectRootDir, tmpScript, options);
+      p.finally(async ()=>{
+        await _internal.fs.remove(tmpScript);
+      });
+      return p;
     }
     _internal.getLogger(projectRootDir).debug("evalute ", condition);
     let conditionExpression = "";

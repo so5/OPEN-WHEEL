@@ -166,7 +166,7 @@ describe("UT for environment variables", function () {
     await updateComponent(projectRootDir, task2InsideNestedFor.ID, "script", scriptName);
     await fs.outputFile(path.join(projectRootDir, "for0", "for0", task1InsideNestedFor.name, scriptName), scriptEcho);
     await fs.outputFile(path.join(projectRootDir, "for0", "for0", task2InsideNestedFor.name, scriptName), scriptEcho);
-    await fs.outputFile(path.join(projectRootDir, "for0", "for0", ifInsideNestedFor.name, scriptName), "rt=$(( ${WHEEL_CURRENT_INDEX} - 3 ));echo $rt > rt.txt;exit $rt");
+    await fs.outputFile(path.join(projectRootDir, "for0", "for0", ifInsideNestedFor.name, scriptName), "rt=$(( {{WHEEL_CURRENT_INDEX}} - 3 ));echo $rt > rt.txt;exit $rt");
 
     state = await runProject(projectRootDir);
   });
