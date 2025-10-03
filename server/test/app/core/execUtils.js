@@ -111,6 +111,7 @@ describe("#needDownload", ()=>{
       ]
     };
     isSameRemoteHostStub.rejects(new Error("some error"));
+
     try {
       await needDownload("/dummy/project", "dummyComponent", outputFile);
       expect.fail("Expected needDownload to reject, but it did not");
@@ -124,11 +125,9 @@ describe("#needDownload", ()=>{
 
 describe("#formatSrcFilename", ()=>{
   let replacePathsepStub;
-  let pathJoinStub;
 
   beforeEach(()=>{
     replacePathsepStub = sinon.stub(_internal, "replacePathsep");
-    pathJoinStub = sinon.stub(_internal.path.posix, "join");
   });
 
   afterEach(()=>{
@@ -137,7 +136,6 @@ describe("#formatSrcFilename", ()=>{
 
   it("should return joined path with '/*' if filename ends with '/'", ()=>{
     replacePathsepStub.returns("convertedDir");
-    pathJoinStub.callsFake(path.posix.join);
     const result = formatSrcFilename("/home/user", "mydata/");
     expect(replacePathsepStub.calledOnceWithExactly("mydata/")).to.be.true;
     expect(result).to.equal("/home/user/convertedDir/*");
@@ -145,14 +143,12 @@ describe("#formatSrcFilename", ()=>{
 
   it("should return joined path with '/*' if filename ends with backslash '\\'", ()=>{
     replacePathsepStub.returns("convertedBackslash");
-    pathJoinStub.callsFake(path.posix.join);
     const result = formatSrcFilename("/home/user", "mydata\\");
     expect(replacePathsepStub.calledOnceWithExactly("mydata\\")).to.be.true;
     expect(result).to.equal("/home/user/convertedBackslash/*");
   });
 
   it("should return joined path without '/*' if filename does not end with slash/backslash", ()=>{
-    pathJoinStub.callsFake(path.posix.join);
     const result = formatSrcFilename("/home/user", "file.txt");
     expect(replacePathsepStub.notCalled).to.be.true;
     expect(result).to.equal("/home/user/file.txt");

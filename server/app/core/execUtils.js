@@ -14,7 +14,6 @@ const { getLogger } = require("../logSettings");
 const { eventEmitters } = require("./global.js");
 
 const _internal = {
-  path,
   fs,
   statusFilename,
   replacePathsep,
@@ -63,9 +62,9 @@ async function needDownload(projectRootDir, componentID, outputFile) {
 function formatSrcFilename(remoteWorkingDir, filename) {
   if (filename.endsWith("/") || filename.endsWith("\\")) {
     const dirname = _internal.replacePathsep(filename);
-    return _internal.path.posix.join(remoteWorkingDir, `${dirname}/*`);
+    return path.posix.join(remoteWorkingDir, `${dirname}/*`);
   }
-  return _internal.path.posix.join(remoteWorkingDir, filename);
+  return path.posix.join(remoteWorkingDir, filename);
 }
 
 /**
