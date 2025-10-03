@@ -102,7 +102,7 @@ async function checkPSSettingFile(projectRootDir, component) {
     return Promise.reject(new Error(`parameter setting file is not file ${filename}`));
   }
   try {
-    const retry = typeof process.env.WHEEL_RUNNING_TEST !== "undefined" ? 0 : undefined;
+    const retry = typeof process.env.NODE_ENV === "test" ? 0 : undefined;
     const PSSetting = await _internal.readJsonGreedy(filename, retry);
     _internal.validate(PSSetting);
   } catch (e) {
