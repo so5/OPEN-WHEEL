@@ -229,10 +229,21 @@ const _internal = {
     let contents = await _internal.fs.readFile(filename);
     contents = contents.toString().replace(/\r\n/g, "\n");
     return _internal.fs.writeFile(filename, contents);
+  },
+
+  /**
+   * read Json file
+   * @param {string} filename - filename to be read
+   */
+  async readJson(filename) {
+    const buf = await _internal.fs.readFile(filename);
+    const strData = buf.toString("utf8").replace(/^\uFEFF/, "");
+    return JSON.parse(strData);
   }
 };
 
 module.exports = {
+  readJson: _internal.readJson,
   readJsonGreedy: _internal.readJsonGreedy,
   addX: _internal.addX,
   openFile: _internal.openFile,
