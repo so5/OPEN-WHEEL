@@ -49,7 +49,7 @@ describe("#setTaskState", ()=>{
 
     //eventEmitters は 直接 Map ではなく { get: function } の形を取る
     rewireExecUtils.__set__("eventEmitters", {
-      get: sinon.stub().callsFake((key)=>eventEmittersMock.get(key))
+      get: sinon.stub().callsFake((key)=>{ return eventEmittersMock.get(key); })
     });
   });
 
@@ -332,6 +332,7 @@ describe("#createStatusFile", ()=>{
   let rewireExecUtils;
   let createStatusFile;
   let fsMock; //fs.writeFileをstub化
+  let pathMock;
 
   beforeEach(()=>{
     //execUtils.js を rewire で読み込み
@@ -343,7 +344,11 @@ describe("#createStatusFile", ()=>{
     fsMock = {
       writeFile: sinon.stub().resolves()
     };
+    pathMock = {
+      resolve: sinon.stub()
+    };
     rewireExecUtils.__set__("fs", fsMock);
+    rewireExecUtils.__set__("path", pathMock);
   });
 
   afterEach(()=>{
@@ -351,6 +356,9 @@ describe("#createStatusFile", ()=>{
   });
 
   it("should create a status file with correct content", async ()=>{
+    const statusFilename = "status.wheel.txt";
+    const expectedPath = "/test/workingDir/status.wheel.txt";
+    pathMock.resolve.returns(expectedPath);
     //準備：taskオブジェクト
     const task = {
       workingDir: "/test/workingDir",
@@ -365,7 +373,8 @@ describe("#createStatusFile", ()=>{
     expect(fsMock.writeFile.calledOnce).to.be.true;
     const [actualPath, actualContent] = fsMock.writeFile.firstCall.args;
 
-    expect(actualPath).to.equal("/test/workingDir/status.wheel.txt");
+    expect(pathMock.resolve.calledOnceWith(task.workingDir, statusFilename));
+    expect(actualPath).to.equal(expectedPath);
 
     //書き込まれる内容の検証
     expect(actualContent).to.equal("RUNNING\n0\nSUBMITTED");
