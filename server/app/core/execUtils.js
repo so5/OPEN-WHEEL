@@ -92,7 +92,7 @@ function makeDownloadRecipe(projectRootDir, filename, remoteWorkingDir, workingD
  * @param {object} task - task component
  */
 async function createStatusFile(task) {
-  const filename = _internal.path.resolve(task.workingDir, _internal.statusFilename);
+  const filename = path.resolve(task.workingDir, _internal.statusFilename);
   const statusFile = `${task.state}\n${task.rt}\n${task.jobStatus}`;
   return _internal.fs.writeFile(filename, statusFile);
 }
@@ -104,7 +104,7 @@ async function createStatusFile(task) {
  * @param {string[]} jobStatusList - array of job status codes from bulk job
  */
 async function createBulkStatusFile(task, rtList, jobStatusList) {
-  const filename = _internal.path.resolve(task.workingDir, `subjob_${_internal.statusFilename}`);
+  const filename = path.resolve(task.workingDir, `subjob_${_internal.statusFilename}`);
   let statusFile = "";
   for (let bulkNum = task.startBulkNumber; bulkNum <= task.endBulkNumber; bulkNum++) {
     statusFile += `RT_${bulkNum}=${rtList[bulkNum]}\nJOBSTATUS_${bulkNum}=${jobStatusList[bulkNum]}\n`;
