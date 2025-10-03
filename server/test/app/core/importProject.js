@@ -61,21 +61,18 @@ describe("import project UT", function() {
     });
   });
   describe("#importProject", ()=>{
-    const getHosts = sinon.stub();
-    const askHostMap = sinon.stub();
-    const rewriteHosts = sinon.stub();
+    let getHosts;
+    let askHostMap;
+    let rewriteHosts;
     beforeEach(async ()=>{
-      _internal.getHosts = getHosts;
-      _internal.askHostMap = askHostMap;
-      _internal.rewriteHosts = rewriteHosts;
+      getHosts = sinon.stub(_internal, "getHosts");
+      askHostMap = sinon.stub(_internal, "askHostMap");
+      rewriteHosts = sinon.stub(_internal, "rewriteHosts");
       _internal.projectList = dummyProjectList;
-
-      getHosts.resetHistory();
-      askHostMap.resetHistory();
-      rewriteHosts.resetHistory();
       await exec(`cp ${testArchiveFile} ${testArchiveFile}.bak`);
     });
     afterEach(async ()=>{
+      sinon.restore();
       await exec(`mv ${testArchiveFile}.bak ${testArchiveFile}`);
     });
     it("should import project and add it to projectList", async ()=>{
