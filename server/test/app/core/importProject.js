@@ -11,6 +11,7 @@ const expect = chai.expect;
 chai.use(require("chai-fs"));
 chai.use(require("chai-as-promised"));
 const sinon = require("sinon");
+chai.use(require("sinon-chai"));
 
 const path = require("node:path");
 const util = require("node:util");
