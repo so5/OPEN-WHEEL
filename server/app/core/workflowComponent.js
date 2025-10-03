@@ -427,7 +427,7 @@ function hasChild(component) {
  * @param {object} component - Component object
  * @returns  {boolean} -
  */
-_internal.isBehindIfComponent = async function(projectRootDir, component) {
+_internal.isBehindIfComponent = async function (projectRootDir, component) {
   const hasPrevious = Array.isArray(component.previous) && component.previous.length > 0;
   const hasConnectedInputFiles = Array.isArray(component.inputFiles) && component.inputFiles.some((inputFile)=>{
     return inputFile.src.length > 0;
@@ -594,7 +594,7 @@ module.exports = {
   getComponentDefaultName,
   hasNeededOutputFiles,
   hasStoragePath,
-  isBehindIfComponent
+  isBehindIfComponent: _internal.isBehindIfComponent
 };
 
 if (process.env.NODE_ENV === "test") {
