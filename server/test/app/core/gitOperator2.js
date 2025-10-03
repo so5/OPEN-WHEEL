@@ -13,7 +13,7 @@ const expect = chai.expect;
 chai.use(require("chai-fs"));
 chai.use(require("chai-as-promised"));
 
-const { gitInit, gitCommit, gitAdd, gitRm, gitResetHEAD, gitStatus, gitClean, gitLFSTrack, gitLFSUntrack, isLFS, getUnsavedFiles, _internal } = require("../../../app/core/gitOperator2.js");
+const { gitInit, gitCommit, gitAdd, gitRm, gitResetHEAD, gitStatus, gitClean, gitLFSTrack, gitLFSUntrack, isLFS, getUnsavedFiles, _internal, gitPromise } = require("../../../app/core/gitOperator2.js");
 
 describe("gitOperator2", ()=>{
   describe("#gitPromise", ()=>{
@@ -44,7 +44,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      await _internal.gitPromise(cwd, args, rootDir);
+      await gitPromise(cwd, args, rootDir);
       expect(spawnStub.calledOnce).to.be.true;
       expect(spawnStub.calledWith("git", args, sinon.match({ cwd: cwd, env: process.env, shell: true }))).to.be.true;
     });
@@ -63,7 +63,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      await _internal.gitPromise(cwd, args, rootDir);
+      await gitPromise(cwd, args, rootDir);
       expect(traceStub.calledWith("stdout")).to.be.true;
       expect(traceStub.calledWith("stderr")).to.be.true;
     });
@@ -82,7 +82,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      const promise = _internal.gitPromise(cwd, args, rootDir);
+      const promise = gitPromise(cwd, args, rootDir);
       await promise.then(()=>{
         expect.fail();
       }).catch((err)=>{
@@ -109,7 +109,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      const promise = _internal.gitPromise(cwd, args, rootDir);
+      const promise = gitPromise(cwd, args, rootDir);
       await promise.then(()=>{
         expect.fail();
       }).catch((err)=>{
@@ -135,7 +135,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      const result = await _internal.gitPromise(cwd, args, rootDir);
+      const result = await gitPromise(cwd, args, rootDir);
       expect(result).to.equal("stdoutstderr");
     });
   });
@@ -346,6 +346,7 @@ describe("gitOperator2", ()=>{
 
     beforeEach(()=>{
       sinon.stub(_internal, "gitPromise");
+      sinon.stub(_internal, "promisifiedGit");
     });
 
     afterEach(()=>{
@@ -378,31 +379,34 @@ describe("gitOperator2", ()=>{
       );
     });
 
-    it("should handle index.lock error and not throw", async function() {
+    it("should handle index.lock error and not throw", async function () {
+      _internal.gitPromise.restore();
       this.timeout(5000);
       const error = new Error(
         "fatal: Unable to create '/repo/.git/index.lock': File exists"
       );
-      _internal.gitPromise.onCall(0).rejects(error);
-      _internal.gitPromise.onCall(1).rejects(error);
-      _internal.gitPromise.onCall(2).rejects(error);
-      _internal.gitPromise.onCall(3).rejects(error);
-      _internal.gitPromise.onCall(4).rejects(error);
-      _internal.gitPromise.onCall(5).resolves(undefined);
+      _internal.promisifiedGit.onCall(0).rejects(error);
+      _internal.promisifiedGit.onCall(1).rejects(error);
+      _internal.promisifiedGit.onCall(2).rejects(error);
+      _internal.promisifiedGit.onCall(3).rejects(error);
+      _internal.promisifiedGit.onCall(4).rejects(error);
+      _internal.promisifiedGit.onCall(5).resolves(undefined);
 
       await expect(gitAdd(rootDir, filename, false)).to.be.fulfilled;
     });
-    it("should handle index.lock error but throw after 6th fail", async function() {
+    it("should handle index.lock error but throw after 6th fail", async function () {
+      _internal.gitPromise.restore();
       this.timeout(5000);
       const error = new Error(
         "fatal: Unable to create '/repo/.git/index.lock': File exists"
       );
-      _internal.gitPromise.onCall(0).rejects(error);
-      _internal.gitPromise.onCall(1).rejects(error);
-      _internal.gitPromise.onCall(2).rejects(error);
-      _internal.gitPromise.onCall(3).rejects(error);
-      _internal.gitPromise.onCall(4).rejects(error);
-      _internal.gitPromise.onCall(5).rejects(error);
+      _internal.promisifiedGit.onCall(0).rejects(error);
+      _internal.promisifiedGit.onCall(1).rejects(error);
+      _internal.promisifiedGit.onCall(2).rejects(error);
+      _internal.promisifiedGit.onCall(3).rejects(error);
+      _internal.promisifiedGit.onCall(4).rejects(error);
+      _internal.promisifiedGit.onCall(5).rejects(error);
+      _internal.promisifiedGit.onCall(6).rejects(error);
 
       return expect(gitAdd(rootDir, filename, false)).to.be.rejected;
     });
@@ -551,37 +555,37 @@ describe("gitOperator2", ()=>{
       );
     });
 
-    it("should correctly parse added files", async function() {
+    it("should correctly parse added files", async function () {
       _internal.gitPromise.resolves("A  addedFile.txt");
       const result = await gitStatus(rootDir);
       expect(result.added).to.deep.equal(["addedFile.txt"]);
     });
 
-    it("should correctly parse modified files", async function() {
+    it("should correctly parse modified files", async function () {
       _internal.gitPromise.resolves("M  modifiedFile.txt");
       const result = await gitStatus(rootDir);
       expect(result.modified).to.deep.equal(["modifiedFile.txt"]);
     });
 
-    it("should correctly parse deleted files", async function() {
+    it("should correctly parse deleted files", async function () {
       _internal.gitPromise.resolves("D  deletedFile.txt");
       const result = await gitStatus(rootDir);
       expect(result.deleted).to.deep.equal(["deletedFile.txt"]);
     });
 
-    it("should correctly parse renamed files", async function() {
+    it("should correctly parse renamed files", async function () {
       _internal.gitPromise.resolves("R  oldName.txt -> newName.txt");
       const result = await gitStatus(rootDir);
       expect(result.renamed).to.deep.equal(["newName.txt"]);
     });
 
-    it("should correctly parse untracked files", async function() {
+    it("should correctly parse untracked files", async function () {
       _internal.gitPromise.resolves("?? untrackedFile.txt");
       const result = await gitStatus(rootDir);
       expect(result.untracked).to.deep.equal(["untrackedFile.txt"]);
     });
 
-    it("should return empty arrays for clean status", async function() {
+    it("should return empty arrays for clean status", async function () {
       _internal.gitPromise.resolves("");
       const result = await gitStatus(rootDir);
       expect(result).to.deep.equal({
@@ -593,7 +597,7 @@ describe("gitOperator2", ()=>{
       });
     });
 
-    it("should throw an error for unknown git status output", async function() {
+    it("should throw an error for unknown git status output", async function () {
       _internal.gitPromise.resolves("X  unknownFile.txt");
       await expect(gitStatus(rootDir)).to.be.rejectedWith(
         "unkonw output from git status --short"
@@ -686,7 +690,7 @@ describe("gitOperator2", ()=>{
       sinon.restore();
     });
 
-    it("should return unsaved files correctly", async function() {
+    it("should return unsaved files correctly", async function () {
       _internal.gitStatus.resolves({
         added: ["newFile.txt"],
         modified: ["modifiedFile.txt"],
@@ -703,7 +707,7 @@ describe("gitOperator2", ()=>{
       ]);
     });
 
-    it("should return an empty array when no unsaved files exist", async function() {
+    it("should return an empty array when no unsaved files exist", async function () {
       _internal.gitStatus.resolves({
         added: [],
         modified: [],
@@ -837,7 +841,7 @@ describe("gitOperator2", ()=>{
       sinon.stub(_internal, "gitPromise");
       sinon.stub(_internal, "getLogger").returns({ trace: traceStub });
       sinon.stub(_internal, "gitAdd");
-      sinon.stub(_internal, "makeLFSPattern").callsFake((rootDir, filename)=>`/${filename}`);
+      sinon.stub(_internal, "makeLFSPattern").callsFake((rootDir, filename)=>{ return `/${filename}`; });
     });
 
     afterEach(()=>{
@@ -882,7 +886,7 @@ describe("gitOperator2", ()=>{
       sinon.stub(_internal, "getLogger").returns({ trace: traceStub });
       sinon.stub(_internal.fs, "pathExists");
       sinon.stub(_internal, "gitAdd");
-      sinon.stub(_internal, "makeLFSPattern").callsFake((rootDir, filename)=>`/${filename}`);
+      sinon.stub(_internal, "makeLFSPattern").callsFake((rootDir, filename)=>{ return `/${filename}`; });
     });
 
     afterEach(()=>{
