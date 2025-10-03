@@ -12,7 +12,7 @@ const { hasChild, isInitialComponent, isLocalComponent } = require("./workflowCo
 const { getComponentFullName } = require("./projectFilesOperator.js");
 const { jobScheduler } = require("../db/db");
 const { readComponentJson, getComponentDir } = require("./componentJsonIO.js");
-const { readJsonGreedy } = require("./fileUtils");
+const { readJsonGreedy, readJson } = require("./fileUtils");
 const { getChildren } = require("./workflowUtil.js");
 const { isValidInputFilename, isValidOutputFilename } = require("../lib/utility");
 const { remoteHost } = require("../db/db.js");
@@ -29,6 +29,7 @@ const _internal = {
   jobScheduler,
   readComponentJson,
   getComponentDir,
+  readJson,
   readJsonGreedy,
   getChildren,
   remoteHost,
@@ -102,13 +103,13 @@ async function checkPSSettingFile(projectRootDir, component) {
     return Promise.reject(new Error(`parameter setting file is not file ${filename}`));
   }
   try {
-    const retry = typeof process.env.NODE_ENV === "test" ? 0 : undefined;
-    const PSSetting = await _internal.readJsonGreedy(filename, retry);
+    const PSSetting = await _internal.readJson(filename);
     _internal.validate(PSSetting);
   } catch (e) {
-    if (e.message.startsWith("Unexpected token")) {
+    if (e instanceof SyntaxError) {
       return Promise.reject(new Error(`parameter setting file is not JSON file ${filename}`));
     }
+    throw e;
   }
   if (_internal.validate !== null && Array.isArray(_internal.validate.errors)) {
     const err = new Error("parameter setting file does not have valid JSON data");
