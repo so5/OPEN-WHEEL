@@ -190,7 +190,11 @@ async function foreachKeepLoopInstance(component, cwfDir) {
     return;
   }
 
-  const currentIndexNumber = component.currentIndex !== null ? component.indexList.indexOf(component.currentIndex) : component.indexList.length;
+  //if currentIndex is null, it means loop is finished and we should use last index
+  const currentIndexNumber = component.currentIndex !== null ? component.indexList.indexOf(component.currentIndex) : component.indexList.length - 1;
+  if (currentIndexNumber < 0) {
+    return;
+  }
   const deleteComponentNumber = currentIndexNumber - component.keep;
   const deleteComponentName = deleteComponentNumber >= 0 ? _internal.getInstanceDirectoryName(component, component.indexList[deleteComponentNumber]) : "";
   if (deleteComponentName) {
