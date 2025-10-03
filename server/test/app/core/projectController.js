@@ -8,6 +8,7 @@ const path = require("path");
 const fs = require("fs-extra");
 const os = require("os");
 const sinon = require("sinon");
+const EventEmitter = require("events");
 
 //setup test framework
 const chai = require("chai");
@@ -46,6 +47,7 @@ describe("project Controller UT", function() {
     });
     await fs.remove(testDirRoot);
     await createNewProject(projectRootDir, "test project", null, "test", "test@example.com");
+    _internal.eventEmitters.set(projectRootDir, new EventEmitter());
   });
   afterEach(()=>{
     sinon.restore();

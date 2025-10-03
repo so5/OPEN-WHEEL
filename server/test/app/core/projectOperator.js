@@ -15,30 +15,15 @@ chai.use(require("sinon-chai"));
 
 const { createNewProject } = require("../../../app/core/projectFilesOperator.js");
 const senders = require("../../../app/handlers/senders.js");
+const { _internal: gitOpe2Internal } = require("../../../app/core/gitOperator2.js");
 
 //testee
 const projectController = require("../../../app/handlers/projectController.js");
 const { onProjectOperation } = projectController;
 const { _internal } = projectController;
-const onRunProject = sinon.stub();
-const onStopProject = sinon.stub();
-const onCleanProject = sinon.stub();
-const onRevertProject = sinon.stub();
-const onSaveProject = sinon.stub();
+const ack = sinon.stub();
 const queues = _internal.projectOperationQueues;
 
-_internal.onRunProject = onRunProject;
-_internal.onStopProject = onStopProject;
-_internal.onCleanProject = onCleanProject;
-_internal.onRevertProject = onRevertProject;
-_internal.onSaveProject = onSaveProject;
-
-sinon.stub(senders, "sendWorkflow");
-sinon.stub(senders, "sendTaskStateList");
-sinon.stub(senders, "sendProjectJson");
-sinon.stub(senders, "sendComponentTree");
-
-const ack = sinon.stub();
 async function sleep(time) {
   return new Promise((resolve)=>{
     setTimeout(resolve, time);
@@ -49,9 +34,26 @@ async function sleep(time) {
 const testDirRoot = "WHEEL_TEST_TMP";
 const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 
-describe("UT for projectOperation callback function", function () {
+describe("UT for projectOperation callback function", function() {
   this.timeout(10000);
   beforeEach(async ()=>{
+    const originalGitPromise = gitOpe2Internal.gitPromise;
+    sinon.stub(gitOpe2Internal, "gitPromise").callsFake(async (cwd, args, rootDir)=>{
+      if (Array.isArray(args) && args[0] === "lfs" && args[1] === "install") {
+        return Promise.resolve();
+      }
+      return originalGitPromise(cwd, args, rootDir);
+    });
+    sinon.stub(senders, "sendWorkflow");
+    sinon.stub(senders, "sendTaskStateList");
+    sinon.stub(senders, "sendProjectJson");
+    sinon.stub(senders, "sendComponentTree");
+    sinon.stub(_internal, "onRunProject");
+    sinon.stub(_internal, "onStopProject");
+    sinon.stub(_internal, "onCleanProject");
+    sinon.stub(_internal, "onRevertProject");
+    sinon.stub(_internal, "onSaveProject");
+    ack.resetHistory();
     await fs.remove(testDirRoot);
     await createNewProject(projectRootDir, "test project", null, "test", "test@example.com");
     const sbs = queues.get(projectRootDir);
@@ -59,41 +61,38 @@ describe("UT for projectOperation callback function", function () {
       sbs.clear();
     }
     queues.clear();
-    onRunProject.resetHistory();
-    onStopProject.resetHistory();
-    onCleanProject.resetHistory();
-    onRevertProject.resetHistory();
-    onSaveProject.resetHistory();
+  });
+  afterEach(()=>{
+    sinon.restore();
   });
   after(async ()=>{
     if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {
       await fs.remove(testDirRoot);
     }
-    sinon.restore();
   });
   describe("test with not-started project", ()=>{
     it("should call onRunProject", async ()=>{
       await onProjectOperation("dummy", projectRootDir, "runProject", ack);
       await sleep(2000);
-      expect(onRunProject).to.be.calledOnce;
+      expect(_internal.onRunProject).to.be.calledOnce;
     });
     it("should not call onStopProject", async ()=>{
       await onProjectOperation("dummy", projectRootDir, "stopProject", ack);
-      expect(onStopProject).not.to.be.called;
+      expect(_internal.onStopProject).not.to.be.called;
     });
     it("should not call onCleanProject", async ()=>{
       await onProjectOperation("dummy", projectRootDir, "cleanProject", ack);
-      expect(onCleanProject).not.to.be.called;
+      expect(_internal.onCleanProject).not.to.be.called;
     });
     it("should call onRevertProject", async ()=>{
       await onProjectOperation("dummy", projectRootDir, "revertProject", ack);
       await sleep(2000);
-      expect(onRevertProject).to.be.calledOnce;
+      expect(_internal.onRevertProject).to.be.calledOnce;
     });
     it("should call onSaveProject", async ()=>{
       await onProjectOperation("dummy", projectRootDir, "saveProject", ack);
       await sleep(2000);
-      expect(onSaveProject).to.be.calledOnce;
+      expect(_internal.onSaveProject).to.be.calledOnce;
     });
   });
   describe("queue operation", ()=>{
@@ -115,8 +114,8 @@ describe("UT for projectOperation callback function", function () {
       onProjectOperation("dummy", projectRootDir, "runProject", ack);
       onProjectOperation("dummy", projectRootDir, "stopProject", ack);
       await onProjectOperation("dummy", projectRootDir, "cleanProject", ack);
-      const numberOfRunProjectCalled = onRunProject.getCalls().length;
-      const numberOfStopProjectCalled = onStopProject.getCalls().length;
+      const numberOfRunProjectCalled = _internal.onRunProject.getCalls().length;
+      const numberOfStopProjectCalled = _internal.onStopProject.getCalls().length;
 
       expect(numberOfRunProjectCalled).to.be.below(8);
       expect(numberOfStopProjectCalled).to.be.below(8);
@@ -125,7 +124,7 @@ describe("UT for projectOperation callback function", function () {
       await onProjectOperation("dummy", projectRootDir, "revertProject", ack);
       await onProjectOperation("dummy", projectRootDir, "revertProject", ack);
       await sleep(2000);
-      expect(onRevertProject).to.be.calledOnce;
+      expect(_internal.onRevertProject).to.be.calledOnce;
     });
   });
 });
