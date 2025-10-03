@@ -20,6 +20,7 @@ chai.use(require("chai-as-promised"));
 const sinon = require("sinon");
 const { createNewProject, createNewComponent } = require("../../../app/core/projectFilesOperator.js");
 const { writeComponentJson } = require("../../../app/core/componentJsonIO.js");
+const gitOperator2 = require("../../../app/core/gitOperator2.js");
 
 //testee
 const { updateComponent, _internal } = require("../../../app/core/updateComponent.js");
@@ -31,9 +32,11 @@ describe("updateComponent UT", function () {
   const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
   let task0;
   let task1;
+  let gitPromise;
   beforeEach(async function () {
     this.timeout(5000);
     await fs.remove(testDirRoot);
+    gitPromise = sinon.stub(gitOperator2, "gitPromise").resolves();
 
     try {
       await createNewProject(projectRootDir, "test project", null, "test", "test@example.com");
@@ -41,6 +44,9 @@ describe("updateComponent UT", function () {
       console.log(e);
       throw e;
     }
+  });
+  afterEach(()=>{
+    gitPromise.restore();
   });
   after(async ()=>{
     if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {

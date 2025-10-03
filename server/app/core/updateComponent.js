@@ -133,9 +133,9 @@ async function removeInputFileCounterpart(projectRootDir, componentJson, index) 
   const promises = [];
   for (const counterPart of componentJson.inputFiles[index].src) {
     if (counterPart.srcNode === "parent" || counterPart.srcNode === componentJson.parent) {
-      promises.push(removeInputFileLinkFromParent(projectRootDir, counterPart.srcName, componentJson.ID, name));
+      promises.push(_internal.removeInputFileLinkFromParent(projectRootDir, counterPart.srcName, componentJson.ID, name));
     } else {
-      promises.push(removeInputFileLinkFromSiblings(projectRootDir, counterPart.srcNode, counterPart.srcName, componentJson.ID, name));
+      promises.push(_internal.removeInputFileLinkFromSiblings(projectRootDir, counterPart.srcNode, counterPart.srcName, componentJson.ID, name));
     }
   }
   return Promise.all(promises);
@@ -152,9 +152,9 @@ async function removeOutputFileCounterpart(projectRootDir, componentJson, index)
   const name = componentJson.outputFiles[index].name;
   for (const counterPart of componentJson.outputFiles[index].dst) {
     if (counterPart.dstNode === "parent" || counterPart.dstNode === componentJson.parent) {
-      promises.push(removeOutputFileLinkToParent(projectRootDir, componentJson.ID, name, counterPart.dstName));
+      promises.push(_internal.removeOutputFileLinkToParent(projectRootDir, componentJson.ID, name, counterPart.dstName));
     } else {
-      promises.push(removeOutputFileLinkToSiblings(projectRootDir, componentJson.ID, name, counterPart.dstNode, counterPart.dstName));
+      promises.push(_internal.removeOutputFileLinkToSiblings(projectRootDir, componentJson.ID, name, counterPart.dstNode, counterPart.dstName));
     }
   }
   return Promise.all(promises);
