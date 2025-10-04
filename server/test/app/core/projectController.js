@@ -44,6 +44,8 @@ describe("project Controller UT", function() {
       }
       return originalGitPromise(cwd, args, rootDir);
     });
+    sinon.stub(gitOperator2, "gitAdd").resolves();
+    sinon.stub(gitOperator2, "gitCommit").resolves();
     await fs.remove(testDirRoot);
     await createNewProject(projectRootDir, "test project", null, "test", "test@example.com");
   });

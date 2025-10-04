@@ -9,7 +9,6 @@ const { describe, it } = require("mocha");
 const sinon = require("sinon");
 const path = require("path");
 const { promisify } = require("util");
-const glob = require("glob");
 const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
 
 describe("#isSurrounded", ()=>{
@@ -2836,7 +2835,7 @@ describe("#removeFileLinkToParent", ()=>{
     const dstName = "input.txt";
     const parentID = "parent123";
     const srcDir = "/mock/project/components/source123";
-    const parentDir = "/mock/project/components";
+    const parentDir = path.dirname(srcDir);
 
     const srcJson = {
       ID: srcNode,
@@ -2872,7 +2871,7 @@ describe("#removeFileLinkToParent", ()=>{
     const dstName = "input.txt";
     const parentID = "parent123";
     const srcDir = "/mock/project/components/source123";
-    const parentDir = "/mock/project/components";
+    const parentDir = path.dirname(srcDir);
 
     const srcJson = {
       ID: srcNode,
@@ -2903,7 +2902,7 @@ describe("#removeFileLinkToParent", ()=>{
     const dstName = "input.txt";
     const parentID = "parent123";
     const srcDir = "/mock/project/components/source123";
-    const parentDir = "/mock/project/components";
+    const parentDir = path.dirname(srcDir);
 
     const srcJson = {
       ID: srcNode,
