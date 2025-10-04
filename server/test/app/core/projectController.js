@@ -18,8 +18,6 @@ chai.use(require("chai-json-schema"));
 
 const { runProject, cleanProject, stopProject, updateProjectState, _internal } = require("../../../app/core/projectController.js");
 const { _internal: gitOpe2Internal } = require("../../../app/core/gitOperator2.js");
-const gitOperator2 = require("../../../app/core/gitOperator2");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator");
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";
@@ -34,7 +32,7 @@ const { scriptName, pwdCmd, scriptHeader, referenceEnv, exit } = require("../../
 const { sleep } = require("../../testUtil.js");
 const scriptPwd = `${scriptHeader}\n${pwdCmd}`;
 
-describe("project Controller UT", function() {
+describe("project Controller UT", function () {
   this.timeout(0);
   beforeEach(async ()=>{
     const originalGitPromise = gitOpe2Internal.gitPromise;
@@ -44,8 +42,6 @@ describe("project Controller UT", function() {
       }
       return originalGitPromise(cwd, args, rootDir);
     });
-    sinon.stub(gitOperator2, "gitAdd").resolves();
-    sinon.stub(gitOperator2, "gitCommit").resolves();
     await fs.remove(testDirRoot);
     await createNewProject(projectRootDir, "test project", null, "test", "test@example.com");
   });
@@ -1559,11 +1555,18 @@ describe("project Controller UT", function() {
         });
       });
     });
-    it("returns an error if the project is already running", async ()=>{
-      _internal.rootDispatchers.set(projectRootDir, "dummy");
-      const result = await runProject(projectRootDir);
-      expect(result).to.be.an("error");
-      expect(result.message).to.include("project is already running");
+    describe("error case", ()=>{
+      before(()=>{
+        _internal.rootDispatchers.set(projectRootDir, "dummy");
+      });
+      after(()=>{
+        _internal.rootDispatchers.delete(projectRootDir);
+      });
+      it("returns an error if the project is already running", async ()=>{
+        const result = await runProject(projectRootDir);
+        expect(result).to.be.an("error");
+        expect(result.message).to.include("project is already running");
+      });
     });
   });
   describe("#stopProject", ()=>{
