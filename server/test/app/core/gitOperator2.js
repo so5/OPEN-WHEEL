@@ -13,7 +13,8 @@ const expect = chai.expect;
 chai.use(require("chai-fs"));
 chai.use(require("chai-as-promised"));
 
-const { gitInit, gitCommit, gitAdd, gitRm, gitResetHEAD, gitStatus, gitClean, gitLFSTrack, gitLFSUntrack, isLFS, getUnsavedFiles, _internal, gitPromise } = require("../../../app/core/gitOperator2.js");
+const gitOperator2 = require("../../../app/core/gitOperator2.js");
+const { gitCommit, gitAdd, gitStatus, _internal, gitPromise, gitInit, gitRm, gitResetHEAD, gitClean, getUnsavedFiles, isLFS, gitLFSTrack, gitLFSUntrack } = gitOperator2;
 
 describe("gitOperator2", ()=>{
   describe("#gitPromise", ()=>{
@@ -44,7 +45,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      await gitPromise(cwd, args, rootDir);
+      await _internal.gitPromise(cwd, args, rootDir);
       expect(spawnStub.calledOnce).to.be.true;
       expect(spawnStub.calledWith("git", args, sinon.match({ cwd: cwd, env: process.env, shell: true }))).to.be.true;
     });
@@ -63,7 +64,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      await gitPromise(cwd, args, rootDir);
+      await _internal.gitPromise(cwd, args, rootDir);
       expect(traceStub.calledWith("stdout")).to.be.true;
       expect(traceStub.calledWith("stderr")).to.be.true;
     });
@@ -82,7 +83,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      const promise = gitPromise(cwd, args, rootDir);
+      const promise = _internal.gitPromise(cwd, args, rootDir);
       await promise.then(()=>{
         expect.fail();
       }).catch((err)=>{
@@ -109,7 +110,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      const promise = gitPromise(cwd, args, rootDir);
+      const promise = _internal.gitPromise(cwd, args, rootDir);
       await promise.then(()=>{
         expect.fail();
       }).catch((err)=>{
@@ -135,7 +136,7 @@ describe("gitOperator2", ()=>{
         }
       } };
       spawnStub.returns(cp);
-      const result = await gitPromise(cwd, args, rootDir);
+      const result = await _internal.gitPromise(cwd, args, rootDir);
       expect(result).to.equal("stdoutstderr");
     });
   });

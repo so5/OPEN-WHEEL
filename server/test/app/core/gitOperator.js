@@ -32,6 +32,7 @@ async function checkLFSenabled(repoDir) {
 }
 
 //testee
+const gitOperator2 = require("../../../app/core/gitOperator2.js");
 const {
   gitInit,
   gitAdd,
@@ -43,7 +44,7 @@ const {
   gitLFSTrack,
   gitLFSUntrack,
   isLFS
-} = require("../../../app/core/gitOperator2.js");
+} = gitOperator2;
 
 //test data
 const testDirRoot = path.resolve("./", "WHEEL_TEST_TMP");

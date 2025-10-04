@@ -13,7 +13,9 @@ const expect = chai.expect;
 const sinon = require("sinon");
 chai.use(require("sinon-chai"));
 
-const { createNewProject } = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const { createNewProject } = projectFilesOperator;
+const originalFs = projectFilesOperator._internal.fs;
 const senders = require("../../../app/handlers/senders.js");
 
 //testee
@@ -52,6 +54,7 @@ const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 describe("UT for projectOperation callback function", function () {
   this.timeout(10000);
   beforeEach(async ()=>{
+    projectFilesOperator._internal.fs = originalFs;
     await fs.remove(testDirRoot);
     await createNewProject(projectRootDir, "test project", null, "test", "test@example.com");
     const sbs = queues.get(projectRootDir);

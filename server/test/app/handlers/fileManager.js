@@ -29,7 +29,8 @@ const emit = sinon.stub();
 const cb = sinon.stub();
 
 //helper function
-const { gitInit } = require("../../../app/core/gitOperator2");
+const gitOperator2 = require("../../../app/core/gitOperator2");
+const { gitInit } = gitOperator2;
 
 //fileManager.__set__("getLogger", ()=>{
 //return { tarace: console.log, info: console.log, debug: console.log, error: console.log, warn: console.log };

@@ -143,7 +143,7 @@ _internal.gitSetup = async function(rootDir, user, mail) {
  * @param {string} mail - committer's user email address only for the project
  * @returns {Promise} - settled when git commit command issued
  */
-async function gitInit(rootDir, user, mail) {
+_internal.gitInit = async function(rootDir, user, mail) {
   if (typeof user !== "string") {
     const err = new Error("user must be a string");
     err.user = user;
@@ -160,7 +160,7 @@ async function gitInit(rootDir, user, mail) {
   await _internal.fs.ensureDir(dir);
   await _internal.gitPromise(dir, ["init", "--", base], rootDir);
   return _internal.gitSetup(rootDir, user, mail);
-}
+};
 
 /**
  * commit already staged(indexed) files
@@ -200,27 +200,27 @@ _internal.gitAdd = async function(rootDir, filename, updateOnly) {
  * @param {string} filename - filename which should be add to repo.
  * filename should be absolute path or relative path from rootDir.
  */
-async function gitRm(rootDir, filename) {
+_internal.gitRm = async function(rootDir, filename) {
   return _internal.gitPromise(rootDir, ["rm", "-r", "--cached", "--", filename], rootDir)
     .catch((err)=>{
       if (!/fatal: pathspec '.*' did not match any files/.test(err.message)) {
         throw err;
       }
     });
-}
+};
 
 /**
  * performe git reset HEAD
  * @param {string} rootDir - repo's root dir
  * @param {string} pathspec - files to be reset
  */
-async function gitResetHEAD(rootDir, pathspec) {
+_internal.gitResetHEAD = async function(rootDir, pathspec) {
   if (!pathspec || typeof pathspec !== "string") {
     return _internal.gitPromise(rootDir, ["reset", "HEAD", "--hard"], rootDir);
   }
   await _internal.gitPromise(rootDir, ["reset", "HEAD", "--", pathspec], rootDir);
   return _internal.gitPromise(rootDir, ["checkout", "HEAD", "--", pathspec], rootDir);
-}
+};
 
 /**
  * get repo's status
@@ -270,14 +270,14 @@ _internal.gitStatus = async function(rootDir, pathspec) {
  * @param {string} pathspec - files to be reset
  * @returns {Promise} - resolved when git clean done
  */
-async function gitClean(rootDir, pathspec) {
+_internal.gitClean = async function(rootDir, pathspec) {
   const opt = ["clean", "-df", "-e wheel.log"];
   if (typeof pathspec === "string") {
     opt.push("--");
     opt.push(pathspec);
   }
   return _internal.gitPromise(rootDir, opt, rootDir);
-}
+};
 
 /**
 /**
@@ -286,10 +286,10 @@ async function gitClean(rootDir, pathspec) {
  * @param {string} name - remote name
  * @returns {Promise} - resolved when git clone done
  */
-async function gitRemoveOrigin(rootDir, name = "origin") {
+_internal.gitRemoveOrigin = async function(rootDir, name = "origin") {
   const opt = ["remote", "remove", name];
   return _internal.gitPromise(rootDir, opt, rootDir);
-}
+};
 
 /**
  * clone rootDir to cwd
@@ -298,7 +298,7 @@ async function gitRemoveOrigin(rootDir, name = "origin") {
  * @param {string} rootDir - repo's root dir
  * @returns {Promise} - resolved when git clone done
  */
-async function gitClone(cwd, depth, rootDir) {
+_internal.gitClone = async function(cwd, depth, rootDir) {
   const opt = ["clone"];
   if (Number.isInteger(depth)) {
     opt.push(`--depth=${depth}`);
@@ -307,7 +307,7 @@ async function gitClone(cwd, depth, rootDir) {
   opt.push(rootDir);
   opt.push(".");
   return _internal.gitPromise(cwd, opt, rootDir);
-}
+};
 
 /**
  * make archive from git repo
@@ -315,10 +315,10 @@ async function gitClone(cwd, depth, rootDir) {
  * @param {string} filename - arcchive filename
  * @returns {Promise} - resolved when git archive done
  */
-async function gitArchive(rootDir, filename) {
+_internal.gitArchive = async function(rootDir, filename) {
   const opt = ["archive", "-o", filename, "HEAD"];
   return _internal.gitPromise(rootDir, opt, rootDir);
-}
+};
 
 /**
  * add local config
@@ -328,7 +328,7 @@ async function gitArchive(rootDir, filename) {
  * @param {boolean} keep - keep value if already set
  * @returns {Promise} - resolved when git archive done
  */
-async function gitConfig(rootDir, key, value, keep = false) {
+_internal.gitConfig = async function(rootDir, key, value, keep = false) {
   const opt = ["config", "--local", key, value];
   if (keep) {
     try {
@@ -339,7 +339,7 @@ async function gitConfig(rootDir, key, value, keep = false) {
     }
   }
   return _internal.gitPromise(rootDir, opt, rootDir);
-}
+};
 
 /**
  * return relative filename from repository's root directry
@@ -368,12 +368,12 @@ _internal.makeLFSPattern = function(rootDir, filename) {
  * @param {string} filename - filename
  * @returns {boolean} -
  */
-async function isLFS(rootDir, filename) {
+_internal.isLFS = async function(rootDir, filename) {
   const lfsPattern = _internal.getRelativeFilename(rootDir, filename);
   const lfsTrackResult = await _internal.gitPromise(rootDir, ["lfs", "track"], rootDir);
   const re = new RegExp(_internal.escapeRegExp(lfsPattern), "m");
   return re.test(lfsTrackResult);
-}
+};
 
 /**
  * performe git lfs track
@@ -381,24 +381,24 @@ async function isLFS(rootDir, filename) {
  * @param {string} filename - files to be track
  * @returns {Promise} - resolved when LFS track setting is done
  */
-async function gitLFSTrack(rootDir, filename) {
+_internal.gitLFSTrack = async function(rootDir, filename) {
   await _internal.gitPromise(rootDir, ["lfs", "track", "--", _internal.makeLFSPattern(rootDir, filename)], rootDir);
   _internal.getLogger(rootDir).trace(`${filename} is treated as large file`);
   return _internal.gitAdd(rootDir, ".gitattributes");
-}
+};
 
 /**
  * performe git lfs untrack
  * @param {string} rootDir - repo's root dir
  * @param {string} filename - files to be untracked
  */
-async function gitLFSUntrack(rootDir, filename) {
+_internal.gitLFSUntrack = async function(rootDir, filename) {
   await _internal.gitPromise(rootDir, ["lfs", "untrack", "--", _internal.makeLFSPattern(rootDir, filename)], rootDir);
   _internal.getLogger(rootDir).trace(`${filename} never treated as large file`);
   if (await _internal.fs.pathExists(_internal.path.resolve(rootDir, ".gitattributes"))) {
     await _internal.gitAdd(rootDir, ".gitattributes");
   }
-}
+};
 
 /**
  * @typedef {object} unsavedFile
@@ -410,7 +410,7 @@ async function gitLFSUntrack(rootDir, filename) {
  * @param {string} rootDir - repo's root dir
  * @returns {unsavedFile[]} - unsaved files
  */
-async function getUnsavedFiles(rootDir, pathspec) {
+_internal.getUnsavedFiles = async function(rootDir, pathspec) {
   const { added, modified, deleted, renamed } = await _internal.gitStatus(rootDir, pathspec);
   const unsavedFiles = [];
   for (const e of added) {
@@ -430,21 +430,21 @@ async function getUnsavedFiles(rootDir, pathspec) {
 
 module.exports = {
   gitSetup: _internal.gitSetup,
-  gitInit,
+  gitInit: _internal.gitInit,
   gitCommit: _internal.gitCommit,
   gitAdd: _internal.gitAdd,
-  gitRm,
-  gitResetHEAD,
+  gitRm: _internal.gitRm,
+  gitResetHEAD: _internal.gitResetHEAD,
   gitStatus: _internal.gitStatus,
-  gitClean,
-  gitRemoveOrigin,
-  gitClone,
-  gitArchive,
-  gitConfig,
-  gitLFSTrack,
-  gitLFSUntrack,
-  isLFS,
-  getUnsavedFiles,
+  gitClean: _internal.gitClean,
+  gitRemoveOrigin: _internal.gitRemoveOrigin,
+  gitClone: _internal.gitClone,
+  gitArchive: _internal.gitArchive,
+  gitConfig: _internal.gitConfig,
+  gitLFSTrack: _internal.gitLFSTrack,
+  gitLFSUntrack: _internal.gitLFSUntrack,
+  isLFS: _internal.isLFS,
+  getUnsavedFiles: _internal.getUnsavedFiles,
   promisifiedGit: _internal.promisifiedGit,
   gitPromise: _internal.gitPromise,
   getRelativeFilename: _internal.getRelativeFilename,
