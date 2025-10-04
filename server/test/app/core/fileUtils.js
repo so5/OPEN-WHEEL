@@ -50,7 +50,6 @@ describe("#readJsonGreedy", ()=>{
       throw lastError;
     });
 
-    //rewireを使ってfs, promise-retryを差し替え
     sinon.replace(_internal, "fs", fsMock);
     sinon.replace(_internal, "promiseRetry", promiseRetryMock);
   });
