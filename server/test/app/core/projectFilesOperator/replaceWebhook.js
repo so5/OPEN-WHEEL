@@ -11,20 +11,21 @@ const projectFilesOperator = require("../../../../app/core/projectFilesOperator.
 
 
 describe("#replaceWebhook", ()=>{
+  const sandbox = sinon.createSandbox();
   let getProjectJsonStub;
   let writeProjectJsonStub;
   let diffStub;
   let diffApplyStub;
 
   beforeEach(()=>{
-    getProjectJsonStub = sinon.stub(projectFilesOperator._internal, "getProjectJson");
-    writeProjectJsonStub = sinon.stub(projectFilesOperator._internal, "writeProjectJson");
-    diffStub = sinon.stub(projectFilesOperator._internal, "diff");
-    diffApplyStub = sinon.stub(projectFilesOperator._internal, "diffApply");
+    getProjectJsonStub = sandbox.stub(projectFilesOperator._internal, "getProjectJson");
+    writeProjectJsonStub = sandbox.stub(projectFilesOperator._internal, "writeProjectJson");
+    diffStub = sandbox.stub(projectFilesOperator._internal, "diff");
+    diffApplyStub = sandbox.stub(projectFilesOperator._internal, "diffApply");
   });
 
   afterEach(()=>{
-    sinon.restore();
+    sandbox.restore();
   });
 
   it("should set the new webhook if the existing one is undefined", async ()=>{
