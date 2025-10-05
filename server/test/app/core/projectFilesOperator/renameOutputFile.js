@@ -11,6 +11,7 @@ const projectFilesOperator = require("../../../../app/core/projectFilesOperator.
 
 
 describe("#renameOutputFile", ()=>{
+  const sandbox = sinon.createSandbox();
   let isValidOutputFilenameStub;
   let getComponentDirStub;
   let readComponentJsonStub;
@@ -25,10 +26,10 @@ describe("#renameOutputFile", ()=>{
   let mockComponentJson;
 
   beforeEach(()=>{
-    isValidOutputFilenameStub = sinon.stub(projectFilesOperator._internal, "isValidOutputFilename");
-    getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
-    readComponentJsonStub = sinon.stub(projectFilesOperator._internal, "readComponentJson");
-    writeComponentJsonStub = sinon.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
+    isValidOutputFilenameStub = sandbox.stub(projectFilesOperator._internal, "isValidOutputFilename");
+    getComponentDirStub = sandbox.stub(projectFilesOperator._internal, "getComponentDir");
+    readComponentJsonStub = sandbox.stub(projectFilesOperator._internal, "readComponentJson");
+    writeComponentJsonStub = sandbox.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
 
     mockComponentDir = "/mock/project/root/component-123";
     mockComponentJson = {
@@ -42,7 +43,7 @@ describe("#renameOutputFile", ()=>{
   });
 
   afterEach(()=>{
-    sinon.restore();
+    sandbox.restore();
   });
 
   it("should reject if the newName is invalid", async ()=>{
