@@ -12,18 +12,20 @@ const projectFilesOperator = require("../../../../app/core/projectFilesOperator.
 
 
 describe("#removeLink", ()=>{
+  let sandbox;
   let getComponentDirStub;
   let readComponentJsonStub;
   let writeComponentJsonStub;
 
   beforeEach(()=>{
-    getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
-    readComponentJsonStub = sinon.stub(projectFilesOperator._internal, "readComponentJson");
-    writeComponentJsonStub = sinon.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
+    sandbox = sinon.createSandbox();
+    getComponentDirStub = sandbox.stub(projectFilesOperator._internal, "getComponentDir");
+    readComponentJsonStub = sandbox.stub(projectFilesOperator._internal, "readComponentJson");
+    writeComponentJsonStub = sandbox.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
   });
 
   afterEach(()=>{
-    sinon.restore();
+    sandbox.restore();
   });
 
   it("should remove dst from srcJson.next when isElse is false, and remove src from dstJson.previous", async ()=>{
