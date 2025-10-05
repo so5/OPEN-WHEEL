@@ -9,7 +9,7 @@ const { describe, it } = require("mocha");
 const sinon = require("sinon");
 const path = require("path");
 const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
 
 describe.skip("#updateProjectROStatus", ()=>{
