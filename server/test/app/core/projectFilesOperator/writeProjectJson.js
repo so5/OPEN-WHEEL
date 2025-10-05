@@ -30,6 +30,9 @@ describe("#writeProjectJson", ()=>{
 
     writeProjectJson = projectFilesOperator._internal.writeProjectJson;
   });
+  afterEach(()=>{
+    sinon.restore();
+  });
 
   it("should write the JSON file and add it to git", async ()=>{
     writeJsonWrapperMock.resolves();
