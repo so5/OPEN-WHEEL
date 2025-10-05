@@ -10,13 +10,14 @@ const sinon = require("sinon");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
 describe("#checkRunningJobs", ()=>{
-  let globStub;
+  let promisifyStub;
   let readJsonStub;
   let getLoggerStub;
   let loggerWarnStub;
 
   beforeEach(()=>{
-    globStub = sinon.stub(projectFilesOperator._internal, "glob");
+    const globStub = sinon.stub();
+    promisifyStub = sinon.stub(projectFilesOperator._internal, "promisify").returns(globStub);
     readJsonStub = sinon.stub(projectFilesOperator._internal.fs, "readJson");
     loggerWarnStub = sinon.spy();
     getLoggerStub = sinon.stub(projectFilesOperator._internal, "getLogger").returns({ warn: loggerWarnStub });
@@ -32,7 +33,7 @@ describe("#checkRunningJobs", ()=>{
     const mockTask1 = [{ id: 1, name: "Task1" }];
     const mockTask2 = [{ id: 2, name: "Task2" }];
 
-    globStub.resolves(mockFiles);
+    promisifyStub().resolves(mockFiles);
     readJsonStub.onFirstCall().resolves(mockTask1);
     readJsonStub.onSecondCall().resolves(mockTask2);
 
@@ -49,7 +50,7 @@ describe("#checkRunningJobs", ()=>{
     const mockTask = [{ id: 1, name: "Task1" }];
     const readError = new Error("Invalid JSON");
 
-    globStub.resolves(mockFiles);
+    promisifyStub().resolves(mockFiles);
     readJsonStub.onFirstCall().resolves(mockTask);
     readJsonStub.onSecondCall().rejects(readError);
 
@@ -63,7 +64,7 @@ describe("#checkRunningJobs", ()=>{
 
   it("should return empty tasks and jmFiles when no job manager files are found", async ()=>{
     const projectRootDir = "/mock/project/root";
-    globStub.resolves([]);
+    promisifyStub().resolves([]);
 
     const result = await projectFilesOperator._internal.checkRunningJobs(projectRootDir);
 
@@ -77,10 +78,10 @@ describe("#checkRunningJobs", ()=>{
     const mockFiles = ["job1.json", "job2.json", "job3.json"];
     const validTask = [{ id: 1, name: "Task1" }];
 
-    globStub.resolves(mockFiles);
-    readJsonStub.withArgs(sinon.match.string).resolves([]); // empty array by default
-    readJsonStub.withArgs(sinon.match(/job2\.json/)).resolves({ notArray: true }); // not an array
-    readJsonStub.withArgs(sinon.match(/job3\.json/)).resolves(validTask);
+    promisifyStub().resolves(mockFiles);
+    readJsonStub.withArgs("/mock/project/root/job1.json").resolves([]); // empty array
+    readJsonStub.withArgs("/mock/project/root/job2.json").resolves({ notArray: true }); // not an array
+    readJsonStub.withArgs("/mock/project/root/job3.json").resolves(validTask);
 
     const result = await projectFilesOperator._internal.checkRunningJobs(projectRootDir);
 
