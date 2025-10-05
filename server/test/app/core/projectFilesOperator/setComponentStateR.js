@@ -11,8 +11,7 @@ const path = require("path");
 const { promisify } = require("util");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#setComponentStateR", ()=>{
+describe("#setComponentStateR", ()=>{
   let setComponentStateR;
   let globMock, readJsonGreedyMock, writeComponentJsonMock;
 
@@ -23,7 +22,7 @@ describe.skip("#setComponentStateR", ()=>{
     readJsonGreedyMock = sinon.stub();
     writeComponentJsonMock = sinon.stub();
 
-    projectFilesOperator._internal.promisify = ()=>globMock;
+    projectFilesOperator._internal.promisify = ()=>{ return globMock; };
     projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
     projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
   });

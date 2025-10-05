@@ -11,8 +11,7 @@ const path = require("path");
 const { promisify } = require("util");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#renameProject", ()=>{
+describe("#renameProject", ()=>{
   let renameProject;
   let isValidNameMock;
   let fsMock;

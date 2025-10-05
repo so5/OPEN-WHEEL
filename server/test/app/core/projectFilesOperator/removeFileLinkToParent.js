@@ -11,8 +11,7 @@ const path = require("path");
 const { promisify } = require("util");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#removeFileLinkToParent", ()=>{
+describe("#removeFileLinkToParent", ()=>{
   let removeFileLinkToParent;
   let getComponentDirMock, readComponentJsonMock, writeComponentJsonMock;
 

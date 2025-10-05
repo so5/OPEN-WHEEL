@@ -11,8 +11,7 @@ const path = require("path");
 const { promisify } = require("util");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#rewriteAllIncludeExcludeProperty", ()=>{
+describe("#rewriteAllIncludeExcludeProperty", ()=>{
   let rewriteAllIncludeExcludeProperty;
   let rewriteIncludeExcludeMock;
   let globMock;
@@ -25,7 +24,7 @@ describe.skip("#rewriteAllIncludeExcludeProperty", ()=>{
     projectFilesOperator._internal.rewriteIncludeExclude = rewriteIncludeExcludeMock;
 
     globMock = sinon.stub();
-    promisifyMock = sinon.stub().callsFake((fn)=>fn === glob ? globMock : promisify(fn));
+    promisifyMock = sinon.stub().callsFake((fn)=>{ return fn === glob ? globMock : promisify(fn); });
     projectFilesOperator._internal.promisify = promisifyMock;
   });
 

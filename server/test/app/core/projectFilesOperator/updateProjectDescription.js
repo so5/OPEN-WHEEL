@@ -11,8 +11,7 @@ const path = require("path");
 const { promisify } = require("util");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#updateProjectDescription", ()=>{
+describe("#updateProjectDescription", ()=>{
   let updateProjectDescription;
   let readJsonGreedyMock;
   let writeJsonWrapperMock;

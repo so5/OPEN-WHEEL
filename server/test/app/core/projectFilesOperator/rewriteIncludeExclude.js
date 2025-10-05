@@ -11,8 +11,7 @@ const path = require("path");
 const { promisify } = require("util");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#rewriteIncludeExclude", ()=>{
+describe("#rewriteIncludeExclude", ()=>{
   let rewriteIncludeExclude;
   let readJsonGreedyMock, writeComponentJsonMock, glob2ArrayMock;
   const mockProjectRootDir = "/mock/project/root";

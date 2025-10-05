@@ -12,7 +12,7 @@ const { promisify } = require("util");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
 
-describe.skip("#writeProjectJson", ()=>{
+describe("#writeProjectJson", ()=>{
   let writeProjectJson;
   let writeJsonWrapperMock;
   let gitAddMock;
