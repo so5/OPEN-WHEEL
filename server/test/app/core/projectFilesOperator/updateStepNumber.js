@@ -10,6 +10,7 @@ const sinon = require("sinon");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
 describe("#updateStepNumber", ()=>{
+  let sandbox;
   let getAllComponentIDsStub;
   let getComponentDirStub;
   let readComponentJsonStub;
@@ -19,15 +20,16 @@ describe("#updateStepNumber", ()=>{
   const mockProjectRootDir = "/mock/project/root";
 
   beforeEach(()=>{
-    getAllComponentIDsStub = sinon.stub(projectFilesOperator._internal, "getAllComponentIDs");
-    getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
-    readComponentJsonStub = sinon.stub(projectFilesOperator._internal, "readComponentJson");
-    writeComponentJsonStub = sinon.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
-    arrangeComponentStub = sinon.stub(projectFilesOperator._internal, "arrangeComponent");
+    sandbox = sinon.createSandbox();
+    getAllComponentIDsStub = sandbox.stub(projectFilesOperator._internal, "getAllComponentIDs");
+    getComponentDirStub = sandbox.stub(projectFilesOperator._internal, "getComponentDir");
+    readComponentJsonStub = sandbox.stub(projectFilesOperator._internal, "readComponentJson");
+    writeComponentJsonStub = sandbox.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
+    arrangeComponentStub = sandbox.stub(projectFilesOperator._internal, "arrangeComponent");
   });
 
   afterEach(()=>{
-    sinon.restore();
+    sandbox.restore();
   });
 
   it("should update 'stepnum' for all stepjobTask components in the arranged order", async ()=>{
