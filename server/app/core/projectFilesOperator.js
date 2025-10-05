@@ -63,7 +63,15 @@ const _internal = {
 };
 
 _internal.isSurrounded = function(token) {
-  return token.startsWith("{") && token.endsWith("}");
+  if (typeof token !== "string") {
+    return false;
+  }
+  if (!token.startsWith("{") || !token.endsWith("}")) {
+    return false;
+  }
+  const openBraces = (token.match(/{/g) || []).length;
+  const closeBraces = (token.match(/}/g) || []).length;
+  return openBraces === closeBraces;
 };
 _internal.trimSurrounded = function(token) {
   if (!_internal.isSurrounded(token)) {
