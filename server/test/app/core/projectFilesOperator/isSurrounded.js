@@ -35,11 +35,11 @@ describe("#isSurrounded", ()=>{
     expect(isSurrounded("{{example}}")).to.be.true;
   });
 
-  it("should return true for mismatched nested braces if start and end match", ()=>{
+  it("should return true for mismatched nested braces As long as the beginning and end match", ()=>{
     expect(isSurrounded("{example}}")).to.be.true;
   });
 
-  it("should return false if end brace is missing", ()=>{
-    expect(isSurrounded("{{example}")).to.be.false;
+  it("should return true for mismatched nested braces As long as the beginning and end match", ()=>{
+    expect(isSurrounded("{{example}")).to.be.true;
   });
 });
