@@ -8,7 +8,7 @@ const { promisify } = require("util");
 const fs = require("fs-extra");
 const path = require("path");
 const isPathInside = require("is-path-inside");
-const { glob } = require("glob");
+const glob = require("glob");
 const { diff } = require("just-diff");
 const { diffApply } = require("just-diff-apply");
 const { getComponentDir, writeComponentJson, writeComponentJsonByID, readComponentJson, readComponentJsonByID } = require("./componentJsonIO.js");
@@ -216,7 +216,7 @@ _internal.getProjectState = async function(projectRootDir) {
 _internal.checkRunningJobs = async function(projectRootDir) {
   const tasks = [];
   const jmFiles = [];
-  const candidates = await _internal.glob(`*.${_internal.jobManagerJsonFilename}`, { cwd: projectRootDir });
+  const candidates = await _internal.promisify(_internal.glob)(`*.${_internal.jobManagerJsonFilename}`, { cwd: projectRootDir });
   for (const jmFile of candidates) {
     try {
       const taskInJmFile = await _internal.fs.readJson(_internal.path.resolve(projectRootDir, jmFile));
