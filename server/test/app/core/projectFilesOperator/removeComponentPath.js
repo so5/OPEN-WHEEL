@@ -5,175 +5,85 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
 const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#removeComponentPath", ()=>{
-  let removeComponentPath;
-  let readJsonGreedyMock;
-  let writeJsonWrapperMock;
-  let gitAddMock;
-  let pathExistsMock;
+describe("#removeComponentPath", ()=>{
+  let readJsonGreedyStub;
+  let writeJsonWrapperStub;
+  let gitAddStub;
+  let pathExistsStub;
+  const projectRootDir = "/mock/project/root";
+  const projectJsonPath = path.resolve(projectRootDir, "prj.wheel.json");
 
   beforeEach(()=>{
-    removeComponentPath = projectFilesOperator._internal.removeComponentPath;
-
-    readJsonGreedyMock = sinon.stub();
-    writeJsonWrapperMock = sinon.stub();
-    gitAddMock = sinon.stub();
-    pathExistsMock = sinon.stub();
-
-    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
-    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
-    projectFilesOperator._internal.gitAdd = gitAddMock;
-    projectFilesOperator._internal.fs = { pathExists: pathExistsMock };
+    readJsonGreedyStub = sinon.stub(projectFilesOperator._internal, "readJsonGreedy");
+    writeJsonWrapperStub = sinon.stub(projectFilesOperator._internal, "writeJsonWrapper").resolves();
+    gitAddStub = sinon.stub(projectFilesOperator._internal, "gitAdd").resolves();
+    pathExistsStub = sinon.stub(projectFilesOperator._internal.fs, "pathExists");
   });
 
   afterEach(()=>{
     sinon.restore();
   });
 
-  it("should remove specified component IDs from componentPath and update the project JSON", async ()=>{
-    const mockProjectRootDir = "/mock/project/root";
-    const mockProjectJson = {
-      componentPath: {
-        comp1: "path/to/comp1",
-        comp2: "path/to/comp2",
-        comp3: "path/to/comp3"
-      }
-    };
-    const IDsToRemove = ["comp2"];
+  it("should remove specified component IDs if their paths do not exist", async ()=>{
+    const projectJson = { componentPath: { comp1: "path1", comp2: "path2", comp3: "path3" } };
+    readJsonGreedyStub.resolves(projectJson);
+    pathExistsStub.resolves(false); // All paths do not exist
 
-    readJsonGreedyMock.resolves(mockProjectJson);
-    writeJsonWrapperMock.resolves();
-    gitAddMock.resolves();
-    pathExistsMock.resolves(false);
+    await projectFilesOperator._internal.removeComponentPath(projectRootDir, ["comp2"]);
 
-    await removeComponentPath(mockProjectRootDir, IDsToRemove);
-
-    expect(readJsonGreedyMock.calledOnceWithExactly(path.resolve(mockProjectRootDir, "prj.wheel.json"))).to.be.true;
-    expect(writeJsonWrapperMock.calledOnceWithExactly(
-      path.resolve(mockProjectRootDir, "prj.wheel.json"),
-      {
-        componentPath: {
-          comp1: "path/to/comp1",
-          comp3: "path/to/comp3"
-        }
-      }
-    )).to.be.true;
-    expect(gitAddMock.calledOnceWithExactly(
-      mockProjectRootDir,
-      path.resolve(mockProjectRootDir, "prj.wheel.json")
-    )).to.be.true;
+    expect(readJsonGreedyStub.calledOnceWith(projectJsonPath)).to.be.true;
+    const expectedJson = { componentPath: { comp1: "path1", comp3: "path3" } };
+    expect(writeJsonWrapperStub.calledOnceWith(projectJsonPath, expectedJson)).to.be.true;
+    expect(gitAddStub.calledOnceWith(projectRootDir, projectJsonPath)).to.be.true;
   });
 
   it("should not remove components if their directories exist and force is false", async ()=>{
-    const mockProjectRootDir = "/mock/project/root";
-    const mockProjectJson = {
-      componentPath: {
-        comp1: "path/to/comp1",
-        comp2: "path/to/comp2"
-      }
-    };
-    const IDsToRemove = ["comp2"];
+    const projectJson = { componentPath: { comp1: "path1", comp2: "path2" } };
+    readJsonGreedyStub.resolves(projectJson);
+    pathExistsStub.resolves(true); // All paths exist
 
-    readJsonGreedyMock.resolves(mockProjectJson);
-    writeJsonWrapperMock.resolves();
-    gitAddMock.resolves();
-    pathExistsMock.resolves(true);
+    await projectFilesOperator._internal.removeComponentPath(projectRootDir, ["comp2"], false);
 
-    await removeComponentPath(mockProjectRootDir, IDsToRemove, false);
-
-    expect(readJsonGreedyMock.calledOnceWithExactly(path.resolve(mockProjectRootDir, "prj.wheel.json"))).to.be.true;
-    expect(writeJsonWrapperMock.calledOnceWithExactly(
-      path.resolve(mockProjectRootDir, "prj.wheel.json"),
-      {
-        componentPath: {
-          comp1: "path/to/comp1",
-          comp2: "path/to/comp2"
-        }
-      }
-    )).to.be.true;
-    expect(gitAddMock.calledOnceWithExactly(
-      mockProjectRootDir,
-      path.resolve(mockProjectRootDir, "prj.wheel.json")
-    )).to.be.true;
+    const expectedJson = { componentPath: { comp1: "path1", comp2: "path2" } };
+    expect(writeJsonWrapperStub.calledOnceWith(projectJsonPath, expectedJson)).to.be.true;
   });
 
-  it("should forcefully remove components even if their directories exist when force is true", async ()=>{
-    const mockProjectRootDir = "/mock/project/root";
-    const mockProjectJson = {
-      componentPath: {
-        comp1: "path/to/comp1",
-        comp2: "path/to/comp2"
-      }
-    };
-    const IDsToRemove = ["comp2"];
+  it("should remove components if their directories exist and force is true", async ()=>{
+    const projectJson = { componentPath: { comp1: "path1", comp2: "path2" } };
+    readJsonGreedyStub.resolves(projectJson);
+    pathExistsStub.resolves(true); // All paths exist
 
-    readJsonGreedyMock.resolves(mockProjectJson);
-    writeJsonWrapperMock.resolves();
-    gitAddMock.resolves();
-    pathExistsMock.resolves(true);
+    await projectFilesOperator._internal.removeComponentPath(projectRootDir, ["comp2"], true);
 
-    await removeComponentPath(mockProjectRootDir, IDsToRemove, true);
-
-    expect(readJsonGreedyMock.calledOnceWithExactly(path.resolve(mockProjectRootDir, "prj.wheel.json"))).to.be.true;
-    expect(writeJsonWrapperMock.calledOnceWithExactly(
-      path.resolve(mockProjectRootDir, "prj.wheel.json"),
-      {
-        componentPath: {
-          comp1: "path/to/comp1"
-        }
-      }
-    )).to.be.true;
-    expect(gitAddMock.calledOnceWithExactly(
-      mockProjectRootDir,
-      path.resolve(mockProjectRootDir, "prj.wheel.json")
-    )).to.be.true;
+    const expectedJson = { componentPath: { comp1: "path1" } };
+    expect(writeJsonWrapperStub.calledOnceWith(projectJsonPath, expectedJson)).to.be.true;
   });
 
   it("should handle an empty componentPath gracefully", async ()=>{
-    const mockProjectRootDir = "/mock/project/root";
-    const mockProjectJson = { componentPath: {} };
-    const IDsToRemove = ["comp1"];
+    const projectJson = { componentPath: {} };
+    readJsonGreedyStub.resolves(projectJson);
 
-    readJsonGreedyMock.resolves(mockProjectJson);
-    writeJsonWrapperMock.resolves();
-    gitAddMock.resolves();
+    await projectFilesOperator._internal.removeComponentPath(projectRootDir, ["comp1"]);
 
-    await removeComponentPath(mockProjectRootDir, IDsToRemove);
-
-    expect(readJsonGreedyMock.calledOnceWithExactly(path.resolve(mockProjectRootDir, "prj.wheel.json"))).to.be.true;
-    expect(writeJsonWrapperMock.calledOnceWithExactly(
-      path.resolve(mockProjectRootDir, "prj.wheel.json"),
-      { componentPath: {} }
-    )).to.be.true;
-    expect(gitAddMock.calledOnceWithExactly(
-      mockProjectRootDir,
-      path.resolve(mockProjectRootDir, "prj.wheel.json")
-    )).to.be.true;
+    expect(writeJsonWrapperStub.calledOnceWith(projectJsonPath, projectJson)).to.be.true;
   });
 
   it("should throw an error if reading the project JSON fails", async ()=>{
-    const mockProjectRootDir = "/mock/project/root";
-    const IDsToRemove = ["comp1"];
-
-    const mockError = new Error("Read error");
-    readJsonGreedyMock.rejects(mockError);
+    const readError = new Error("Read error");
+    readJsonGreedyStub.rejects(readError);
 
     try {
-      await removeComponentPath(mockProjectRootDir, IDsToRemove);
-      throw new Error("Expected removeComponentPath to throw");
+      await projectFilesOperator._internal.removeComponentPath(projectRootDir, ["comp1"]);
+      throw new Error("should have been rejected");
     } catch (err) {
-      expect(err).to.equal(mockError);
+      expect(err).to.equal(readError);
     }
-
-    expect(readJsonGreedyMock.calledOnceWithExactly(path.resolve(mockProjectRootDir, "prj.wheel.json"))).to.be.true;
-    expect(writeJsonWrapperMock.notCalled).to.be.true;
-    expect(gitAddMock.notCalled).to.be.true;
+    expect(writeJsonWrapperStub.notCalled).to.be.true;
+    expect(gitAddStub.notCalled).to.be.true;
   });
 });

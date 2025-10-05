@@ -5,23 +5,19 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
 const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
+describe("#getUnusedProjectDir", ()=>{
+  let pathExistsStub;
+  let getSuffixNumberStub;
+  const suffix = ".wheel"; // The actual suffix from db.js
 
-describe.skip("#getUnusedProjectDir", ()=>{
-  let getUnusedProjectDir;
-  let fsMock;
   beforeEach(()=>{
-    getUnusedProjectDir = projectFilesOperator._internal.getUnusedProjectDir;
-
-    fsMock = {
-      pathExists: sinon.stub()
-    };
-    projectFilesOperator._internal.fs = fsMock;
+    pathExistsStub = sinon.stub(projectFilesOperator._internal.fs, "pathExists");
+    getSuffixNumberStub = sinon.stub(projectFilesOperator._internal, "getSuffixNumberFromProjectName");
   });
 
   afterEach(()=>{
@@ -31,63 +27,63 @@ describe.skip("#getUnusedProjectDir", ()=>{
   it("should return the provided projectRootDir if it does not exist", async ()=>{
     const projectRootDir = "/mock/project/root";
     const projectName = "project";
+    pathExistsStub.withArgs(projectRootDir).resolves(false);
 
-    fsMock.pathExists.resolves(false);
-
-    const result = await getUnusedProjectDir(projectRootDir, projectName);
+    const result = await projectFilesOperator._internal.getUnusedProjectDir(projectRootDir, projectName);
 
     expect(result).to.equal(projectRootDir);
-    expect(fsMock.pathExists.calledOnceWithExactly(projectRootDir)).to.be.true;
+    expect(pathExistsStub.calledOnceWith(projectRootDir)).to.be.true;
   });
 
-  it("should return a new directory name with suffix if projectRootDir exists", async ()=>{
+  it("should return suffixed name if projectRootDir exists but suffixed one does not", async ()=>{
     const projectRootDir = "/mock/project/root";
     const projectName = "project";
-    const suffix = ".wheel";
+    const expectedDir = path.resolve(path.dirname(projectRootDir), `${projectName}${suffix}`);
 
-    fsMock.pathExists.onFirstCall().resolves(true);
-    fsMock.pathExists.onSecondCall().resolves(false);
+    pathExistsStub.withArgs(projectRootDir).resolves(true);
+    pathExistsStub.withArgs(expectedDir).resolves(false);
 
-    rewireProjectFilesOperator.__set__("suffix", suffix);
+    const result = await projectFilesOperator._internal.getUnusedProjectDir(projectRootDir, projectName);
 
-    const result = await getUnusedProjectDir(projectRootDir, projectName);
-
-    expect(result).to.equal("/mock/project/project.wheel");
-    expect(fsMock.pathExists.calledTwice).to.be.true;
+    expect(result).to.equal(expectedDir);
+    expect(pathExistsStub.callCount).to.equal(2);
   });
 
-  it("should increment the suffix number until an unused directory name is found", async ()=>{
+  it("should increment suffix number if suffixed directories exist", async ()=>{
     const projectRootDir = "/mock/project/root";
     const projectName = "project";
-    const suffix = ".wheel";
+    const suffixedDir = path.resolve(path.dirname(projectRootDir), `${projectName}${suffix}`);
+    const suffixedDirWithNum0 = path.resolve(path.dirname(projectRootDir), `${projectName}0${suffix}`);
+    const suffixedDirWithNum1 = path.resolve(path.dirname(projectRootDir), `${projectName}1${suffix}`);
 
-    fsMock.pathExists.onCall(0).resolves(true);
-    fsMock.pathExists.onCall(1).resolves(true);
-    fsMock.pathExists.onCall(2).resolves(true);
-    fsMock.pathExists.onCall(3).resolves(false);
+    pathExistsStub.withArgs(projectRootDir).resolves(true);
+    pathExistsStub.withArgs(suffixedDir).resolves(true);
+    pathExistsStub.withArgs(suffixedDirWithNum0).resolves(true);
+    pathExistsStub.withArgs(suffixedDirWithNum1).resolves(false);
+    getSuffixNumberStub.withArgs(projectName).returns(0);
 
-    projectFilesOperator._internal.suffix = suffix;
+    const result = await projectFilesOperator._internal.getUnusedProjectDir(projectRootDir, projectName);
 
-    const result = await getUnusedProjectDir(projectRootDir, projectName);
-    console.log(result);
-
-    expect(result).to.equal("/mock/project/project1.wheel");
-    expect(fsMock.pathExists.callCount).to.equal(4);
+    expect(result).to.equal(suffixedDirWithNum1);
+    expect(pathExistsStub.callCount).to.equal(4);
   });
 
-  it("should use the suffix number from the projectName if present", async ()=>{
+  it("should use and increment the suffix number from the project name", async ()=>{
     const projectRootDir = "/mock/project/root";
     const projectName = "project2";
-    const suffix = ".wheel";
+    const suffixedDir = path.resolve(path.dirname(projectRootDir), `${projectName}${suffix}`);
+    const suffixedDirWithNum2 = path.resolve(path.dirname(projectRootDir), `${projectName}2${suffix}`);
+    const suffixedDirWithNum3 = path.resolve(path.dirname(projectRootDir), `${projectName}3${suffix}`);
 
-    fsMock.pathExists.onCall(0).resolves(true);
-    fsMock.pathExists.onCall(1).resolves(false);
+    pathExistsStub.withArgs(projectRootDir).resolves(true);
+    pathExistsStub.withArgs(suffixedDir).resolves(true);
+    pathExistsStub.withArgs(suffixedDirWithNum2).resolves(true);
+    pathExistsStub.withArgs(suffixedDirWithNum3).resolves(false);
+    getSuffixNumberStub.withArgs(projectName).returns(2);
 
-    projectFilesOperator._internal.suffix = suffix;
+    const result = await projectFilesOperator._internal.getUnusedProjectDir(projectRootDir, projectName);
 
-    const result = await getUnusedProjectDir(projectRootDir, projectName);
-
-    expect(result).to.equal("/mock/project/project2.wheel");
-    expect(fsMock.pathExists.callCount).to.equal(2);
+    expect(result).to.equal(suffixedDirWithNum3);
+    expect(pathExistsStub.callCount).to.equal(4);
   });
 });

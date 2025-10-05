@@ -5,153 +5,82 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#removeAllLinkFromComponent", ()=>{
-  let removeAllLinkFromComponent;
-  let readComponentJsonByIDMock;
-  let writeComponentJsonByIDMock;
+describe("#removeAllLinkFromComponent", ()=>{
+  let readComponentJsonByIDStub;
+  let writeComponentJsonByIDStub;
+  const projectRootDir = "/mock/project/root";
+  const componentID = "testComponent";
 
   beforeEach(()=>{
-    removeAllLinkFromComponent = projectFilesOperator._internal.removeAllLinkFromComponent;
-    readComponentJsonByIDMock = sinon.stub();
-    writeComponentJsonByIDMock = sinon.stub();
-    projectFilesOperator._internal.readComponentJsonByID = readComponentJsonByIDMock;
-    projectFilesOperator._internal.writeComponentJsonByID = writeComponentJsonByIDMock;
+    readComponentJsonByIDStub = sinon.stub(projectFilesOperator._internal, "readComponentJsonByID");
+    writeComponentJsonByIDStub = sinon.stub(projectFilesOperator._internal, "writeComponentJsonByID").resolves();
   });
 
   afterEach(()=>{
     sinon.restore();
   });
 
-  it("should remove all links from the specified component", async ()=>{
-    const projectRootDir = "/mock/project/root";
-    const componentID = "testComponent";
-
+  it("should remove all workflow links from the specified component", async ()=>{
     const targetComponent = {
       ID: componentID,
       previous: ["prev1", "prev2"],
       next: ["next1"],
       else: ["else1"]
     };
+    const prev1Component = { ID: "prev1", next: [componentID, "other"] };
+    const prev2Component = { ID: "prev2", next: [componentID], else: [componentID] };
+    const nextComponent = { ID: "next1", previous: [componentID, "other"] };
+    const elseComponent = { ID: "else1", previous: [componentID] };
 
-    const prev1Component = {
-      ID: "prev1",
-      next: [componentID]
-    };
-    const prev2Component = {
-      ID: "prev2",
-      next: [componentID],
-      else: [componentID]
-    };
-    const nextComponent = {
-      ID: "next1",
-      previous: [componentID]
-    };
-    const elseComponent = {
-      ID: "else1",
-      previous: [componentID]
-    };
+    readComponentJsonByIDStub.withArgs(projectRootDir, componentID).resolves(targetComponent);
+    readComponentJsonByIDStub.withArgs(projectRootDir, "prev1").resolves(prev1Component);
+    readComponentJsonByIDStub.withArgs(projectRootDir, "prev2").resolves(prev2Component);
+    readComponentJsonByIDStub.withArgs(projectRootDir, "next1").resolves(nextComponent);
+    readComponentJsonByIDStub.withArgs(projectRootDir, "else1").resolves(elseComponent);
 
-    readComponentJsonByIDMock.withArgs(projectRootDir, componentID).resolves(targetComponent);
-    readComponentJsonByIDMock.withArgs(projectRootDir, "prev1").resolves(prev1Component);
-    readComponentJsonByIDMock.withArgs(projectRootDir, "prev2").resolves(prev2Component);
-    readComponentJsonByIDMock.withArgs(projectRootDir, "next1").resolves(nextComponent);
-    readComponentJsonByIDMock.withArgs(projectRootDir, "else1").resolves(elseComponent);
+    await projectFilesOperator._internal.removeAllLinkFromComponent(projectRootDir, componentID);
 
-    await removeAllLinkFromComponent(projectRootDir, componentID);
-
-    expect(prev1Component.next).to.not.include(componentID);
-    expect(prev2Component.next).to.not.include(componentID);
-    expect(prev2Component.else).to.not.include(componentID);
-    expect(nextComponent.previous).to.not.include(componentID);
-    expect(elseComponent.previous).to.not.include(componentID);
-
-    expect(writeComponentJsonByIDMock.callCount).to.equal(4);
-    expect(writeComponentJsonByIDMock.calledWith(projectRootDir, "prev1", sinon.match.object)).to.be.true;
-    expect(writeComponentJsonByIDMock.calledWith(projectRootDir, "prev2", sinon.match.object)).to.be.true;
-    expect(writeComponentJsonByIDMock.calledWith(projectRootDir, "next1", sinon.match.object)).to.be.true;
-    expect(writeComponentJsonByIDMock.calledWith(projectRootDir, "else1", sinon.match.object)).to.be.true;
+    expect(writeComponentJsonByIDStub.callCount).to.equal(4);
+    expect(writeComponentJsonByIDStub.calledWith(projectRootDir, "prev1", { ID: "prev1", next: ["other"] })).to.be.true;
+    expect(writeComponentJsonByIDStub.calledWith(projectRootDir, "prev2", { ID: "prev2", next: [], else: [] })).to.be.true;
+    expect(writeComponentJsonByIDStub.calledWith(projectRootDir, "next1", { ID: "next1", previous: ["other"] })).to.be.true;
+    expect(writeComponentJsonByIDStub.calledWith(projectRootDir, "else1", { ID: "else1", previous: [] })).to.be.true;
   });
 
   it("should handle components with no links gracefully", async ()=>{
-    const projectRootDir = "/mock/project/root";
-    const componentID = "isolatedComponent";
-
-    const isolatedComponent = {
-      ID: componentID
-    };
-
-    readComponentJsonByIDMock.withArgs(projectRootDir, componentID).resolves(isolatedComponent);
-
-    await removeAllLinkFromComponent(projectRootDir, componentID);
-
-    expect(writeComponentJsonByIDMock.notCalled).to.be.true;
+    const isolatedComponent = { ID: componentID };
+    readComponentJsonByIDStub.withArgs(projectRootDir, componentID).resolves(isolatedComponent);
+    await projectFilesOperator._internal.removeAllLinkFromComponent(projectRootDir, componentID);
+    expect(writeComponentJsonByIDStub.notCalled).to.be.true;
   });
 
   it("should remove all file links from inputFiles and outputFiles", async ()=>{
-    const projectRootDir = "/mock/project/root";
-    const componentID = "fileLinkComponent";
-
     const targetComponent = {
       ID: componentID,
-      inputFiles: [
-        {
-          src: [{ srcNode: "srcComponent1" }, { srcNode: "srcComponent2" }]
-        }
-      ],
-      outputFiles: [
-        {
-          dst: [{ dstNode: "dstComponent1" }, { dstNode: "dstComponent2" }]
-        }
-      ]
+      inputFiles: [{ src: [{ srcNode: "srcComponent1" }, { srcNode: "srcComponent2" }] }],
+      outputFiles: [{ dst: [{ dstNode: "dstComponent1" }, { dstNode: "dstComponent2" }] }]
     };
+    const srcComponent1 = { ID: "srcComponent1", outputFiles: [{ dst: [{ dstNode: componentID }, { dstNode: "other" }] }] };
+    const srcComponent2 = { ID: "srcComponent2", outputFiles: [{ dst: [{ dstNode: componentID }] }] };
+    const dstComponent1 = { ID: "dstComponent1", inputFiles: [{ src: [{ srcNode: componentID }, { srcNode: "other" }] }] };
+    const dstComponent2 = { ID: "dstComponent2", inputFiles: [{ src: [{ srcNode: componentID }] }] };
 
-    const srcComponent1 = {
-      ID: "srcComponent1",
-      outputFiles: [
-        { dst: [{ dstNode: componentID }, { dstNode: "otherComponent" }] }
-      ]
-    };
-    const srcComponent2 = {
-      ID: "srcComponent2",
-      outputFiles: [{ dst: [{ dstNode: componentID }] }]
-    };
+    readComponentJsonByIDStub.withArgs(projectRootDir, componentID).resolves(targetComponent);
+    readComponentJsonByIDStub.withArgs(projectRootDir, "srcComponent1").resolves(srcComponent1);
+    readComponentJsonByIDStub.withArgs(projectRootDir, "srcComponent2").resolves(srcComponent2);
+    readComponentJsonByIDStub.withArgs(projectRootDir, "dstComponent1").resolves(dstComponent1);
+    readComponentJsonByIDStub.withArgs(projectRootDir, "dstComponent2").resolves(dstComponent2);
 
-    const dstComponent1 = {
-      ID: "dstComponent1",
-      inputFiles: [
-        { src: [{ srcNode: componentID }, { srcNode: "otherComponent" }] }
-      ]
-    };
-    const dstComponent2 = {
-      ID: "dstComponent2",
-      inputFiles: [{ src: [{ srcNode: componentID }] }]
-    };
+    await projectFilesOperator._internal.removeAllLinkFromComponent(projectRootDir, componentID);
 
-    readComponentJsonByIDMock.withArgs(projectRootDir, componentID).resolves(targetComponent);
-    readComponentJsonByIDMock.withArgs(projectRootDir, "srcComponent1").resolves(srcComponent1);
-    readComponentJsonByIDMock.withArgs(projectRootDir, "srcComponent2").resolves(srcComponent2);
-    readComponentJsonByIDMock.withArgs(projectRootDir, "dstComponent1").resolves(dstComponent1);
-    readComponentJsonByIDMock.withArgs(projectRootDir, "dstComponent2").resolves(dstComponent2);
-
-    await removeAllLinkFromComponent(projectRootDir, componentID);
-
-    expect(srcComponent1.outputFiles[0].dst).to.not.deep.include({ dstNode: componentID });
-    expect(srcComponent2.outputFiles[0].dst).to.not.deep.include({ dstNode: componentID });
-
-    expect(dstComponent1.inputFiles[0].src).to.not.deep.include({ srcNode: componentID });
-    expect(dstComponent2.inputFiles[0].src).to.not.deep.include({ srcNode: componentID });
-
-    expect(writeComponentJsonByIDMock.callCount).to.equal(4);
-    expect(writeComponentJsonByIDMock.calledWith(projectRootDir, "srcComponent1", sinon.match.object)).to.be.true;
-    expect(writeComponentJsonByIDMock.calledWith(projectRootDir, "srcComponent2", sinon.match.object)).to.be.true;
-    expect(writeComponentJsonByIDMock.calledWith(projectRootDir, "dstComponent1", sinon.match.object)).to.be.true;
-    expect(writeComponentJsonByIDMock.calledWith(projectRootDir, "dstComponent2", sinon.match.object)).to.be.true;
+    expect(writeComponentJsonByIDStub.callCount).to.equal(4);
+    expect(writeComponentJsonByIDStub.calledWith(projectRootDir, "srcComponent1", { ID: "srcComponent1", outputFiles: [{ dst: [{ dstNode: "other" }] }] })).to.be.true;
+    expect(writeComponentJsonByIDStub.calledWith(projectRootDir, "srcComponent2", { ID: "srcComponent2", outputFiles: [{ dst: [] }] })).to.be.true;
+    expect(writeComponentJsonByIDStub.calledWith(projectRootDir, "dstComponent1", { ID: "dstComponent1", inputFiles: [{ src: [{ srcNode: "other" }] }] })).to.be.true;
+    expect(writeComponentJsonByIDStub.calledWith(projectRootDir, "dstComponent2", { ID: "dstComponent2", inputFiles: [{ src: [] }] })).to.be.true;
   });
 });

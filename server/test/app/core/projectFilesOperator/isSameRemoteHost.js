@@ -5,28 +5,17 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#isSameRemoteHost", ()=>{
-  let isSameRemoteHost;
-  let readComponentJsonByIDMock;
-  let remoteHostMock;
+describe("#isSameRemoteHost", ()=>{
+  let readComponentJsonByIDStub;
+  let remoteHostQueryStub;
 
   beforeEach(()=>{
-    isSameRemoteHost = projectFilesOperator._internal.isSameRemoteHost;
-
-    readComponentJsonByIDMock = sinon.stub();
-    remoteHostMock = {
-      query: sinon.stub()
-    };
-
-    projectFilesOperator._internal.readComponentJsonByID = readComponentJsonByIDMock;
-    projectFilesOperator._internal.remoteHost = remoteHostMock;
+    readComponentJsonByIDStub = sinon.stub(projectFilesOperator._internal, "readComponentJsonByID");
+    remoteHostQueryStub = sinon.stub(projectFilesOperator._internal.remoteHost, "query");
   });
 
   afterEach(()=>{
@@ -34,69 +23,53 @@ describe.skip("#isSameRemoteHost", ()=>{
   });
 
   it("should return null if src and dst are the same", async ()=>{
-    const result = await isSameRemoteHost("/project/root", "componentA", "componentA");
+    const result = await projectFilesOperator.isSameRemoteHost("/project/root", "componentA", "componentA");
     expect(result).to.be.null;
   });
 
   it("should return false if either component is local", async ()=>{
-    readComponentJsonByIDMock
-      .withArgs("/project/root", "componentA").resolves({ host: "localhost" })
-      .withArgs("/project/root", "componentB")
-      .resolves({ host: "host1" });
+    readComponentJsonByIDStub.withArgs("/project/root", "componentA").resolves({ host: "localhost" });
+    readComponentJsonByIDStub.withArgs("/project/root", "componentB").resolves({ host: "host1" });
 
-    const result = await isSameRemoteHost("/project/root", "componentA", "componentB");
+    const result = await projectFilesOperator.isSameRemoteHost("/project/root", "componentA", "componentB");
     expect(result).to.be.false;
   });
 
   it("should return true if both components have the same host name", async ()=>{
-    readComponentJsonByIDMock
-      .withArgs("/project/root", "componentA").resolves({ host: "host1" })
-      .withArgs("/project/root", "componentB")
-      .resolves({ host: "host1" });
+    readComponentJsonByIDStub.withArgs("/project/root", "componentA").resolves({ host: "host1" });
+    readComponentJsonByIDStub.withArgs("/project/root", "componentB").resolves({ host: "host1" });
 
-    const result = await isSameRemoteHost("/project/root", "componentA", "componentB");
+    const result = await projectFilesOperator.isSameRemoteHost("/project/root", "componentA", "componentB");
     expect(result).to.be.true;
   });
 
   it("should return true if both components have matching remote host info", async ()=>{
-    readComponentJsonByIDMock
-      .withArgs("/project/root", "componentA").resolves({ host: "host1" })
-      .withArgs("/project/root", "componentB")
-      .resolves({ host: "host2" });
-    remoteHostMock.query
-      .withArgs("name", "host1").returns({ host: "sharedHost", port: 22 })
-      .withArgs("name", "host2")
-      .returns({ host: "sharedHost", port: 22 });
+    readComponentJsonByIDStub.withArgs("/project/root", "componentA").resolves({ host: "host1" });
+    readComponentJsonByIDStub.withArgs("/project/root", "componentB").resolves({ host: "host2" });
+    remoteHostQueryStub.withArgs("name", "host1").returns({ host: "sharedHost", user: "user", port: 22 });
+    remoteHostQueryStub.withArgs("name", "host2").returns({ host: "sharedHost", user: "user", port: 22 });
 
-    const result = await isSameRemoteHost("/project/root", "componentA", "componentB");
+    const result = await projectFilesOperator.isSameRemoteHost("/project/root", "componentA", "componentB");
     expect(result).to.be.true;
   });
 
   it("should return false if remote hosts do not match", async ()=>{
-    readComponentJsonByIDMock
-      .withArgs("/project/root", "componentA").resolves({ host: "host1" })
-      .withArgs("/project/root", "componentB")
-      .resolves({ host: "host2" });
-    remoteHostMock.query
-      .withArgs("name", "host1").returns({ host: "host1", port: 22, sharedHost: "host1", name: "host1" })
-      .withArgs("name", "host2")
-      .returns({ host: "host2", port: 22, sharedHost: "host2", name: "host2" });
+    readComponentJsonByIDStub.withArgs("/project/root", "componentA").resolves({ host: "host1" });
+    readComponentJsonByIDStub.withArgs("/project/root", "componentB").resolves({ host: "host2" });
+    remoteHostQueryStub.withArgs("name", "host1").returns({ host: "host1", name: "host1" });
+    remoteHostQueryStub.withArgs("name", "host2").returns({ host: "host2", name: "host2" });
 
-    const result = await isSameRemoteHost("/project/root", "componentA", "componentB");
+    const result = await projectFilesOperator.isSameRemoteHost("/project/root", "componentA", "componentB");
     expect(result).to.be.false;
   });
 
   it("should return true if dstHostInfo.sharedHost matches srcHostInfo.name", async ()=>{
-    readComponentJsonByIDMock
-      .withArgs("/project/root", "componentA").resolves({ host: "host1" })
-      .withArgs("/project/root", "componentB")
-      .resolves({ host: "host2" });
-    remoteHostMock.query
-      .withArgs("name", "host1").returns({ host: "host1", name: "host1" })
-      .withArgs("name", "host2")
-      .returns({ sharedHost: "host1" });
+    readComponentJsonByIDStub.withArgs("/project/root", "componentA").resolves({ host: "host1" });
+    readComponentJsonByIDStub.withArgs("/project/root", "componentB").resolves({ host: "host2" });
+    remoteHostQueryStub.withArgs("name", "host1").returns({ host: "host1", name: "host1" });
+    remoteHostQueryStub.withArgs("name", "host2").returns({ sharedHost: "host1" });
 
-    const result = await isSameRemoteHost("/project/root", "componentA", "componentB");
+    const result = await projectFilesOperator.isSameRemoteHost("/project/root", "componentA", "componentB");
     expect(result).to.be.true;
   });
 });

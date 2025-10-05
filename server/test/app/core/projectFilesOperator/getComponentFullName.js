@@ -5,23 +5,15 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#getComponentFullName", ()=>{
-  let getComponentFullName;
-  let getComponentDirMock;
+describe("#getComponentFullName", ()=>{
+  let getComponentDirStub;
 
   beforeEach(()=>{
-    getComponentFullName = projectFilesOperator._internal.getComponentFullName;
-
-    //Mocking getComponentDir
-    getComponentDirMock = sinon.stub();
-    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
+    getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
   });
 
   afterEach(()=>{
@@ -33,11 +25,11 @@ describe.skip("#getComponentFullName", ()=>{
     const mockID = "component123";
     const mockPath = "./relative/path/to/component";
 
-    getComponentDirMock.resolves(mockPath);
+    getComponentDirStub.resolves(mockPath);
 
-    const result = await getComponentFullName(mockProjectRootDir, mockID);
+    const result = await projectFilesOperator._internal.getComponentFullName(mockProjectRootDir, mockID);
 
-    expect(getComponentDirMock.calledOnceWithExactly(mockProjectRootDir, mockID)).to.be.true;
+    expect(getComponentDirStub.calledOnceWith(mockProjectRootDir, mockID)).to.be.true;
     expect(result).to.equal("/relative/path/to/component");
   });
 
@@ -45,11 +37,11 @@ describe.skip("#getComponentFullName", ()=>{
     const mockProjectRootDir = "/mock/project/root";
     const mockID = "component123";
 
-    getComponentDirMock.resolves(null);
+    getComponentDirStub.resolves(null);
 
-    const result = await getComponentFullName(mockProjectRootDir, mockID);
+    const result = await projectFilesOperator._internal.getComponentFullName(mockProjectRootDir, mockID);
 
-    expect(getComponentDirMock.calledOnceWithExactly(mockProjectRootDir, mockID)).to.be.true;
+    expect(getComponentDirStub.calledOnceWith(mockProjectRootDir, mockID)).to.be.true;
     expect(result).to.be.null;
   });
 
@@ -58,11 +50,11 @@ describe.skip("#getComponentFullName", ()=>{
     const mockID = "component123";
     const mockPath = "absolute/path/to/component";
 
-    getComponentDirMock.resolves(mockPath);
+    getComponentDirStub.resolves(mockPath);
 
-    const result = await getComponentFullName(mockProjectRootDir, mockID);
+    const result = await projectFilesOperator._internal.getComponentFullName(mockProjectRootDir, mockID);
 
-    expect(getComponentDirMock.calledOnceWithExactly(mockProjectRootDir, mockID)).to.be.true;
+    expect(getComponentDirStub.calledOnceWith(mockProjectRootDir, mockID)).to.be.true;
     expect(result).to.equal(mockPath);
   });
 });

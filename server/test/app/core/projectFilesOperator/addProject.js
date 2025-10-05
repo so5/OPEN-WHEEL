@@ -5,28 +5,25 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#addProject", ()=>{
-  let addProject;
-  let createNewProjectMock;
-  let fsMock;
+describe("#addProject", ()=>{
+  let pathExistsStub;
+  let createNewProjectStub;
+  let isValidNameStub;
+  let projectListUnshiftStub;
+  let removeTrailingPathSepStub;
+  let convertPathSepStub;
 
   beforeEach(()=>{
-    addProject = projectFilesOperator._internal.addProject;
-    createNewProjectMock = sinon.stub();
-
-    fsMock = {
-      pathExists: sinon.stub()
-    };
-
-    projectFilesOperator._internal.createNewProject = createNewProjectMock;
-    projectFilesOperator._internal.fs = fsMock;
+    pathExistsStub = sinon.stub(projectFilesOperator._internal.fs, "pathExists");
+    createNewProjectStub = sinon.stub(projectFilesOperator._internal, "createNewProject");
+    isValidNameStub = sinon.stub(projectFilesOperator._internal, "isValidName");
+    projectListUnshiftStub = sinon.stub(projectFilesOperator._internal.projectList, "unshift");
+    removeTrailingPathSepStub = sinon.stub(projectFilesOperator._internal, "removeTrailingPathSep").callsFake((p)=>p);
+    convertPathSepStub = sinon.stub(projectFilesOperator._internal, "convertPathSep").callsFake((p)=>p);
   });
 
   afterEach(()=>{
@@ -35,56 +32,58 @@ describe.skip("#addProject", ()=>{
 
   it("should throw an error if the project directory already exists", async ()=>{
     const mockProjectDir = "/existing/project/dir";
-
-    fsMock.pathExists.resolves(true);
+    const projectRootDir = `${mockProjectDir}.wheel`;
+    pathExistsStub.withArgs(projectRootDir).resolves(true);
 
     try {
-      await addProject(mockProjectDir, "Test description");
+      await projectFilesOperator.addProject(mockProjectDir, "Test description");
       throw new Error("Expected addProject to throw an error");
     } catch (err) {
       expect(err.message).to.equal("specified project dir is already exists");
-      expect(err.projectRootDir).to.equal(`${mockProjectDir}.wheel`);
+      expect(err.projectRootDir).to.equal(projectRootDir);
     }
 
-    expect(fsMock.pathExists.calledOnceWithExactly(`${mockProjectDir}.wheel`)).to.be.true;
+    expect(pathExistsStub.calledOnceWith(projectRootDir)).to.be.true;
+    expect(createNewProjectStub.notCalled).to.be.true;
   });
 
   it("should throw an error if the project name is invalid", async ()=>{
-    const mockProjectDir = "/valid/dir";
-    const invalidProjectName = "Invalid/Name";
-
-    fsMock.pathExists.resolves(false);
-    sinon.stub(path, "basename").returns(invalidProjectName);
+    const mockProjectDir = "/new/project/dir";
+    const projectName = "dir";
+    const projectRootDir = `${mockProjectDir}.wheel`;
+    pathExistsStub.withArgs(projectRootDir).resolves(false);
+    isValidNameStub.withArgs(projectName).returns(false);
 
     try {
-      await addProject(mockProjectDir, "Test description");
+      await projectFilesOperator.addProject(mockProjectDir, "Test description");
       throw new Error("Expected addProject to throw an error");
     } catch (err) {
       expect(err.message).to.equal("illegal project name");
     }
+
+    expect(isValidNameStub.calledOnceWith(projectName)).to.be.true;
+    expect(createNewProjectStub.notCalled).to.be.true;
   });
 
   it("should create a new project and add it to the project list", async ()=>{
     const mockProjectDir = "/new/project/dir";
-    const validProjectName = "validName";
-    const mockCreatedProjectDir = `${mockProjectDir}.wheel`;
+    const projectName = "dir";
+    const projectRootDir = `${mockProjectDir}.wheel`;
+    const mockDescription = "Test description";
 
-    fsMock.pathExists.resolves(false);
-    sinon.stub(path, "basename").returns(validProjectName);
-    createNewProjectMock.resolves(mockCreatedProjectDir);
+    pathExistsStub.withArgs(projectRootDir).resolves(false);
+    isValidNameStub.withArgs(projectName).returns(true);
+    createNewProjectStub.resolves(projectRootDir);
 
-    const projectListUnshiftStub = sinon.stub();
-    projectFilesOperator._internal.projectList = { unshift: projectListUnshiftStub };
+    await projectFilesOperator.addProject(mockProjectDir, mockDescription);
 
-    await addProject(mockProjectDir, "Test description");
-
-    expect(createNewProjectMock.calledOnceWithExactly(
-      `${mockProjectDir}.wheel`,
-      validProjectName,
-      "Test description",
+    expect(createNewProjectStub.calledOnceWith(
+      projectRootDir,
+      projectName,
+      mockDescription,
       "wheel",
       "wheel@example.com"
     )).to.be.true;
-    expect(projectListUnshiftStub.calledOnceWithExactly({ path: mockCreatedProjectDir })).to.be.true;
+    expect(projectListUnshiftStub.calledOnceWith({ path: projectRootDir })).to.be.true;
   });
 });

@@ -5,22 +5,15 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#isParent", ()=>{
-  let isParent;
-  let readComponentJsonByIDMock;
+describe("#isParent", ()=>{
+  let readComponentJsonByIDStub;
 
   beforeEach(()=>{
-    isParent = projectFilesOperator._internal.isParent;
-
-    readComponentJsonByIDMock = sinon.stub();
-    projectFilesOperator._internal.readComponentJsonByID = readComponentJsonByIDMock;
+    readComponentJsonByIDStub = sinon.stub(projectFilesOperator._internal, "readComponentJsonByID");
   });
 
   afterEach(()=>{
@@ -28,43 +21,44 @@ describe.skip("#isParent", ()=>{
   });
 
   it("should return true if parentID is 'parent'", async ()=>{
-    const result = await isParent("/mock/project", "parent", "childID");
+    const result = await projectFilesOperator._internal.isParent("/mock/project", "parent", "childID");
     expect(result).to.be.true;
+    expect(readComponentJsonByIDStub.notCalled).to.be.true;
   });
 
   it("should return false if childID is 'parent'", async ()=>{
-    const result = await isParent("/mock/project", "parentID", "parent");
+    const result = await projectFilesOperator._internal.isParent("/mock/project", "parentID", "parent");
     expect(result).to.be.false;
+    expect(readComponentJsonByIDStub.notCalled).to.be.true;
   });
 
   it("should return false if childJson is null", async ()=>{
-    readComponentJsonByIDMock.resolves(null);
+    readComponentJsonByIDStub.resolves(null);
 
-    const result = await isParent("/mock/project", "parentID", "childID");
+    const result = await projectFilesOperator._internal.isParent("/mock/project", "parentID", "childID");
     expect(result).to.be.false;
-    expect(readComponentJsonByIDMock.calledOnceWithExactly("/mock/project", "childID")).to.be.true;
+    expect(readComponentJsonByIDStub.calledOnceWith("/mock/project", "childID")).to.be.true;
   });
 
   it("should return false if childID is not a string", async ()=>{
-    readComponentJsonByIDMock.resolves({ parent: "parentID" });
-
-    const result = await isParent("/mock/project", "parentID", 123);
+    const result = await projectFilesOperator._internal.isParent("/mock/project", "parentID", 123);
     expect(result).to.be.false;
+    expect(readComponentJsonByIDStub.calledOnceWith("/mock/project", 123)).to.be.true;
   });
 
   it("should return true if childJson.parent matches parentID", async ()=>{
-    readComponentJsonByIDMock.resolves({ parent: "parentID" });
+    readComponentJsonByIDStub.resolves({ parent: "parentID" });
 
-    const result = await isParent("/mock/project", "parentID", "childID");
+    const result = await projectFilesOperator._internal.isParent("/mock/project", "parentID", "childID");
     expect(result).to.be.true;
-    expect(readComponentJsonByIDMock.calledOnceWithExactly("/mock/project", "childID")).to.be.true;
+    expect(readComponentJsonByIDStub.calledOnceWith("/mock/project", "childID")).to.be.true;
   });
 
   it("should return false if childJson.parent does not match parentID", async ()=>{
-    readComponentJsonByIDMock.resolves({ parent: "otherParentID" });
+    readComponentJsonByIDStub.resolves({ parent: "otherParentID" });
 
-    const result = await isParent("/mock/project", "parentID", "childID");
+    const result = await projectFilesOperator._internal.isParent("/mock/project", "parentID", "childID");
     expect(result).to.be.false;
-    expect(readComponentJsonByIDMock.calledOnceWithExactly("/mock/project", "childID")).to.be.true;
+    expect(readComponentJsonByIDStub.calledOnceWith("/mock/project", "childID")).to.be.true;
   });
 });

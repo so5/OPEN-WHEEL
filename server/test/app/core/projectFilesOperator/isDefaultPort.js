@@ -6,18 +6,10 @@
 "use strict";
 const { expect } = require("chai");
 const { describe, it } = require("mocha");
-const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#isDefaultPort", ()=>{
-  let isDefaultPort;
-
-  beforeEach(()=>{
-    isDefaultPort = projectFilesOperator._internal.isDefaultPort;
-  });
+describe("#isDefaultPort", ()=>{
+  const { isDefaultPort } = projectFilesOperator._internal;
 
   it("should return true for undefined", ()=>{
     expect(isDefaultPort(undefined)).to.be.true;
@@ -46,15 +38,14 @@ describe.skip("#isDefaultPort", ()=>{
   });
 
   it("should return false for non-numeric strings", ()=>{
-    expect(isDefaultPort("random"))
-      .to.be.false;
+    expect(isDefaultPort("random")).to.be.false;
   });
 
-  it("should handle null input gracefully", ()=>{
+  it("should return false for null input", ()=>{
     expect(isDefaultPort(null)).to.be.false;
   });
 
-  it("should handle boolean inputs", ()=>{
+  it("should return false for boolean inputs", ()=>{
     expect(isDefaultPort(true)).to.be.false;
     expect(isDefaultPort(false)).to.be.false;
   });

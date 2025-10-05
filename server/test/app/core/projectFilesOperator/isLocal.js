@@ -6,18 +6,10 @@
 "use strict";
 const { expect } = require("chai");
 const { describe, it } = require("mocha");
-const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#isLocal", ()=>{
-  let isLocal;
-
-  beforeEach(()=>{
-    isLocal = projectFilesOperator._internal.isLocal;
-  });
+describe("#isLocal", ()=>{
+  const { isLocal } = projectFilesOperator._internal;
 
   it("should return true if host is undefined", ()=>{
     const component = {};

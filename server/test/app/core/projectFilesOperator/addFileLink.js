@@ -5,106 +5,88 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
 
-describe.skip("#addFileLink", ()=>{
-  let rewireProjectFilesOperator;
-  let addFileLink;
-  let isParentMock;
-  let addFileLinkToParentMock;
-  let addFileLinkFromParentMock;
-  let addFileLinkBetweenSiblingsMock;
-
+describe("#addFileLink", ()=>{
   const projectRootDir = "/mock/project";
   const srcNode = "srcNode";
   const srcName = "out.dat";
   const dstNode = "dstNode";
   const dstName = "in.dat";
+  let isParentStub;
+  let addFileLinkToParentStub;
+  let addFileLinkFromParentStub;
+  let addFileLinkBetweenSiblingsStub;
 
   beforeEach(()=>{
-    //rewireでプロダクトコードを読み込み
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    //テスト対象の関数を取得
-    addFileLink = rewireProjectFilesOperator.__get__("addFileLink");
+    isParentStub = sinon.stub(projectFilesOperator._internal, "isParent");
+    addFileLinkToParentStub = sinon.stub(projectFilesOperator._internal, "addFileLinkToParent").resolves();
+    addFileLinkFromParentStub = sinon.stub(projectFilesOperator._internal, "addFileLinkFromParent").resolves();
+    addFileLinkBetweenSiblingsStub = sinon.stub(projectFilesOperator._internal, "addFileLinkBetweenSiblings").resolves();
+  });
 
-    //依存関数をstub化
-    isParentMock = sinon.stub();
-    addFileLinkToParentMock = sinon.stub().resolves();
-    addFileLinkFromParentMock = sinon.stub().resolves();
-    addFileLinkBetweenSiblingsMock = sinon.stub().resolves();
-
-    //rewireを使って依存関数を差し替え
-    rewireProjectFilesOperator.__set__("isParent", isParentMock);
-    rewireProjectFilesOperator.__set__("addFileLinkToParent", addFileLinkToParentMock);
-    rewireProjectFilesOperator.__set__("addFileLinkFromParent", addFileLinkFromParentMock);
-    rewireProjectFilesOperator.__set__("addFileLinkBetweenSiblings", addFileLinkBetweenSiblingsMock);
+  afterEach(()=>{
+    sinon.restore();
   });
 
   it("should reject if srcNode and dstNode are the same", async ()=>{
     try {
-      await addFileLink(projectRootDir, "same", srcName, "same", dstName);
+      await projectFilesOperator.addFileLink(projectRootDir, "same", srcName, "same", dstName);
       throw new Error("Expected addFileLink to reject with an error");
     } catch (err) {
       expect(err).to.be.an("Error");
       expect(err.message).to.equal("cyclic link is not allowed");
     }
 
-    expect(isParentMock.notCalled).to.be.true;
-    expect(addFileLinkToParentMock.notCalled).to.be.true;
-    expect(addFileLinkFromParentMock.notCalled).to.be.true;
-    expect(addFileLinkBetweenSiblingsMock.notCalled).to.be.true;
+    expect(isParentStub.notCalled).to.be.true;
+    expect(addFileLinkToParentStub.notCalled).to.be.true;
+    expect(addFileLinkFromParentStub.notCalled).to.be.true;
+    expect(addFileLinkBetweenSiblingsStub.notCalled).to.be.true;
   });
 
   it("should call addFileLinkToParent if dstNode is parent of srcNode", async ()=>{
-    //(B) dstNode が srcNode の親
-    isParentMock.onFirstCall().resolves(true); //isParent(projectRootDir, dstNode, srcNode) => true
+    isParentStub.withArgs(projectRootDir, dstNode, srcNode).resolves(true);
 
-    await addFileLink(projectRootDir, srcNode, srcName, dstNode, dstName);
+    await projectFilesOperator.addFileLink(projectRootDir, srcNode, srcName, dstNode, dstName);
 
-    //addFileLinkToParent が呼ばれていること
-    expect(addFileLinkToParentMock.calledOnceWithExactly(
+    expect(addFileLinkToParentStub.calledOnceWithExactly(
       projectRootDir, srcNode, srcName, dstName
     )).to.be.true;
 
-    //他の関数は呼ばれない
-    expect(isParentMock.callCount).to.equal(1);
-    expect(addFileLinkFromParentMock.notCalled).to.be.true;
-    expect(addFileLinkBetweenSiblingsMock.notCalled).to.be.true;
+    expect(isParentStub.callCount).to.equal(1);
+    expect(addFileLinkFromParentStub.notCalled).to.be.true;
+    expect(addFileLinkBetweenSiblingsStub.notCalled).to.be.true;
   });
 
   it("should call addFileLinkFromParent if srcNode is parent of dstNode", async ()=>{
-    //(C) dstNode が親ではない => false, srcNode が親 => true
-    isParentMock.onFirstCall().resolves(false); //dstNodeがsrcNodeの親か？ => false
-    isParentMock.onSecondCall().resolves(true); //srcNodeがdstNodeの親か？ => true
+    isParentStub.withArgs(projectRootDir, dstNode, srcNode).resolves(false);
+    isParentStub.withArgs(projectRootDir, srcNode, dstNode).resolves(true);
 
-    await addFileLink(projectRootDir, srcNode, srcName, dstNode, dstName);
+    await projectFilesOperator.addFileLink(projectRootDir, srcNode, srcName, dstNode, dstName);
 
-    //addFileLinkFromParent が呼ばれていること
-    expect(addFileLinkFromParentMock.calledOnceWithExactly(
+    expect(addFileLinkFromParentStub.calledOnceWithExactly(
       projectRootDir, srcName, dstNode, dstName
     )).to.be.true;
 
-    expect(addFileLinkToParentMock.notCalled).to.be.true;
-    expect(addFileLinkBetweenSiblingsMock.notCalled).to.be.true;
+    expect(isParentStub.callCount).to.equal(2);
+    expect(addFileLinkToParentStub.notCalled).to.be.true;
+    expect(addFileLinkBetweenSiblingsStub.notCalled).to.be.true;
   });
 
   it("should call addFileLinkBetweenSiblings otherwise", async ()=>{
-    //(D) isParent が両方 false => siblings のケース
-    isParentMock.onFirstCall().resolves(false);
-    isParentMock.onSecondCall().resolves(false);
+    isParentStub.resolves(false);
 
-    await addFileLink(projectRootDir, srcNode, srcName, dstNode, dstName);
+    await projectFilesOperator.addFileLink(projectRootDir, srcNode, srcName, dstNode, dstName);
 
-    expect(addFileLinkBetweenSiblingsMock.calledOnceWithExactly(
+    expect(addFileLinkBetweenSiblingsStub.calledOnceWithExactly(
       projectRootDir, srcNode, srcName, dstNode, dstName
     )).to.be.true;
 
-    expect(addFileLinkToParentMock.notCalled).to.be.true;
-    expect(addFileLinkFromParentMock.notCalled).to.be.true;
+    expect(isParentStub.callCount).to.equal(2);
+    expect(addFileLinkToParentStub.notCalled).to.be.true;
+    expect(addFileLinkFromParentStub.notCalled).to.be.true;
   });
 });

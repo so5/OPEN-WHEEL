@@ -5,92 +5,96 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
+describe("#addFileLinkToParent", ()=>{
+  const projectRootDir = "/mock/project/root";
+  const srcNode = "srcNode1";
+  const srcName = "outputFile1";
+  const dstName = "inputFile1";
+  const srcDir = "/mock/project/root/src";
+  const parentDir = "/mock/project/root";
+  const parentID = "parentNode1";
 
-describe.skip("#addFileLinkToParent", ()=>{
-  let addFileLinkToParent;
-  let getComponentDirMock, readComponentJsonMock, writeComponentJsonMock;
+  let getComponentDirStub;
+  let readComponentJsonStub;
+  let writeComponentJsonStub;
+  let pathDirnameStub;
+  let originalPath;
 
   beforeEach(()=>{
-    addFileLinkToParent = projectFilesOperator._internal.addFileLinkToParent;
-
-    getComponentDirMock = sinon.stub();
-    readComponentJsonMock = sinon.stub();
-    writeComponentJsonMock = sinon.stub();
-
-    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
-    projectFilesOperator._internal.readComponentJson = readComponentJsonMock;
-    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
+    getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
+    readComponentJsonStub = sinon.stub(projectFilesOperator._internal, "readComponentJson");
+    writeComponentJsonStub = sinon.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
+    originalPath = projectFilesOperator._internal.path;
+    pathDirnameStub = sinon.stub();
+    projectFilesOperator._internal.path = { dirname: pathDirnameStub };
   });
 
   afterEach(()=>{
     sinon.restore();
+    projectFilesOperator._internal.path = originalPath;
   });
 
   it("should add a file link to parent component correctly", async ()=>{
-    const projectRootDir = "/mock/project/root";
-    const srcNode = "srcNode1";
-    const srcName = "outputFile1";
-    const dstName = "inputFile1";
-
-    const srcDir = "/mock/project/root/src";
-    const parentDir = "/mock/project/root";
     const srcJson = {
-      ID: "srcNode1",
-      outputFiles: [{ name: "outputFile1", dst: [] }]
+      ID: srcNode,
+      outputFiles: [{ name: srcName, dst: [] }]
     };
     const parentJson = {
-      ID: "parentNode1",
-      outputFiles: [{ name: "inputFile1" }]
+      ID: parentID,
+      outputFiles: [{ name: dstName }]
     };
 
-    getComponentDirMock.onFirstCall().resolves(srcDir);
-    readComponentJsonMock.withArgs(srcDir).resolves(srcJson);
-    readComponentJsonMock.withArgs(parentDir).resolves(parentJson);
-    writeComponentJsonMock.resolves();
+    getComponentDirStub.withArgs(projectRootDir, srcNode, true).resolves(srcDir);
+    pathDirnameStub.withArgs(srcDir).returns(parentDir);
+    readComponentJsonStub.withArgs(srcDir).resolves(srcJson);
+    readComponentJsonStub.withArgs(parentDir).resolves(parentJson);
 
-    await addFileLinkToParent(projectRootDir, srcNode, srcName, dstName);
+    await projectFilesOperator._internal.addFileLinkToParent(projectRootDir, srcNode, srcName, dstName);
 
     expect(srcJson.outputFiles[0].dst).to.deep.include({
-      dstNode: "parentNode1",
-      dstName: "inputFile1"
+      dstNode: parentID,
+      dstName
     });
     expect(parentJson.outputFiles[0].origin).to.deep.include({
-      srcNode: "srcNode1",
-      srcName: "outputFile1"
+      srcNode,
+      srcName
     });
-
-    expect(writeComponentJsonMock.calledTwice).to.be.true;
-    expect(writeComponentJsonMock.firstCall.args).to.deep.equal([
+    expect(writeComponentJsonStub.calledTwice).to.be.true;
+    expect(writeComponentJsonStub.firstCall.args).to.deep.equal([
       projectRootDir,
       srcDir,
       srcJson
     ]);
-    expect(writeComponentJsonMock.secondCall.args).to.deep.equal([
+    expect(writeComponentJsonStub.secondCall.args).to.deep.equal([
       projectRootDir,
       parentDir,
       parentJson
     ]);
   });
 
-  it("should throw an error if srcNode does not exist", async ()=>{
-    const projectRootDir = "/mock/project/root";
-    const srcNode = "invalidNode";
-    const srcName = "outputFile1";
-    const dstName = "inputFile1";
+  it("should not add duplicate file links", async ()=>{
+    const srcJson = {
+      ID: srcNode,
+      outputFiles: [{ name: srcName, dst: [{ dstNode: parentID, dstName }] }]
+    };
+    const parentJson = {
+      ID: parentID,
+      outputFiles: [{ name: dstName, origin: [{ srcNode, srcName }] }]
+    };
 
-    getComponentDirMock.rejects(new Error("srcNode not found"));
+    getComponentDirStub.withArgs(projectRootDir, srcNode, true).resolves(srcDir);
+    pathDirnameStub.withArgs(srcDir).returns(parentDir);
+    readComponentJsonStub.withArgs(srcDir).resolves(srcJson);
+    readComponentJsonStub.withArgs(parentDir).resolves(parentJson);
 
-    try {
-      await addFileLinkToParent(projectRootDir, srcNode, srcName, dstName);
-      throw new Error("Expected addFileLinkToParent to throw");
-    } catch (err) {
-      expect(err.message).to.equal("srcNode not found");
-    }
+    await projectFilesOperator._internal.addFileLinkToParent(projectRootDir, srcNode, srcName, dstName);
+
+    expect(srcJson.outputFiles[0].dst).to.have.lengthOf(1);
+    expect(parentJson.outputFiles[0].origin).to.have.lengthOf(1);
+    expect(writeComponentJsonStub.calledTwice).to.be.true;
   });
 });

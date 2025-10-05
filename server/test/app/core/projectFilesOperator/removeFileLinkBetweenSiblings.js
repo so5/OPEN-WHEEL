@@ -5,27 +5,24 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#removeFileLinkBetweenSiblings", ()=>{
-  let removeFileLinkBetweenSiblings;
-  let getComponentDirMock, readComponentJsonMock, writeComponentJsonMock;
+describe("#removeFileLinkBetweenSiblings", ()=>{
+  let getComponentDirStub;
+  let readComponentJsonStub;
+  let writeComponentJsonStub;
+  const projectRootDir = "/mock/project";
+  const srcNode = "src123";
+  const srcName = "output.txt";
+  const dstNode = "dst456";
+  const dstName = "input.txt";
 
   beforeEach(()=>{
-    removeFileLinkBetweenSiblings = projectFilesOperator._internal.removeFileLinkBetweenSiblings;
-
-    getComponentDirMock = sinon.stub();
-    readComponentJsonMock = sinon.stub();
-    writeComponentJsonMock = sinon.stub().resolves();
-
-    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
-    projectFilesOperator._internal.readComponentJson = readComponentJsonMock;
-    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
+    getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
+    readComponentJsonStub = sinon.stub(projectFilesOperator._internal, "readComponentJson");
+    writeComponentJsonStub = sinon.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
   });
 
   afterEach(()=>{
@@ -33,77 +30,51 @@ describe.skip("#removeFileLinkBetweenSiblings", ()=>{
   });
 
   it("should remove the file link between siblings successfully", async ()=>{
-    const projectRootDir = "/mock/project";
-    const srcNode = "src123";
-    const srcName = "output.txt";
-    const dstNode = "dst456";
-    const dstName = "input.txt";
+    const srcDir = "/mock/project/src123";
+    const dstDir = "/mock/project/dst456";
+    getComponentDirStub.withArgs(projectRootDir, srcNode, true).resolves(srcDir);
+    getComponentDirStub.withArgs(projectRootDir, dstNode, true).resolves(dstDir);
 
-    getComponentDirMock.withArgs(projectRootDir, srcNode, true).resolves("/mock/project/src123");
-    getComponentDirMock.withArgs(projectRootDir, dstNode, true).resolves("/mock/project/dst456");
+    const srcJson = { outputFiles: [{ name: "output.txt", dst: [{ dstNode, dstName }] }] };
+    const dstJson = { inputFiles: [{ name: "input.txt", src: [{ srcNode, srcName }] }] };
+    readComponentJsonStub.withArgs(srcDir).resolves(srcJson);
+    readComponentJsonStub.withArgs(dstDir).resolves(dstJson);
 
-    const srcJson = {
-      outputFiles: [{ name: "output.txt", dst: [{ dstNode: "dst456", dstName: "input.txt" }] }]
-    };
-    const dstJson = {
-      inputFiles: [{ name: "input.txt", src: [{ srcNode: "src123", srcName: "output.txt" }] }]
-    };
+    await projectFilesOperator._internal.removeFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
 
-    readComponentJsonMock.withArgs("/mock/project/src123").resolves(srcJson);
-    readComponentJsonMock.withArgs("/mock/project/dst456").resolves(dstJson);
-
-    await removeFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
-
-    expect(srcJson.outputFiles[0].dst).to.deep.equal([]);
-    expect(dstJson.inputFiles[0].src).to.deep.equal([]);
-
-    expect(writeComponentJsonMock.calledTwice).to.be.true;
-    expect(writeComponentJsonMock.calledWithExactly(projectRootDir, "/mock/project/src123", srcJson)).to.be.true;
-    expect(writeComponentJsonMock.calledWithExactly(projectRootDir, "/mock/project/dst456", dstJson)).to.be.true;
+    expect(srcJson.outputFiles[0].dst).to.be.empty;
+    expect(dstJson.inputFiles[0].src).to.be.empty;
+    expect(writeComponentJsonStub.calledTwice).to.be.true;
+    expect(writeComponentJsonStub.calledWith(projectRootDir, srcDir, srcJson)).to.be.true;
+    expect(writeComponentJsonStub.calledWith(projectRootDir, dstDir, dstJson)).to.be.true;
   });
 
   it("should not fail if the link does not exist", async ()=>{
-    const projectRootDir = "/mock/project";
-    const srcNode = "src123";
-    const srcName = "output.txt";
-    const dstNode = "dst456";
-    const dstName = "input.txt";
+    const srcDir = "/mock/project/src123";
+    const dstDir = "/mock/project/dst456";
+    getComponentDirStub.withArgs(projectRootDir, srcNode, true).resolves(srcDir);
+    getComponentDirStub.withArgs(projectRootDir, dstNode, true).resolves(dstDir);
 
-    getComponentDirMock.withArgs(projectRootDir, srcNode, true).resolves("/mock/project/src123");
-    getComponentDirMock.withArgs(projectRootDir, dstNode, true).resolves("/mock/project/dst456");
+    const srcJson = { outputFiles: [{ name: srcName, dst: [] }] };
+    const dstJson = { inputFiles: [{ name: dstName, src: [] }] };
+    readComponentJsonStub.withArgs(srcDir).resolves(srcJson);
+    readComponentJsonStub.withArgs(dstDir).resolves(dstJson);
 
-    const srcJson = {
-      outputFiles: [{ name: "output.txt", dst: [] }]
-    };
-    const dstJson = {
-      inputFiles: [{ name: "input.txt", src: [] }]
-    };
+    await projectFilesOperator._internal.removeFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
 
-    readComponentJsonMock.withArgs("/mock/project/src123").resolves(srcJson);
-    readComponentJsonMock.withArgs("/mock/project/dst456").resolves(dstJson);
-
-    await removeFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
-
-    expect(writeComponentJsonMock.calledTwice).to.be.true;
+    expect(writeComponentJsonStub.calledTwice).to.be.true;
   });
 
   it("should throw an error if component JSON file is not found", async ()=>{
-    const projectRootDir = "/mock/project";
-    const srcNode = "src123";
-    const srcName = "output.txt";
-    const dstNode = "dst456";
-    const dstName = "input.txt";
-
-    getComponentDirMock.withArgs(projectRootDir, srcNode, true).resolves("/mock/project/src123");
-    getComponentDirMock.withArgs(projectRootDir, dstNode, true).resolves("/mock/project/dst456");
-
-    readComponentJsonMock.withArgs("/mock/project/src123").rejects(new Error("File not found"));
+    const readError = new Error("File not found");
+    getComponentDirStub.withArgs(projectRootDir, srcNode, true).resolves("/mock/project/src123");
+    readComponentJsonStub.withArgs("/mock/project/src123").rejects(readError);
 
     try {
-      await removeFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
-      throw new Error("Expected function to throw an error");
-    } catch (error) {
-      expect(error.message).to.equal("File not found");
+      await projectFilesOperator._internal.removeFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
+      throw new Error("should have been rejected");
+    } catch (err) {
+      expect(err).to.equal(readError);
     }
   });
 });

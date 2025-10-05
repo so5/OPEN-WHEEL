@@ -5,27 +5,20 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
 
-describe.skip("#addFileLinkBetweenSiblings", ()=>{
-  let addFileLinkBetweenSiblings;
-  let getComponentDirMock, readComponentJsonMock, writeComponentJsonMock;
+describe("#addFileLinkBetweenSiblings", ()=>{
+  let getComponentDirStub;
+  let readComponentJsonStub;
+  let writeComponentJsonStub;
 
   beforeEach(()=>{
-    addFileLinkBetweenSiblings = projectFilesOperator._internal.addFileLinkBetweenSiblings;
-
-    getComponentDirMock = sinon.stub();
-    readComponentJsonMock = sinon.stub();
-    writeComponentJsonMock = sinon.stub().resolves();
-
-    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
-    projectFilesOperator._internal.readComponentJson = readComponentJsonMock;
-    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
+    getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
+    readComponentJsonStub = sinon.stub(projectFilesOperator._internal, "readComponentJson");
+    writeComponentJsonStub = sinon.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
   });
 
   afterEach(()=>{
@@ -49,23 +42,23 @@ describe.skip("#addFileLinkBetweenSiblings", ()=>{
       inputFiles: []
     };
 
-    getComponentDirMock.withArgs(projectRootDir, srcNode, true).resolves("/mock/project/componentA");
-    getComponentDirMock.withArgs(projectRootDir, dstNode, true).resolves("/mock/project/componentB");
-    readComponentJsonMock.withArgs("/mock/project/componentA").resolves(srcComponentJson);
-    readComponentJsonMock.withArgs("/mock/project/componentB").resolves(dstComponentJson);
+    getComponentDirStub.withArgs(projectRootDir, srcNode, true).resolves("/mock/project/componentA");
+    getComponentDirStub.withArgs(projectRootDir, dstNode, true).resolves("/mock/project/componentB");
+    readComponentJsonStub.withArgs("/mock/project/componentA").resolves(srcComponentJson);
+    readComponentJsonStub.withArgs("/mock/project/componentB").resolves(dstComponentJson);
 
-    await addFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
+    await projectFilesOperator._internal.addFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
 
     expect(srcComponentJson.outputFiles[0].dst).to.deep.include({ dstNode, dstName });
 
     expect(dstComponentJson.inputFiles).to.deep.include({ name: dstName, src: [{ srcNode, srcName }] });
 
-    expect(writeComponentJsonMock.calledTwice).to.be.true;
-    expect(writeComponentJsonMock.firstCall.args[1]).to.equal("/mock/project/componentA");
-    expect(writeComponentJsonMock.secondCall.args[1]).to.equal("/mock/project/componentB");
+    expect(writeComponentJsonStub.calledTwice).to.be.true;
+    expect(writeComponentJsonStub.firstCall.args[1]).to.equal("/mock/project/componentA");
+    expect(writeComponentJsonStub.secondCall.args[1]).to.equal("/mock/project/componentB");
   });
 
-  it("should allow duplicate file links if already exists", async ()=>{
+  it("should not add duplicate file links if a link already exists", async ()=>{
     const projectRootDir = "/mock/project";
     const srcNode = "componentA";
     const srcName = "outputA.txt";
@@ -82,27 +75,16 @@ describe.skip("#addFileLinkBetweenSiblings", ()=>{
       inputFiles: [{ name: dstName, src: [{ srcNode, srcName }] }]
     };
 
-    getComponentDirMock.withArgs(projectRootDir, srcNode, true).resolves("/mock/project/componentA");
-    getComponentDirMock.withArgs(projectRootDir, dstNode, true).resolves("/mock/project/componentB");
-    readComponentJsonMock.withArgs("/mock/project/componentA").resolves(srcComponentJson);
-    readComponentJsonMock.withArgs("/mock/project/componentB").resolves(dstComponentJson);
+    getComponentDirStub.withArgs(projectRootDir, srcNode, true).resolves("/mock/project/componentA");
+    getComponentDirStub.withArgs(projectRootDir, dstNode, true).resolves("/mock/project/componentB");
+    readComponentJsonStub.withArgs("/mock/project/componentA").resolves(srcComponentJson);
+    readComponentJsonStub.withArgs("/mock/project/componentB").resolves(dstComponentJson);
 
-    await addFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
+    await projectFilesOperator._internal.addFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
 
-    expect(srcComponentJson.outputFiles[0].dst).to.have.length(2);
-    expect(srcComponentJson.outputFiles[0].dst).to.deep.equal([
-      { dstNode, dstName },
-      { dstNode, dstName }
-    ]);
-
-    expect(dstComponentJson.inputFiles).to.have.length(1);
-    expect(dstComponentJson.inputFiles[0].src).to.have.length(2);
-    expect(dstComponentJson.inputFiles[0].src).to.deep.equal([
-      { srcNode, srcName },
-      { srcNode, srcName }
-    ]);
-
-    expect(writeComponentJsonMock.calledTwice).to.be.true;
+    expect(srcComponentJson.outputFiles[0].dst).to.have.lengthOf(1);
+    expect(dstComponentJson.inputFiles[0].src).to.have.lengthOf(1);
+    expect(writeComponentJsonStub.calledTwice).to.be.true;
   });
 
   it("should create a new inputFiles entry if dstName does not exist", async ()=>{
@@ -122,14 +104,14 @@ describe.skip("#addFileLinkBetweenSiblings", ()=>{
       inputFiles: []
     };
 
-    getComponentDirMock.withArgs(projectRootDir, srcNode, true).resolves("/mock/project/componentA");
-    getComponentDirMock.withArgs(projectRootDir, dstNode, true).resolves("/mock/project/componentB");
-    readComponentJsonMock.withArgs("/mock/project/componentA").resolves(srcComponentJson);
-    readComponentJsonMock.withArgs("/mock/project/componentB").resolves(dstComponentJson);
+    getComponentDirStub.withArgs(projectRootDir, srcNode, true).resolves("/mock/project/componentA");
+    getComponentDirStub.withArgs(projectRootDir, dstNode, true).resolves("/mock/project/componentB");
+    readComponentJsonStub.withArgs("/mock/project/componentA").resolves(srcComponentJson);
+    readComponentJsonStub.withArgs("/mock/project/componentB").resolves(dstComponentJson);
 
-    await addFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
+    await projectFilesOperator._internal.addFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
 
     expect(dstComponentJson.inputFiles).to.have.deep.members([{ name: dstName, src: [{ srcNode, srcName }] }]);
-    expect(writeComponentJsonMock.calledTwice).to.be.true;
+    expect(writeComponentJsonStub.calledTwice).to.be.true;
   });
 });

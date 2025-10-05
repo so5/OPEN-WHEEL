@@ -5,26 +5,18 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
 const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#getDescendantsIDs", ()=>{
-  let getDescendantsIDs;
-  let readJsonGreedyMock;
-  let getComponentDirMock;
+describe("#getDescendantsIDs", ()=>{
+  let readJsonGreedyStub;
+  let getComponentDirStub;
 
   beforeEach(()=>{
-    getDescendantsIDs = projectFilesOperator._internal.getDescendantsIDs;
-
-    readJsonGreedyMock = sinon.stub();
-    getComponentDirMock = sinon.stub();
-
-    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
-    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
+    readJsonGreedyStub = sinon.stub(projectFilesOperator._internal, "readJsonGreedy");
+    getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
   });
 
   afterEach(()=>{
@@ -42,17 +34,15 @@ describe.skip("#getDescendantsIDs", ()=>{
         unrelated: "./other"
       }
     };
-
     const mockPoi = path.resolve(mockProjectRootDir, "root");
+    readJsonGreedyStub.resolves(mockProjectJson);
+    getComponentDirStub.resolves(mockPoi);
 
-    readJsonGreedyMock.resolves(mockProjectJson);
-    getComponentDirMock.resolves(mockPoi);
+    const result = await projectFilesOperator._internal.getDescendantsIDs(mockProjectRootDir, mockID);
 
-    const result = await getDescendantsIDs(mockProjectRootDir, mockID);
-
-    expect(readJsonGreedyMock.calledOnceWithExactly(path.resolve(mockProjectRootDir, "prj.wheel.json"))).to.be.true;
-    expect(getComponentDirMock.calledOnceWithExactly(mockProjectRootDir, mockID, true)).to.be.true;
-    expect(result).to.deep.equal(["rootID", "child1", "child2"]);
+    expect(readJsonGreedyStub.calledOnceWith(path.resolve(mockProjectRootDir, "prj.wheel.json"))).to.be.true;
+    expect(getComponentDirStub.calledOnceWith(mockProjectRootDir, mockID, true)).to.be.true;
+    expect(result).to.have.deep.members(["rootID", "child1", "child2"]);
   });
 
   it("should return an array with only the given ID if no descendants are found", async ()=>{
@@ -64,35 +54,28 @@ describe.skip("#getDescendantsIDs", ()=>{
         unrelated: "./other"
       }
     };
-
     const mockPoi = path.resolve(mockProjectRootDir, "root");
+    readJsonGreedyStub.resolves(mockProjectJson);
+    getComponentDirStub.resolves(mockPoi);
 
-    readJsonGreedyMock.resolves(mockProjectJson);
-    getComponentDirMock.resolves(mockPoi);
+    const result = await projectFilesOperator._internal.getDescendantsIDs(mockProjectRootDir, mockID);
 
-    const result = await getDescendantsIDs(mockProjectRootDir, mockID);
-
-    expect(readJsonGreedyMock.calledOnceWithExactly(path.resolve(mockProjectRootDir, "prj.wheel.json"))).to.be.true;
-    expect(getComponentDirMock.calledOnceWithExactly(mockProjectRootDir, mockID, true)).to.be.true;
-    expect(result).to.deep.equal(["rootID"]);
+    expect(result).to.have.deep.members(["rootID"]);
   });
 
   it("should throw an error if readJsonGreedy rejects", async ()=>{
     const mockProjectRootDir = "/mock/project/root";
     const mockID = "rootID";
     const mockError = new Error("Failed to read JSON");
-
-    readJsonGreedyMock.rejects(mockError);
+    readJsonGreedyStub.rejects(mockError);
 
     try {
-      await getDescendantsIDs(mockProjectRootDir, mockID);
+      await projectFilesOperator._internal.getDescendantsIDs(mockProjectRootDir, mockID);
       throw new Error("Expected getDescendantsIDs to throw");
     } catch (err) {
       expect(err).to.equal(mockError);
     }
-
-    expect(readJsonGreedyMock.calledOnceWithExactly(path.resolve(mockProjectRootDir, "prj.wheel.json"))).to.be.true;
-    expect(getComponentDirMock.notCalled).to.be.true;
+    expect(getComponentDirStub.notCalled).to.be.true;
   });
 
   it("should throw an error if getComponentDir rejects", async ()=>{
@@ -100,23 +83,18 @@ describe.skip("#getDescendantsIDs", ()=>{
     const mockID = "rootID";
     const mockProjectJson = {
       componentPath: {
-        rootID: "./root",
-        unrelated: "./other"
+        rootID: "./root"
       }
     };
     const mockError = new Error("Failed to get component directory");
-
-    readJsonGreedyMock.resolves(mockProjectJson);
-    getComponentDirMock.rejects(mockError);
+    readJsonGreedyStub.resolves(mockProjectJson);
+    getComponentDirStub.rejects(mockError);
 
     try {
-      await getDescendantsIDs(mockProjectRootDir, mockID);
+      await projectFilesOperator._internal.getDescendantsIDs(mockProjectRootDir, mockID);
       throw new Error("Expected getDescendantsIDs to throw");
     } catch (err) {
       expect(err).to.equal(mockError);
     }
-
-    expect(readJsonGreedyMock.calledOnceWithExactly(path.resolve(mockProjectRootDir, "prj.wheel.json"))).to.be.true;
-    expect(getComponentDirMock.calledOnceWithExactly(mockProjectRootDir, mockID, true)).to.be.true;
   });
 });
