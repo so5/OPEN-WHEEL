@@ -8,7 +8,7 @@ const { expect } = require("chai");
 const { describe, it } = require("mocha");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-describe.skip("#isSurrounded", ()=>{
+describe("#isSurrounded", ()=>{
   const { isSurrounded } = projectFilesOperator._internal;
 
   it("should return true if the string is surrounded by curly braces", ()=>{
