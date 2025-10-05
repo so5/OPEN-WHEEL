@@ -5,52 +5,40 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
 const path = require("path");
-const { promisify } = require("util");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
+const { _internal } = projectFilesOperator;
+
 describe("#rewriteAllIncludeExcludeProperty", ()=>{
-  let rewriteAllIncludeExcludeProperty;
-  let rewriteIncludeExcludeMock;
-  let globMock;
-  let promisifyMock;
-
+  let stub;
   beforeEach(()=>{
-    rewriteAllIncludeExcludeProperty = projectFilesOperator._internal.rewriteAllIncludeExcludeProperty;
-
-    rewriteIncludeExcludeMock = sinon.stub();
-    projectFilesOperator._internal.rewriteIncludeExclude = rewriteIncludeExcludeMock;
-
-    globMock = sinon.stub();
-    promisifyMock = sinon.stub().callsFake((fn)=>{ return fn === glob ? globMock : promisify(fn); });
-    projectFilesOperator._internal.promisify = promisifyMock;
+    stub = sinon.stub(_internal, "glob");
   });
-
   afterEach(()=>{
     sinon.restore();
   });
-
   it("should process all component JSON files and update 'changed' array", async ()=>{
     const projectRootDir = "/mock/project/root";
     const changed = [];
     const mockFiles = [
-      `${projectRootDir}/comp1/cmp.wheel.json`,
-      `${projectRootDir}/comp2/cmp.wheel.json`
+      "comp1/cmp.wheel.json",
+      "comp2/cmp.wheel.json"
     ];
 
-    globMock.resolves(mockFiles);
-    rewriteIncludeExcludeMock.resolves();
+    stub.resolves(mockFiles);
+    const rewriteIncludeExcludeStub = sinon.stub(_internal, "rewriteIncludeExclude").resolves();
 
-    await rewriteAllIncludeExcludeProperty(projectRootDir, changed);
+    await _internal.rewriteAllIncludeExcludeProperty(projectRootDir, changed);
 
-    expect(globMock.calledOnceWithExactly(`./**/cmp.wheel.json`, { cwd: projectRootDir })).to.be.true;
-    expect(rewriteIncludeExcludeMock.callCount).to.equal(mockFiles.length);
+    expect(stub.calledOnceWith(`./**/cmp.wheel.json`, { cwd: projectRootDir })).to.be.true;
+    expect(rewriteIncludeExcludeStub.callCount).to.equal(mockFiles.length);
     mockFiles.forEach((file, index)=>{
-      expect(rewriteIncludeExcludeMock.getCall(index).args[0]).to.equal(projectRootDir);
-      expect(rewriteIncludeExcludeMock.getCall(index).args[1]).to.equal(path.resolve(projectRootDir, file));
-      expect(rewriteIncludeExcludeMock.getCall(index).args[2]).to.equal(changed);
+      expect(rewriteIncludeExcludeStub.getCall(index).args[0]).to.equal(projectRootDir);
+      expect(rewriteIncludeExcludeStub.getCall(index).args[1]).to.equal(path.resolve(projectRootDir, file));
+      expect(rewriteIncludeExcludeStub.getCall(index).args[2]).to.equal(changed);
     });
   });
 
@@ -58,12 +46,13 @@ describe("#rewriteAllIncludeExcludeProperty", ()=>{
     const projectRootDir = "/mock/project/root";
     const changed = [];
 
-    globMock.resolves([]);
+    stub.resolves([]);
+    const rewriteIncludeExcludeStub = sinon.stub(_internal, "rewriteIncludeExclude").resolves();
 
-    await rewriteAllIncludeExcludeProperty(projectRootDir, changed);
+    await _internal.rewriteAllIncludeExcludeProperty(projectRootDir, changed);
 
-    expect(globMock.calledOnceWithExactly(`./**/cmp.wheel.json`, { cwd: projectRootDir })).to.be.true;
-    expect(rewriteIncludeExcludeMock.notCalled).to.be.true;
+    expect(stub.calledOnceWith(`./**/cmp.wheel.json`, { cwd: projectRootDir })).to.be.true;
+    expect(rewriteIncludeExcludeStub.notCalled).to.be.true;
     expect(changed).to.deep.equal([]);
   });
 
@@ -71,22 +60,22 @@ describe("#rewriteAllIncludeExcludeProperty", ()=>{
     const projectRootDir = "/mock/project/root";
     const changed = [];
     const mockFiles = [
-      `${projectRootDir}/comp1/cmp.wheel.json`
+      "comp1/cmp.wheel.json"
     ];
     const mockError = new Error("Test error");
 
-    globMock.resolves(mockFiles);
-    rewriteIncludeExcludeMock.rejects(mockError);
+    stub.resolves(mockFiles);
+    const rewriteIncludeExcludeStub = sinon.stub(_internal, "rewriteIncludeExclude").rejects(mockError);
 
     try {
-      await rewriteAllIncludeExcludeProperty(projectRootDir, changed);
+      await _internal.rewriteAllIncludeExcludeProperty(projectRootDir, changed);
       throw new Error("Expected rewriteAllIncludeExcludeProperty to throw");
     } catch (err) {
       expect(err).to.equal(mockError);
     }
 
-    expect(globMock.calledOnceWithExactly(`./**/cmp.wheel.json`, { cwd: projectRootDir })).to.be.true;
-    expect(rewriteIncludeExcludeMock.calledOnceWithExactly(
+    expect(stub.calledOnceWith(`./**/cmp.wheel.json`, { cwd: projectRootDir })).to.be.true;
+    expect(rewriteIncludeExcludeStub.calledOnceWith(
       projectRootDir,
       path.resolve(projectRootDir, mockFiles[0]),
       changed
