@@ -32,10 +32,6 @@ const cb = sinon.stub();
 const gitOperator2 = require("../../../app/core/gitOperator2");
 const { gitInit } = gitOperator2;
 
-//fileManager.__set__("getLogger", ()=>{
-//return { tarace: console.log, info: console.log, debug: console.log, error: console.log, warn: console.log };
-//});
-
 const testDirRoot = path.resolve("./WHEEL_TEST_TMP");
 
 describe("fileManager UT", ()=>{
