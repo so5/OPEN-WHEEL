@@ -359,13 +359,15 @@ describe("updateComponent", ()=>{
     let getComponentDirStub;
     let readComponentJsonStub;
     let writeComponentJsonStub;
+    let sandbox;
 
     beforeEach(()=>{
+      sandbox = sinon.createSandbox();
       const updateComponent = rewire("../../../app/core/updateComponent.js");
       removeInputFileLinkFromParent = updateComponent.__get__("removeInputFileLinkFromParent");
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
+      getComponentDirStub = sandbox.stub();
+      readComponentJsonStub = sandbox.stub();
+      writeComponentJsonStub = sandbox.stub();
       updateComponent.__set__({
         getComponentDir: getComponentDirStub,
         readComponentJson: readComponentJsonStub,
@@ -374,7 +376,7 @@ describe("updateComponent", ()=>{
     });
 
     afterEach(()=>{
-      sinon.restore();
+      sandbox.restore();
     });
 
     it("should remove input file link from parent component", async ()=>{
@@ -443,13 +445,15 @@ describe("updateComponent", ()=>{
     let getComponentDirStub;
     let readComponentJsonStub;
     let writeComponentJsonStub;
+    let sandbox;
 
     beforeEach(()=>{
+      sandbox = sinon.createSandbox();
       const updateComponent = rewire("../../../app/core/updateComponent.js");
       removeOutputFileLinkToParent = updateComponent.__get__("removeOutputFileLinkToParent");
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
+      getComponentDirStub = sandbox.stub();
+      readComponentJsonStub = sandbox.stub();
+      writeComponentJsonStub = sandbox.stub();
       updateComponent.__set__({
         getComponentDir: getComponentDirStub,
         readComponentJson: readComponentJsonStub,
@@ -458,7 +462,7 @@ describe("updateComponent", ()=>{
     });
 
     afterEach(()=>{
-      sinon.restore();
+      sandbox.restore();
     });
 
     it("should remove output file link from parent component", async ()=>{
@@ -527,13 +531,15 @@ describe("updateComponent", ()=>{
     let getComponentDirStub;
     let readComponentJsonStub;
     let writeComponentJsonStub;
+    let sandbox;
 
     beforeEach(()=>{
+      sandbox = sinon.createSandbox();
       const updateComponent = rewire("../../../app/core/updateComponent.js");
       removeInputFileLinkFromSiblings = updateComponent.__get__("removeInputFileLinkFromSiblings");
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
+      getComponentDirStub = sandbox.stub();
+      readComponentJsonStub = sandbox.stub();
+      writeComponentJsonStub = sandbox.stub();
       updateComponent.__set__({
         getComponentDir: getComponentDirStub,
         readComponentJson: readComponentJsonStub,
@@ -542,7 +548,7 @@ describe("updateComponent", ()=>{
     });
 
     afterEach(()=>{
-      sinon.restore();
+      sandbox.restore();
     });
 
     it("should remove input file link from siblings", async ()=>{
@@ -610,13 +616,15 @@ describe("updateComponent", ()=>{
     let getComponentDirStub;
     let readComponentJsonStub;
     let writeComponentJsonStub;
+    let sandbox;
 
     beforeEach(()=>{
+      sandbox = sinon.createSandbox();
       const updateComponent = rewire("../../../app/core/updateComponent.js");
       removeOutputFileLinkToSiblings = updateComponent.__get__("removeOutputFileLinkToSiblings");
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
+      getComponentDirStub = sandbox.stub();
+      readComponentJsonStub = sandbox.stub();
+      writeComponentJsonStub = sandbox.stub();
       updateComponent.__set__({
         getComponentDir: getComponentDirStub,
         readComponentJson: readComponentJsonStub,
@@ -625,7 +633,7 @@ describe("updateComponent", ()=>{
     });
 
     afterEach(()=>{
-      sinon.restore();
+      sandbox.restore();
     });
 
     it("should remove output file link to siblings", async ()=>{
@@ -692,12 +700,14 @@ describe("updateComponent", ()=>{
     let removeInputFileCounterpart;
     let removeInputFileLinkFromParentStub;
     let removeInputFileLinkFromSiblingsStub;
+    let sandbox;
 
     beforeEach(()=>{
+      sandbox = sinon.createSandbox();
       const updateComponent = rewire("../../../app/core/updateComponent.js");
       removeInputFileCounterpart = updateComponent.__get__("removeInputFileCounterpart");
-      removeInputFileLinkFromParentStub = sinon.stub();
-      removeInputFileLinkFromSiblingsStub = sinon.stub();
+      removeInputFileLinkFromParentStub = sandbox.stub();
+      removeInputFileLinkFromSiblingsStub = sandbox.stub();
       updateComponent.__set__({
         removeInputFileLinkFromParent: removeInputFileLinkFromParentStub,
         removeInputFileLinkFromSiblings: removeInputFileLinkFromSiblingsStub
@@ -705,7 +715,7 @@ describe("updateComponent", ()=>{
     });
 
     afterEach(()=>{
-      sinon.restore();
+      sandbox.restore();
     });
 
     it("should remove input file link from counterpart", async ()=>{
@@ -802,12 +812,14 @@ describe("updateComponent", ()=>{
     let removeOutputFileCounterpart;
     let removeOutputFileLinkToParentStub;
     let removeOutputFileLinkToSiblingsStub;
+    let sandbox;
 
     beforeEach(()=>{
+      sandbox = sinon.createSandbox();
       const updateComponent = rewire("../../../app/core/updateComponent.js");
       removeOutputFileCounterpart = updateComponent.__get__("removeOutputFileCounterpart");
-      removeOutputFileLinkToParentStub = sinon.stub();
-      removeOutputFileLinkToSiblingsStub = sinon.stub();
+      removeOutputFileLinkToParentStub = sandbox.stub();
+      removeOutputFileLinkToSiblingsStub = sandbox.stub();
       updateComponent.__set__({
         removeOutputFileLinkToParent: removeOutputFileLinkToParentStub,
         removeOutputFileLinkToSiblings: removeOutputFileLinkToSiblingsStub
@@ -815,7 +827,7 @@ describe("updateComponent", ()=>{
     });
 
     afterEach(()=>{
-      sinon.restore();
+      sandbox.restore();
     });
 
     it("should remove output file link from counterpart", async ()=>{
@@ -913,13 +925,15 @@ describe("updateComponent", ()=>{
     let getComponentDirStub;
     let readComponentJsonStub;
     let writeComponentJsonStub;
+    let sandbox;
 
     beforeEach(()=>{
+      sandbox = sinon.createSandbox();
       const updateComponent = rewire("../../../app/core/updateComponent.js");
       renameInputFileCounterpart = updateComponent.__get__("renameInputFileCounterpart");
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
+      getComponentDirStub = sandbox.stub();
+      readComponentJsonStub = sandbox.stub();
+      writeComponentJsonStub = sandbox.stub();
       updateComponent.__set__({
         getComponentDir: getComponentDirStub,
         readComponentJson: readComponentJsonStub,
@@ -928,7 +942,7 @@ describe("updateComponent", ()=>{
     });
 
     afterEach(()=>{
-      sinon.restore();
+      sandbox.restore();
     });
 
     it("rename inputFile name and its counterparts' dstName", async ()=>{
@@ -1077,13 +1091,15 @@ describe("updateComponent", ()=>{
     let getComponentDirStub;
     let readComponentJsonStub;
     let writeComponentJsonStub;
+    let sandbox;
 
     beforeEach(()=>{
+      sandbox = sinon.createSandbox();
       const updateComponent = rewire("../../../app/core/updateComponent.js");
       renameOutputFileCounterpart = updateComponent.__get__("renameOutputFileCounterpart");
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
+      getComponentDirStub = sandbox.stub();
+      readComponentJsonStub = sandbox.stub();
+      writeComponentJsonStub = sandbox.stub();
       updateComponent.__set__({
         getComponentDir: getComponentDirStub,
         readComponentJson: readComponentJsonStub,
@@ -1092,7 +1108,7 @@ describe("updateComponent", ()=>{
     });
 
     afterEach(()=>{
-      sinon.restore();
+      sandbox.restore();
     });
 
     it("rename inputFile name and its counterparts' srcName", async ()=>{
@@ -1242,14 +1258,16 @@ describe("updateComponent", ()=>{
     let gitRmStub;
     let moveStub;
     let updateComponentPathStub;
+    let sandbox;
 
     beforeEach(()=>{
+      sandbox = sinon.createSandbox();
       const updateComponent = rewire("../../../app/core/updateComponent.js");
       renameComponentDir = updateComponent.__get__("renameComponentDir");
-      getComponentDirStub = sinon.stub();
-      gitRmStub = sinon.stub();
-      moveStub = sinon.stub();
-      updateComponentPathStub = sinon.stub();
+      getComponentDirStub = sandbox.stub();
+      gitRmStub = sandbox.stub();
+      moveStub = sandbox.stub();
+      updateComponentPathStub = sandbox.stub();
       updateComponent.__set__({
         getComponentDir: getComponentDirStub,
         gitRm: gitRmStub,
@@ -1261,7 +1279,7 @@ describe("updateComponent", ()=>{
     });
 
     afterEach(()=>{
-      sinon.restore();
+      sandbox.restore();
     });
 
     it("should rename component directory", async ()=>{
@@ -1289,16 +1307,18 @@ describe("updateComponent", ()=>{
     let getComponentDirStub;
     let readComponentJsonStub;
     let writeComponentJsonStub;
+    let sandbox;
 
     beforeEach(()=>{
+      sandbox = sinon.createSandbox();
       const updateComponent = rewire("../../../app/core/updateComponent.js");
       updateComponentPos = updateComponent.__get__("updateComponentPos");
-      getLoggerStub = sinon.stub();
-      debugStub = sinon.stub();
-      warnStub = sinon.stub();
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
+      getLoggerStub = sandbox.stub();
+      debugStub = sandbox.stub();
+      warnStub = sandbox.stub();
+      getComponentDirStub = sandbox.stub();
+      readComponentJsonStub = sandbox.stub();
+      writeComponentJsonStub = sandbox.stub();
 
       updateComponent.__set__({
         getLogger: getLoggerStub,
@@ -1313,7 +1333,7 @@ describe("updateComponent", ()=>{
     });
 
     afterEach(()=>{
-      sinon.restore();
+      sandbox.restore();
     });
 
     it("should update component position", async ()=>{
