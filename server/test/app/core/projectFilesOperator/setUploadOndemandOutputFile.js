@@ -18,17 +18,18 @@ describe("#setUploadOndemandOutputFile", ()=>{
   let addOutputFileStub;
   let removeFileLinkStub;
   let renameOutputFileStub;
-
+  let sandbox;
   beforeEach(()=>{
-    getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
-    readComponentJsonStub = sinon.stub(projectFilesOperator._internal, "readComponentJson");
-    addOutputFileStub = sinon.stub(projectFilesOperator._internal, "addOutputFile").resolves();
-    removeFileLinkStub = sinon.stub(projectFilesOperator._internal, "removeFileLink").resolves();
-    renameOutputFileStub = sinon.stub(projectFilesOperator._internal, "renameOutputFile").resolves();
+    sandbox = sinon.createSandbox();
+    getComponentDirStub = sandbox.stub(projectFilesOperator._internal, "getComponentDir");
+    readComponentJsonStub = sandbox.stub(projectFilesOperator._internal, "readComponentJson");
+    addOutputFileStub = sandbox.stub(projectFilesOperator._internal, "addOutputFile").resolves();
+    removeFileLinkStub = sandbox.stub(projectFilesOperator._internal, "removeFileLink").resolves();
+    renameOutputFileStub = sandbox.stub(projectFilesOperator._internal, "renameOutputFile").resolves();
   });
 
   afterEach(()=>{
-    sinon.restore();
+    sandbox.restore();
   });
 
   it("should reject if the component does not have an outputFiles property", async ()=>{
