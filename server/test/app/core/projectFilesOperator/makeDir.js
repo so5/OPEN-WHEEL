@@ -5,70 +5,66 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#makeDir", ()=>{
-  let makeDir;
-  let fsMock;
+describe("#makeDir", ()=>{
+  let pathExistsStub;
+  let mkdirStub;
 
   beforeEach(()=>{
-    makeDir = projectFilesOperator._internal.makeDir;
+    pathExistsStub = sinon.stub(projectFilesOperator._internal.fs, "pathExists");
+    mkdirStub = sinon.stub(projectFilesOperator._internal.fs, "mkdir").resolves();
+  });
 
-    fsMock = {
-      pathExists: sinon.stub(),
-      mkdir: sinon.stub().resolves()
-    };
-
-    projectFilesOperator._internal.fs = fsMock;
+  afterEach(()=>{
+    sinon.restore();
   });
 
   it("should create a new directory when the name is available", async ()=>{
-    fsMock.pathExists.resolves(false);
+    pathExistsStub.resolves(false);
 
-    const result = await makeDir("/mock/path", 0);
+    const result = await projectFilesOperator._internal.makeDir("/mock/path", 0);
 
-    expect(fsMock.pathExists.calledOnceWithExactly("/mock/path0")).to.be.true;
-    expect(fsMock.mkdir.calledOnceWithExactly("/mock/path0")).to.be.true;
+    expect(pathExistsStub.calledOnceWith("/mock/path0")).to.be.true;
+    expect(mkdirStub.calledOnceWith("/mock/path0")).to.be.true;
     expect(result).to.equal("/mock/path0");
   });
 
   it("should increment suffix until an available name is found", async ()=>{
-    fsMock.pathExists.onFirstCall().resolves(true);
-    fsMock.pathExists.onSecondCall().resolves(true);
-    fsMock.pathExists.onThirdCall().resolves(false);
+    pathExistsStub.onCall(0).resolves(true);
+    pathExistsStub.onCall(1).resolves(true);
+    pathExistsStub.onCall(2).resolves(false);
 
-    const result = await makeDir("/mock/path", 0);
+    const result = await projectFilesOperator._internal.makeDir("/mock/path", 0);
 
-    expect(fsMock.pathExists.callCount).to.equal(3);
-    expect(fsMock.mkdir.calledOnceWithExactly("/mock/path2")).to.be.true;
+    expect(pathExistsStub.callCount).to.equal(3);
+    expect(mkdirStub.calledOnceWith("/mock/path2")).to.be.true;
     expect(result).to.equal("/mock/path2");
   });
 
   it("should handle an empty basename gracefully", async ()=>{
-    fsMock.pathExists.resolves(false);
+    pathExistsStub.resolves(false);
 
-    const result = await makeDir("", 0);
+    const result = await projectFilesOperator._internal.makeDir("", 0);
 
-    expect(fsMock.mkdir.calledOnceWithExactly("0")).to.be.true;
+    expect(mkdirStub.calledOnceWith("0")).to.be.true;
     expect(result).to.equal("0");
   });
 
   it("should throw an error if mkdir fails", async ()=>{
-    fsMock.pathExists.resolves(false);
-    fsMock.mkdir.rejects(new Error("Permission denied"));
+    const mkdirError = new Error("Permission denied");
+    pathExistsStub.resolves(false);
+    mkdirStub.rejects(mkdirError);
 
     try {
-      await makeDir("/mock/path", 0);
+      await projectFilesOperator._internal.makeDir("/mock/path", 0);
       throw new Error("Expected makeDir to throw an error");
     } catch (err) {
-      expect(err.message).to.equal("Permission denied");
+      expect(err).to.equal(mkdirError);
     }
 
-    expect(fsMock.mkdir.calledOnceWithExactly("/mock/path0")).to.be.true;
+    expect(mkdirStub.calledOnceWith("/mock/path0")).to.be.true;
   });
 });

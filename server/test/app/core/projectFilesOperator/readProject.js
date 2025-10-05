@@ -5,136 +5,129 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
+describe("#readProject", function() {
+  let getProjectJsonStub;
+  let rewriteAllIncludeExcludePropertyStub;
+  let writeProjectJsonStub;
+  let gitInitStub;
+  let setProjectStateStub;
+  let setComponentStateRStub;
+  let gitAddStub;
+  let gitCommitStub;
+  let projectListQueryStub;
+  let projectListUnshiftStub;
+  let pathExistsStub;
+  let outputFileStub;
+  let pathBasenameStub;
+  let originalPath;
 
-describe.skip("#readProject", ()=>{
-  let readProject;
-  let getProjectJsonMock, rewriteAllIncludeExcludePropertyMock, writeProjectJsonMock;
-  let setProjectStateMock, setComponentStateRMock;
-  let gitInitMock, gitAddMock, gitCommitMock, projectListMock;
-  let fsPathExistsMock, fsOutputFileMock;
+  const projectRootDir = "/mock/project/root.wheel";
 
   beforeEach(()=>{
-    readProject = projectFilesOperator._internal.readProject;
+    getProjectJsonStub = sinon.stub(projectFilesOperator._internal, "getProjectJson");
+    rewriteAllIncludeExcludePropertyStub = sinon.stub(projectFilesOperator._internal, "rewriteAllIncludeExcludeProperty").resolves();
+    writeProjectJsonStub = sinon.stub(projectFilesOperator._internal, "writeProjectJson").resolves();
+    gitInitStub = sinon.stub(projectFilesOperator._internal, "gitInit").resolves();
+    setProjectStateStub = sinon.stub(projectFilesOperator._internal, "setProjectState").resolves();
+    setComponentStateRStub = sinon.stub(projectFilesOperator._internal, "setComponentStateR").resolves();
+    gitAddStub = sinon.stub(projectFilesOperator._internal, "gitAdd").resolves();
+    gitCommitStub = sinon.stub(projectFilesOperator._internal, "gitCommit").resolves();
+    projectListQueryStub = sinon.stub(projectFilesOperator._internal.projectList, "query");
+    projectListUnshiftStub = sinon.stub(projectFilesOperator._internal.projectList, "unshift");
+    pathExistsStub = sinon.stub(projectFilesOperator._internal.fs, "pathExists");
+    outputFileStub = sinon.stub(projectFilesOperator._internal.fs, "outputFile").resolves();
 
-    getProjectJsonMock = sinon.stub();
-    rewriteAllIncludeExcludePropertyMock = sinon.stub();
-    writeProjectJsonMock = sinon.stub();
-    setProjectStateMock = sinon.stub();
-    setComponentStateRMock = sinon.stub();
-    gitInitMock = sinon.stub();
-    gitAddMock = sinon.stub();
-    gitCommitMock = sinon.stub();
-    projectListMock = { query: sinon.stub(), unshift: sinon.stub() };
-    fsPathExistsMock = sinon.stub();
-    fsOutputFileMock = sinon.stub();
-
-    projectFilesOperator._internal.getProjectJson = getProjectJsonMock;
-    projectFilesOperator._internal.rewriteAllIncludeExcludeProperty = rewriteAllIncludeExcludePropertyMock;
-    projectFilesOperator._internal.writeProjectJson = writeProjectJsonMock;
-    projectFilesOperator._internal.gitInit = gitInitMock;
-    projectFilesOperator._internal.setProjectState = setProjectStateMock;
-    projectFilesOperator._internal.setComponentStateR = setComponentStateRMock;
-    projectFilesOperator._internal.gitAdd = gitAddMock;
-    projectFilesOperator._internal.gitCommit = gitCommitMock;
-    projectFilesOperator._internal.projectList = projectListMock;
-    projectFilesOperator._internal.fs = { pathExists: fsPathExistsMock, outputFile: fsOutputFileMock };
-    projectFilesOperator._internal.path = {
-      ...path,
-      resolve: sinon.stub().callsFake((...args)=>args.join("/")),
-      join: sinon.stub().callsFake((...args)=>args.join("/"))
-    };
+    originalPath = { ...projectFilesOperator._internal.path };
+    pathBasenameStub = sinon.stub(projectFilesOperator._internal.path, "basename");
   });
 
   afterEach(()=>{
     sinon.restore();
+    projectFilesOperator._internal.path = originalPath;
   });
 
-  it("should handle project version <= 2 and update version", async function () {
-    getProjectJsonMock.resolves({ version: 1.9, name: "test_project" });
-    rewriteAllIncludeExcludePropertyMock.resolves();
-    fsPathExistsMock.resolves(false);
-    gitInitMock.resolves();
-    setProjectStateMock.resolves();
-    setComponentStateRMock.resolves();
-    gitCommitMock.resolves();
-    projectListMock.query.returns(false);
-    projectListMock.unshift.returns(true);
+  it("should skip processing if project is already in the project list", async ()=>{
+    getProjectJsonStub.resolves({ version: 2.1 });
+    projectListQueryStub.withArgs("path", projectRootDir).returns({ path: projectRootDir });
 
-    const result = await readProject("/mock/project/root");
+    const result = await projectFilesOperator._internal.readProject(projectRootDir);
 
-    expect(rewriteAllIncludeExcludePropertyMock.calledOnce).to.be.true;
-    expect(writeProjectJsonMock.calledWith("/mock/project/root", sinon.match({ version: 2.1 }))).to.be.true;
-    expect(gitInitMock.calledWith("/mock/project/root", "wheel", "wheel@example.com")).to.be.true;
-    expect(setProjectStateMock.calledWith("/mock/project/root", "not-started")).to.be.true;
-    expect(setComponentStateRMock.calledWith("/mock/project/root", "/mock/project/root", "not-started")).to.be.true;
-    expect(gitAddMock.calledWith("/mock/project/root", "./")).to.be.true;
-    expect(gitCommitMock.calledWith("/mock/project/root", "import project")).to.be.true;
-    expect(projectListMock.unshift.calledWith({ path: "/mock/project/root" })).to.be.true;
-    expect(result).to.equal("/mock/project/root");
+    expect(result).to.equal(projectRootDir);
+    expect(getProjectJsonStub.calledOnce).to.be.true;
+    expect(projectListQueryStub.calledOnce).to.be.true;
+    expect(rewriteAllIncludeExcludePropertyStub.notCalled).to.be.true;
   });
 
-  it("should skip processing if project is already imported", async function () {
-    getProjectJsonMock.resolves({ version: 2.1 });
-    projectListMock.query.returns({ path: "/mock/project/already" });
+  it("should upgrade project version if it is <= 2", async ()=>{
+    getProjectJsonStub.resolves({ version: 2, name: "root" });
+    projectListQueryStub.returns(null);
+    pathExistsStub.withArgs(`${projectRootDir}/.git`).resolves(true);
+    pathExistsStub.withArgs(`${projectRootDir}/.gitignore`).resolves(true);
+    pathBasenameStub.withArgs(projectRootDir).returns("root.wheel");
 
-    const result = await readProject("/mock/project/already");
+    await projectFilesOperator._internal.readProject(projectRootDir);
 
-    expect(rewriteAllIncludeExcludePropertyMock.calledWith("/mock/project/already", [])).to.be.false;
-    expect(gitAddMock.calledOnce).to.be.false;//projectList.queryでtrueが返るので、後続のgitAddは呼ばれない。
-    expect(result).to.equal("/mock/project/already");
+    expect(rewriteAllIncludeExcludePropertyStub.calledOnce).to.be.true;
+    expect(writeProjectJsonStub.calledWith(projectRootDir, sinon.match({ version: 2.1 }))).to.be.true;
+    expect(gitCommitStub.called).to.be.true;
   });
 
-  it("should handle invalid directory names", async function () {
-    getProjectJsonMock.resolves({ version: 2.1, name: "test_project" });
-    fsPathExistsMock.resolves(true);
-    projectListMock.query.returns(null);
-    gitAddMock.resolves();
-    writeProjectJsonMock.resolves();
+  it("should fix project name if it does not match the directory name", async ()=>{
+    getProjectJsonStub.resolves({ version: 2.1, name: "wrongName" });
+    projectListQueryStub.returns(null);
+    pathExistsStub.withArgs(`${projectRootDir}/.git`).resolves(true);
+    pathExistsStub.withArgs(`${projectRootDir}/.gitignore`).resolves(true);
+    pathBasenameStub.withArgs(projectRootDir).returns("root.wheel");
 
-    const result = await readProject("/mock/project/root");
+    await projectFilesOperator._internal.readProject(projectRootDir);
 
-    expect(writeProjectJsonMock.calledOnce).to.be.true;
-    expect(gitAddMock.calledOnce).to.be.true;
-    expect(gitCommitMock.calledWith("/mock/project/root", "import project", ["--", ".gitignore", "prj.wheel.json"])).to.be.true;
-
-    expect(result).to.equal("/mock/project/root");
+    expect(writeProjectJsonStub.calledWith(projectRootDir, sinon.match({ name: "root" }))).to.be.true;
+    expect(gitAddStub.calledWith(projectRootDir, "prj.wheel.json")).to.be.true;
+    expect(gitCommitStub.called).to.be.true;
   });
 
-  it("should initialize git repository if not already initialized", async function () {
-    getProjectJsonMock.resolves({ version: 2.1 });
-    projectListMock.query.returns(false);
-    writeProjectJsonMock.resolves();
-    fsPathExistsMock.onFirstCall().resolves(true)
-      .onSecondCall()
-      .resolves(false);
-    fsOutputFileMock.resolves();
-    gitAddMock.resolves();
-    gitCommitMock.resolves();
-    projectListMock.unshift.returns(true);
+  it("should initialize git repository if it does not exist", async ()=>{
+    getProjectJsonStub.resolves({ version: 2.1, name: "root" });
+    projectListQueryStub.returns(null);
+    pathExistsStub.withArgs(`${projectRootDir}/.git`).resolves(false);
+    pathBasenameStub.withArgs(projectRootDir).returns("root.wheel");
 
-    const result = await readProject("/mock/project/root");
+    await projectFilesOperator._internal.readProject(projectRootDir);
 
-    expect(fsOutputFileMock.calledWith("/mock/project/root/.gitignore", "wheel.log")).to.be.true;
-    expect(gitAddMock.calledWith("/mock/project/root", ".gitignore")).to.be.true;
-    expect(gitCommitMock.calledWith("/mock/project/root", "import project", ["--", ".gitignore", "prj.wheel.json"])).to.be.true;
-    expect(result).to.equal("/mock/project/root");
+    expect(gitInitStub.calledOnceWith(projectRootDir, "wheel", "wheel@example.com")).to.be.true;
+    expect(setProjectStateStub.calledOnceWith(projectRootDir, "not-started")).to.be.true;
+    expect(setComponentStateRStub.calledOnceWith(projectRootDir, projectRootDir, "not-started")).to.be.true;
+    expect(gitAddStub.calledOnceWith(projectRootDir, "./")).to.be.true;
+    expect(gitCommitStub.calledOnceWith(projectRootDir, "import project")).to.be.true;
   });
 
-  it("should handle errors during git operations", async function () {
-    getProjectJsonMock.resolves({ version: 2.1 });
-    projectListMock.query.returns(false);
-    writeProjectJsonMock.resolves();
-    fsPathExistsMock.resolves(false);
-    gitInitMock.rejects(new Error("git init failed"));
+  it("should create .gitignore if it does not exist in a git repo", async ()=>{
+    getProjectJsonStub.resolves({ version: 2.1, name: "root" });
+    projectListQueryStub.returns(null);
+    pathExistsStub.withArgs(`${projectRootDir}/.git`).resolves(true);
+    pathExistsStub.withArgs(`${projectRootDir}/.gitignore`).resolves(false);
+    pathBasenameStub.withArgs(projectRootDir).returns("root.wheel");
 
-    const result = await readProject("/mock/project/root");
+    await projectFilesOperator._internal.readProject(projectRootDir);
 
-    expect(result).to.null;
+    expect(outputFileStub.calledOnceWith(`${projectRootDir}/.gitignore`, "wheel.log")).to.be.true;
+    expect(gitAddStub.calledWith(projectRootDir, ".gitignore")).to.be.true;
+    expect(gitCommitStub.called).to.be.true;
+  });
+
+  it("should return null if git initialization fails", async ()=>{
+    getProjectJsonStub.resolves({ version: 2.1, name: "root" });
+    projectListQueryStub.returns(null);
+    pathExistsStub.withArgs(`${projectRootDir}/.git`).resolves(false);
+    gitInitStub.rejects(new Error("git init failed"));
+    pathBasenameStub.withArgs(projectRootDir).returns("root.wheel");
+
+    const result = await projectFilesOperator._internal.readProject(projectRootDir);
+
+    expect(result).to.be.null;
   });
 });

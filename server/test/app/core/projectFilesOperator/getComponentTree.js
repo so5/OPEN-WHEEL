@@ -5,87 +5,45 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
 const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
 
-describe.skip("#getComponentTree", ()=>{
-  let getComponentTree;
-  let readJsonGreedyMock;
-  let pathIsAbsoluteMock;
-  let pathRelativeMock;
-  let pathDirnameMock;
-  let pathJoinMock;
+describe("#getComponentTree", ()=>{
+  let readJsonGreedyStub;
+  let originalPath;
 
   beforeEach(()=>{
-    //rewireで対象モジュールを読み込み
-    getComponentTree = projectFilesOperator._internal.getComponentTree;
-
-    readJsonGreedyMock = sinon.stub();
-    pathIsAbsoluteMock = sinon.stub();
-    pathRelativeMock = sinon.stub();
-    pathDirnameMock = sinon.stub();
-    pathJoinMock = sinon.stub();
-
-    //getComponentTree内で使われるメソッドをtest側でstub化
-    //必要に応じてnormalizeやresolveもstub化可能
-    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
-    projectFilesOperator._internal.path = {
-      ...path,
-      isAbsolute: pathIsAbsoluteMock,
-      relative: pathRelativeMock,
-      dirname: pathDirnameMock,
-      join: pathJoinMock,
-      normalize: path.normalize,
-      resolve: path.resolve
-    };
+    originalPath = projectFilesOperator._internal.path;
+    projectFilesOperator._internal.path = path.posix;
+    readJsonGreedyStub = sinon.stub(projectFilesOperator._internal, "readJsonGreedy");
   });
 
   afterEach(()=>{
     sinon.restore();
+    projectFilesOperator._internal.path = originalPath;
   });
 
   it("should return the root component with children properly attached (absolute path case)", async ()=>{
     const mockProjectRootDir = "/mock/project/root";
-    const mockRootDir = "/mock/project/root"; //絶対パス指定(テスト上の想定)
+    const mockRootDir = "/mock/project/root";
 
-    //projectJson (prj.wheel.json) の想定データ
     const mockProjectJson = {
       componentPath: {
         rootID: "./",
         childID1: "./child1",
-        childID2: "./child2"
+        childID2: "./child1/child2"
       }
     };
 
-    //1) rootDirが絶対パス => true
-    pathIsAbsoluteMock.returns(true);
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "prj.wheel.json")).resolves(mockProjectJson);
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "./", "cmp.wheel.json")).resolves({ ID: "rootID", parent: null });
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "./child1", "cmp.wheel.json")).resolves({ ID: "childID1", parent: "rootID" });
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "./child1/child2", "cmp.wheel.json")).resolves({ ID: "childID2", parent: "childID1" });
 
-    //2) path.relativeで "./" を返す => 関数内で「|| './'」してstartが"./"に
-    pathRelativeMock.returns("./");
-
-    //3) path.join("...", "cmp.wheel.json")の戻り値
-    //今回はあえて ".//cmp.wheel.json" 等を返す
-    pathJoinMock.callsFake((dir, file)=>`${dir}/${file}`);
-
-    //4) path.dirname(...) が呼ばれたら、すべて "." を返すようにする
-    //=> これにより "startStriped" = "." と一致し rootIndexが -1 にならない
-    pathDirnameMock.returns(".");
-
-    //readJsonGreedyMock: 順番に呼ばれるので onCall() で返却
-    //0回目 : prj.wheel.json
-    //1回目 : .//cmp.wheel.json
-    //2回目 : ./child1/cmp.wheel.json
-    //3回目 : ./child2/cmp.wheel.json
-    readJsonGreedyMock.onCall(0).resolves(mockProjectJson);
-    readJsonGreedyMock.onCall(1).resolves({ ID: "rootID" });
-    readJsonGreedyMock.onCall(2).resolves({ ID: "childID1", parent: "rootID" });
-    readJsonGreedyMock.onCall(3).resolves({ ID: "childID2", parent: "childID1" });
-
-    const result = await getComponentTree(mockProjectRootDir, mockRootDir);
+    const result = await projectFilesOperator.getComponentTree(mockProjectRootDir, mockRootDir);
 
     expect(result.ID).to.equal("rootID");
     expect(result.children).to.have.lengthOf(1);
@@ -95,9 +53,8 @@ describe.skip("#getComponentTree", ()=>{
   });
 
   it("should return the root component with children (relative path case)", async ()=>{
-    //rootDirを相対パス扱いにする => isAbsolute = false
     const mockProjectRootDir = "/mock/project/root";
-    const mockRootDir = "./"; //相対パス
+    const mockRootDir = "./";
 
     const mockProjectJson = {
       componentPath: {
@@ -106,23 +63,11 @@ describe.skip("#getComponentTree", ()=>{
       }
     };
 
-    //isAbsolute => false
-    pathIsAbsoluteMock.returns(false);
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "prj.wheel.json")).resolves(mockProjectJson);
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "./", "cmp.wheel.json")).resolves({ ID: "rootID" });
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "./child1", "cmp.wheel.json")).resolves({ ID: "childID1", parent: "rootID" });
 
-    //path.relativeは呼ばれない(or 呼ばれても使われない)ためstubしておく
-    pathRelativeMock.returns("./");
-
-    //path.join => 同様に "dirname/cmp.wheel.json" みたいに返す
-    pathJoinMock.callsFake((dir, file)=>`${dir}/${file}`);
-
-    //path.dirnameは常に "." を返せば "startStriped" = "." に合致
-    pathDirnameMock.returns(".");
-
-    readJsonGreedyMock.onCall(0).resolves(mockProjectJson); //prj.wheel.json
-    readJsonGreedyMock.onCall(1).resolves({ ID: "rootID" });
-    readJsonGreedyMock.onCall(2).resolves({ ID: "childID1", parent: "rootID" });
-
-    const result = await getComponentTree(mockProjectRootDir, mockRootDir);
+    const result = await projectFilesOperator.getComponentTree(mockProjectRootDir, mockRootDir);
 
     expect(result.ID).to.equal("rootID");
     expect(result.children).to.have.lengthOf(1);
@@ -130,7 +75,6 @@ describe.skip("#getComponentTree", ()=>{
   });
 
   it("should attach child to root if child refers a non-existent parent", async ()=>{
-    //ルートが "./", 子が "./child"
     const mockProjectRootDir = "/mock/project/root";
     const mockRootDir = "/mock/project/root";
 
@@ -140,24 +84,12 @@ describe.skip("#getComponentTree", ()=>{
         lonelyChild: "./child"
       }
     };
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "prj.wheel.json")).resolves(mockProjectJson);
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "./", "cmp.wheel.json")).resolves({ ID: "rootID" });
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "./child", "cmp.wheel.json")).resolves({ ID: "lonelyChild", parent: "unknownParent" });
 
-    pathIsAbsoluteMock.returns(true);
-    pathRelativeMock.returns("./");
-    pathJoinMock.callsFake((dir, file)=>`${dir}/${file}`);
+    const result = await projectFilesOperator.getComponentTree(mockProjectRootDir, mockRootDir);
 
-    //dirnameはいつものように "." を返して rootIndex=0 にする
-    pathDirnameMock.returns(".");
-
-    //cmp.wheel.jsonそれぞれ
-    readJsonGreedyMock.onCall(0).resolves(mockProjectJson);
-    //ルートコンポーネント
-    readJsonGreedyMock.onCall(1).resolves({ ID: "rootID" });
-    //parentプロパティが "unknownParent" など存在しないID
-    readJsonGreedyMock.onCall(2).resolves({ ID: "lonelyChild", parent: "unknownParent" });
-
-    const result = await getComponentTree(mockProjectRootDir, mockRootDir);
-
-    //親が見つからない => rootにぶら下がる
     expect(result.ID).to.equal("rootID");
     expect(result.children).to.have.lengthOf(1);
     expect(result.children[0].ID).to.equal("lonelyChild");
@@ -173,19 +105,12 @@ describe.skip("#getComponentTree", ()=>{
       }
     };
 
-    pathIsAbsoluteMock.returns(true);
-    pathRelativeMock.returns("./");
-    pathJoinMock.callsFake((dir, file)=>`${dir}/${file}`);
-    pathDirnameMock.returns(".");
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "prj.wheel.json")).resolves(mockProjectJson);
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "./", "cmp.wheel.json")).resolves({ ID: "rootID" });
+    readJsonGreedyStub.withArgs(path.posix.resolve(mockProjectRootDir, "./child", "cmp.wheel.json")).resolves({ ID: "childID", parent: "rootID" });
 
-    readJsonGreedyMock.onCall(0).resolves(mockProjectJson);
-    //rootCmpに children プロパティはなし
-    readJsonGreedyMock.onCall(1).resolves({ ID: "rootID" });
-    readJsonGreedyMock.onCall(2).resolves({ ID: "childID", parent: "rootID" });
+    const result = await projectFilesOperator.getComponentTree(mockProjectRootDir, mockRootDir);
 
-    const result = await getComponentTree(mockProjectRootDir, mockRootDir);
-
-    //rootCmpは当初 children=[] がないが、子供がattachされて children=[{childID}] になる
     expect(result.ID).to.equal("rootID");
     expect(result.children).to.have.lengthOf(1);
     expect(result.children[0].ID).to.equal("childID");

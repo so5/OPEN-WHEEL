@@ -6,18 +6,10 @@
 "use strict";
 const { expect } = require("chai");
 const { describe, it } = require("mocha");
-const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
-
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
 describe.skip("#isSurrounded", ()=>{
-  let isSurrounded;
-
-  beforeEach(()=>{
-    isSurrounded = projectFilesOperator._internal.isSurrounded;
-  });
+  const { isSurrounded } = projectFilesOperator._internal;
 
   it("should return true if the string is surrounded by curly braces", ()=>{
     expect(isSurrounded("{example}")).to.be.true;
@@ -39,9 +31,15 @@ describe.skip("#isSurrounded", ()=>{
     expect(isSurrounded("{}")).to.be.true;
   });
 
-  it("should handle strings with multiple layers of braces correctly", ()=>{
+  it("should return true for nested braces", ()=>{
     expect(isSurrounded("{{example}}")).to.be.true;
+  });
+
+  it("should return true for mismatched nested braces if start and end match", ()=>{
     expect(isSurrounded("{example}}")).to.be.true;
-    expect(isSurrounded("{{example}")).to.be.true;
+  });
+
+  it("should return false if end brace is missing", ()=>{
+    expect(isSurrounded("{{example}")).to.be.false;
   });
 });

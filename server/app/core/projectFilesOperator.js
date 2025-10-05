@@ -107,7 +107,7 @@ _internal.getAllComponentIDs = async function(projectRootDir) {
   return Object.keys(projectJson.componentPath);
 };
 _internal.getSuffixNumberFromProjectName = function(projectName) {
-  const reResult = /.*(\d+)$/.exec(projectName);
+  const reResult = /.*?(\d+)$/.exec(projectName);
   return reResult === null ? 0 : reResult[1];
 };
 _internal.getUnusedProjectDir = async function(projectRootDir, projectName) {
@@ -269,7 +269,8 @@ _internal.rewriteAllIncludeExcludeProperty = async function(projectRootDir, chan
 _internal.readProject = async function(projectRootDir) {
   const toBeCommited = [];
   const projectJson = await _internal.getProjectJson(projectRootDir);
-  if (projectJson.version <= 2) {
+  const isVersionOld = projectJson.version <= 2;
+  if (isVersionOld) {
     await _internal.rewriteAllIncludeExcludeProperty(projectRootDir, toBeCommited);
     projectJson.version = 2.1;
   }
@@ -277,8 +278,11 @@ _internal.readProject = async function(projectRootDir) {
     return projectRootDir;
   }
   const projectBasename = _internal.path.basename(projectRootDir);
-  if (projectBasename !== projectJson.name + _internal.suffix) {
+  const isNameMismatched = projectBasename !== `${projectJson.name}${_internal.suffix}`;
+  if (isNameMismatched) {
     projectJson.name = projectBasename.replace(_internal.suffix, "");
+  }
+  if (isVersionOld || isNameMismatched) {
     await _internal.writeProjectJson(projectRootDir, projectJson);
     toBeCommited.push(_internal.projectJsonFilename);
   }
@@ -507,7 +511,7 @@ _internal.addFileLinkToParent = async function(projectRootDir, srcNode, srcName,
   const srcOutputFile = srcJson.outputFiles.find((e)=>{
     return e.name === srcName;
   });
-  if (!srcOutputFile.dst.includes({ dstNode: parentID, dstName })) {
+  if (!srcOutputFile.dst.some((e)=>e.dstNode === parentID && e.dstName === dstName)) {
     srcOutputFile.dst.push({ dstNode: parentID, dstName });
   }
   const p = _internal.writeComponentJson(projectRootDir, srcDir, srcJson);
@@ -517,7 +521,7 @@ _internal.addFileLinkToParent = async function(projectRootDir, srcNode, srcName,
   if (!Object.prototype.hasOwnProperty.call(parentOutputFile, "origin")) {
     parentOutputFile.origin = [];
   }
-  if (!parentOutputFile.origin.includes({ srcNode, srcName })) {
+  if (!parentOutputFile.origin.some((e)=>e.srcNode === srcNode && e.srcName === srcName)) {
     parentOutputFile.origin.push({ srcNode, srcName });
   }
   await p;
@@ -535,7 +539,7 @@ _internal.addFileLinkFromParent = async function(projectRootDir, srcName, dstNod
   if (!Object.prototype.hasOwnProperty.call(parentInputFile, "forwardTo")) {
     parentInputFile.forwardTo = [];
   }
-  if (!parentInputFile.forwardTo.includes({ dstNode, dstName })) {
+  if (!parentInputFile.forwardTo.some((e)=>e.dstNode === dstNode && e.dstName === dstName)) {
     parentInputFile.forwardTo.push({ dstNode, dstName });
   }
   const p = _internal.writeComponentJson(projectRootDir, parentDir, parentJson);
@@ -544,7 +548,7 @@ _internal.addFileLinkFromParent = async function(projectRootDir, srcName, dstNod
   });
   if (typeof dstInputFile === "undefined") {
     dstJson.inputFiles.push({ name: dstName, src: [{ srcNode: parentID, srcName }] });
-  } else if (!dstInputFile.src.includes({ srcNode: parentID, srcName })) {
+  } else if (!dstInputFile.src.some((e)=>e.srcNode === parentID && e.srcName === srcName)) {
     dstInputFile.src.push({ srcNode: parentID, srcName });
   }
   await p;
@@ -556,7 +560,7 @@ _internal.addFileLinkBetweenSiblings = async function(projectRootDir, srcNode, s
   const srcOutputFile = srcJson.outputFiles.find((e)=>{
     return e.name === srcName;
   });
-  if (!srcOutputFile.dst.includes({ dstNode, dstName })) {
+  if (!srcOutputFile.dst.some((e)=>e.dstNode === dstNode && e.dstName === dstName)) {
     srcOutputFile.dst.push({ dstNode, dstName });
   }
   const p1 = _internal.writeComponentJson(projectRootDir, srcDir, srcJson);
@@ -567,7 +571,7 @@ _internal.addFileLinkBetweenSiblings = async function(projectRootDir, srcNode, s
   });
   if (typeof dstInputFile === "undefined") {
     dstJson.inputFiles.push({ name: dstName, src: [{ srcNode, srcName }] });
-  } else if (!dstInputFile.src.includes({ srcNode, srcName })) {
+  } else if (!dstInputFile.src.some((e)=>e.srcNode === srcNode && e.srcName === srcName)) {
     dstInputFile.src.push({ srcNode, srcName });
   }
   await p1;
@@ -707,13 +711,13 @@ _internal.getHosts = async function(projectRootDir, rootID) {
   const storageHosts = [];
   const gfarmHosts = [];
   await _internal.recursiveGetHosts(projectRootDir, rootID, hosts, storageHosts, gfarmHosts);
-  const storageHosts2 = Array.from(new Set(storageHosts));
-  const gfarmHosts2 = Array.from(new Set(gfarmHosts));
+  const storageHosts2 = [...new Map(storageHosts.map((item)=>[item.hostname, item])).values()];
+  const gfarmHosts2 = [...new Map(gfarmHosts.map((item)=>[item.hostname, item])).values()];
   const keepHosts = storageHosts2.concat(gfarmHosts2);
-  const hosts2 = Array.from(new Set(hosts))
+  const hosts2 = [...new Map(hosts.map((item)=>[item.hostname, item])).values()]
     .filter((host)=>{
       return !keepHosts.some((e)=>{
-        e.hostname === host.hostname;
+        return e.hostname === host.hostname;
       });
     });
   return [...keepHosts, ...hosts2];

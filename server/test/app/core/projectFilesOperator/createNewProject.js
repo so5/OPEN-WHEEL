@@ -5,44 +5,43 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
+describe("#createNewProject", ()=>{
+  let getUnusedProjectDirStub;
+  let ensureDirStub;
+  let gitInitStub;
+  let componentFactoryStub;
+  let writeComponentJsonStub;
+  let getDateStringStub;
+  let writeJsonWrapperStub;
+  let gitAddStub;
+  let gitCommitStub;
+  let getLoggerStub;
+  let debugStub;
 
-describe.skip("#createNewProject", ()=>{
-  let createNewProject;
-  let getUnusedProjectDirMock;
-  let gitInitMock;
-  let writeComponentJsonMock;
-  let writeJsonWrapperMock;
-  let gitAddMock;
-  let gitCommitMock;
-  let fsMock;
+  const mockRootDir = "/mock/project/root";
+  const mockProjectName = "test_project";
+  const mockDescription = "Mock project description";
+  const mockUser = "test_user";
+  const mockMail = "test@example.com";
+  const mockTimestamp = "20250102-120000";
+  const mockRootWorkflow = { ID: "root-id", name: "workflowName" };
 
   beforeEach(()=>{
-    createNewProject = projectFilesOperator._internal.createNewProject;
-
-    getUnusedProjectDirMock = sinon.stub();
-    gitInitMock = sinon.stub();
-    writeComponentJsonMock = sinon.stub();
-    writeJsonWrapperMock = sinon.stub();
-    gitAddMock = sinon.stub();
-    gitCommitMock = sinon.stub();
-
-    fsMock = {
-      ensureDir: sinon.stub()
-    };
-
-    projectFilesOperator._internal.getUnusedProjectDir = getUnusedProjectDirMock;
-    projectFilesOperator._internal.gitInit = gitInitMock;
-    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
-    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
-    projectFilesOperator._internal.gitAdd = gitAddMock;
-    projectFilesOperator._internal.gitCommit = gitCommitMock;
-    projectFilesOperator._internal.fs = fsMock;
+    getUnusedProjectDirStub = sinon.stub(projectFilesOperator._internal, "getUnusedProjectDir").resolves(mockRootDir);
+    ensureDirStub = sinon.stub(projectFilesOperator._internal.fs, "ensureDir").resolves();
+    gitInitStub = sinon.stub(projectFilesOperator._internal, "gitInit").resolves();
+    componentFactoryStub = sinon.stub(projectFilesOperator._internal, "componentFactory").returns(mockRootWorkflow);
+    writeComponentJsonStub = sinon.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
+    getDateStringStub = sinon.stub(projectFilesOperator._internal, "getDateString").returns(mockTimestamp);
+    writeJsonWrapperStub = sinon.stub(projectFilesOperator._internal, "writeJsonWrapper").resolves();
+    gitAddStub = sinon.stub(projectFilesOperator._internal, "gitAdd").resolves();
+    gitCommitStub = sinon.stub(projectFilesOperator._internal, "gitCommit").resolves();
+    debugStub = sinon.spy();
+    getLoggerStub = sinon.stub(projectFilesOperator._internal, "getLogger").returns({ debug: debugStub });
   });
 
   afterEach(()=>{
@@ -50,56 +49,32 @@ describe.skip("#createNewProject", ()=>{
   });
 
   it("should create a new project with a unique directory and initialize it", async ()=>{
-    const mockRootDir = "/mock/project/root";
-    const mockProjectName = "test_project";
-    const mockDescription = "Mock project description";
-    const mockUser = "test_user";
-    const mockMail = "test@example.com";
-    const mockTimestamp = "20250102-120000";
-
-    getUnusedProjectDirMock.resolves(mockRootDir);
-    gitInitMock.resolves();
-    writeComponentJsonMock.resolves();
-    writeJsonWrapperMock.resolves();
-    gitAddMock.resolves();
-    gitCommitMock.resolves();
-
-    fsMock.ensureDir.resolves();
-
-    const getDateStringMock = sinon.stub().returns(mockTimestamp);
-    projectFilesOperator._internal.getDateString = getDateStringMock;
-
-    const result = await createNewProject(mockRootDir, mockProjectName, mockDescription, mockUser, mockMail);
+    const result = await projectFilesOperator._internal.createNewProject(mockRootDir, mockProjectName, mockDescription, mockUser, mockMail);
 
     expect(result).to.equal(mockRootDir);
-    expect(getUnusedProjectDirMock.calledOnceWithExactly(mockRootDir, mockProjectName)).to.be.true;
-    expect(fsMock.ensureDir.calledOnceWithExactly(mockRootDir)).to.be.true;
-    expect(gitInitMock.calledOnceWithExactly(mockRootDir, mockUser, mockMail)).to.be.true;
-    expect(writeComponentJsonMock.calledOnce).to.be.true;
-    expect(writeJsonWrapperMock.calledOnce).to.be.true;
-    expect(gitAddMock.calledOnceWithExactly(mockRootDir, "./")).to.be.true;
-    expect(gitCommitMock.calledOnceWithExactly(mockRootDir, "create new project")).to.be.true;
+    expect(getUnusedProjectDirStub.calledOnceWith(mockRootDir, mockProjectName)).to.be.true;
+    expect(ensureDirStub.calledOnceWith(mockRootDir)).to.be.true;
+    expect(gitInitStub.calledOnceWith(mockRootDir, mockUser, mockMail)).to.be.true;
+    expect(writeComponentJsonStub.calledOnce).to.be.true;
+    expect(writeJsonWrapperStub.calledOnce).to.be.true;
+    expect(gitAddStub.calledOnceWith(mockRootDir, "./")).to.be.true;
+    expect(gitCommitStub.calledOnceWith(mockRootDir, "create new project")).to.be.true;
   });
 
-  it("should handle errors during project creation", async ()=>{
-    const mockRootDir = "/mock/project/root";
-    const mockProjectName = "test_project";
-    const mockDescription = "Mock project description";
-    const mockUser = "test_user";
-    const mockMail = "test@example.com";
-
-    getUnusedProjectDirMock.rejects(new Error("Directory error"));
+  it("should handle errors during project creation and not proceed", async ()=>{
+    const dirError = new Error("Directory error");
+    getUnusedProjectDirStub.rejects(dirError);
 
     try {
-      await createNewProject(mockRootDir, mockProjectName, mockDescription, mockUser, mockMail);
+      await projectFilesOperator._internal.createNewProject(mockRootDir, mockProjectName, mockDescription, mockUser, mockMail);
       throw new Error("Expected createNewProject to throw");
     } catch (err) {
-      expect(err.message).to.equal("Directory error");
+      expect(err).to.equal(dirError);
     }
 
-    expect(getUnusedProjectDirMock.calledOnceWithExactly(mockRootDir, mockProjectName)).to.be.true;
-
-    expect(fsMock.ensureDir.called).to.be.false;
-    expect(gitInitMock.called).to.be.false;
+    expect(getUnusedProjectDirStub.calledOnce).to.be.true;
+    expect(ensureDirStub.notCalled).to.be.true;
+    expect(gitInitStub.notCalled).to.be.true;
+    expect(writeComponentJsonStub.notCalled).to.be.true;
   });
 });

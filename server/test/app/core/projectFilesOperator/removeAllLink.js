@@ -5,40 +5,22 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#removeAllLink", ()=>{
-  let rewireProjectFilesOperator;
-  let removeAllLink;
-  let getComponentDirMock;
-  let readComponentJsonMock;
-  let writeComponentJsonMock;
-  let projectRootDir;
-  let componentID;
+describe("#removeAllLink", ()=>{
+  let getComponentDirStub;
+  let readComponentJsonStub;
+  let writeComponentJsonStub;
+  const projectRootDir = "/mock/project/root";
+  const componentID = "dstCompID";
+  const dstDir = "/mock/project/root/dstDir";
 
   beforeEach(()=>{
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
-    removeAllLink = rewireProjectFilesOperator.__get__("removeAllLink");
-
-    //sinon.stub()でテストダブルを作成（～Mock）
-    getComponentDirMock = sinon.stub();
-    readComponentJsonMock = sinon.stub();
-    writeComponentJsonMock = sinon.stub();
-
-    //関数を差し替え
-    rewireProjectFilesOperator.__set__({
-      getComponentDir: getComponentDirMock,
-      readComponentJson: readComponentJsonMock,
-      writeComponentJson: writeComponentJsonMock
-    });
-
-    projectRootDir = "/mock/project/root";
-    componentID = "dstCompID";
+    getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
+    readComponentJsonStub = sinon.stub(projectFilesOperator._internal, "readComponentJson");
+    writeComponentJsonStub = sinon.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
   });
 
   afterEach(()=>{
@@ -46,134 +28,83 @@ describe.skip("#removeAllLink", ()=>{
   });
 
   it("should do nothing when dstJson.previous is an empty array", async ()=>{
-    //dstDir, dstJsonの設定
-    getComponentDirMock.onFirstCall().resolves("/mock/project/root/dstDir");
-    readComponentJsonMock.onFirstCall().resolves({ previous: [] });
+    getComponentDirStub.withArgs(projectRootDir, componentID, true).resolves(dstDir);
+    readComponentJsonStub.withArgs(dstDir).resolves({ previous: [] });
 
-    //実行
-    await removeAllLink(projectRootDir, componentID);
+    await projectFilesOperator.removeAllLink(projectRootDir, componentID);
 
-    //期待動作: srcは一切呼び出されず、dstJson.previous = [] の書き戻しだけ行われる
-    expect(getComponentDirMock.calledOnce).to.be.true;
-    expect(readComponentJsonMock.calledOnce).to.be.true;
-    //src用のwriteComponentJsonは呼ばれない
-    expect(writeComponentJsonMock.calledOnce).to.be.true;
-    const writtenDstArgs = writeComponentJsonMock.firstCall.args;
-    expect(writtenDstArgs[1]).to.equal("/mock/project/root/dstDir"); //dstDir
-    expect(writtenDstArgs[2]).to.deep.equal({ previous: [] }); //previousが空配列のまま
+    expect(getComponentDirStub.calledOnce).to.be.true;
+    expect(readComponentJsonStub.calledOnce).to.be.true;
+    expect(writeComponentJsonStub.calledOnce).to.be.true;
+    const [writtenRootDir, writtenDir, writtenJson] = writeComponentJsonStub.firstCall.args;
+    expect(writtenRootDir).to.equal(projectRootDir);
+    expect(writtenDir).to.equal(dstDir);
+    expect(writtenJson).to.deep.equal({ previous: [] });
   });
 
-  it("should remove componentID from srcJson.next and srcJson.else if they are arrays", async ()=>{
-    //シナリオ: dstJson.previousに2つのsrcがある
-    getComponentDirMock.onCall(0).resolves("/mock/project/root/dstDir");
-    readComponentJsonMock.onCall(0).resolves({
-      previous: ["srcCompA", "srcCompB"]
-    });
+  it("should remove componentID from srcJson's next and else arrays", async ()=>{
+    getComponentDirStub.withArgs(projectRootDir, componentID, true).resolves(dstDir);
+    readComponentJsonStub.withArgs(dstDir).resolves({ previous: ["srcCompA", "srcCompB"] });
 
-    //srcCompA
-    getComponentDirMock.onCall(1).resolves("/mock/project/root/srcCompA");
-    //next配列にcomponentIDが含まれている
-    readComponentJsonMock.onCall(1).resolves({
-      next: ["dstCompID", "anotherID"],
-      else: ["otherID", "dstCompID"]
-    });
+    const srcDirA = "/mock/project/root/srcCompA";
+    const srcJsonA = { next: [componentID, "anotherID"], else: ["otherID", componentID] };
+    getComponentDirStub.withArgs(projectRootDir, "srcCompA", true).resolves(srcDirA);
+    readComponentJsonStub.withArgs(srcDirA).resolves(srcJsonA);
 
-    //srcCompB
-    getComponentDirMock.onCall(2).resolves("/mock/project/root/srcCompB");
-    //elseのみ配列にcomponentIDが含まれない
-    readComponentJsonMock.onCall(2).resolves({
-      next: ["someID"],
-      else: ["x", "y"]
-    });
+    const srcDirB = "/mock/project/root/srcCompB";
+    const srcJsonB = { next: ["someID"], else: ["x", "y"] };
+    getComponentDirStub.withArgs(projectRootDir, "srcCompB", true).resolves(srcDirB);
+    readComponentJsonStub.withArgs(srcDirB).resolves(srcJsonB);
 
-    //dst側書き込み後、srcA, srcB書き込みの順で3回writeComponentJsonが呼ばれる想定
+    await projectFilesOperator.removeAllLink(projectRootDir, componentID);
 
-    await removeAllLink(projectRootDir, componentID);
+    expect(getComponentDirStub.callCount).to.equal(3);
+    expect(readComponentJsonStub.callCount).to.equal(3);
+    expect(writeComponentJsonStub.callCount).to.equal(3);
 
-    //dstDir取得 + srcA/srcB取得 で計3回のgetComponentDirが呼ばれる
-    expect(getComponentDirMock.callCount).to.equal(3);
-    //dstJson + srcA + srcB の順で計3回readされる
-    expect(readComponentJsonMock.callCount).to.equal(3);
+    const writtenJsonA = writeComponentJsonStub.getCall(0).args[2];
+    expect(writtenJsonA.next).to.deep.equal(["anotherID"]);
+    expect(writtenJsonA.else).to.deep.equal(["otherID"]);
 
-    //書き込まれる回数3回 (srcA, srcB, dst)
-    expect(writeComponentJsonMock.callCount).to.equal(3);
+    const writtenJsonB = writeComponentJsonStub.getCall(1).args[2];
+    expect(writtenJsonB.next).to.deep.equal(["someID"]);
+    expect(writtenJsonB.else).to.deep.equal(["x", "y"]);
 
-    //まずsrcAを書き込むときの引数検証
-    const [rootA, dirA, newSrcAjson] = writeComponentJsonMock.getCall(0).args;
-    expect(rootA).to.equal(projectRootDir);
-    expect(dirA).to.equal("/mock/project/root/srcCompA");
-    expect(newSrcAjson.next).to.deep.equal(["anotherID"]); //dstCompIDがfilterされて消える
-    expect(newSrcAjson.else).to.deep.equal(["otherID"]); //dstCompIDがfilterされて消える
-
-    //次にsrcBを書き込むときの引数検証
-    const [rootB, dirB, newSrcBjson] = writeComponentJsonMock.getCall(1).args;
-    expect(rootB).to.equal(projectRootDir);
-    expect(dirB).to.equal("/mock/project/root/srcCompB");
-    expect(newSrcBjson.next).to.deep.equal(["someID"]); //もともと"dstCompID"が無いため変化なし
-    expect(newSrcBjson.else).to.deep.equal(["x", "y"]); //もともと含まれていない
-
-    //最後にdstを書き込むときの引数検証
-    const [rootDst, dstDir, updatedDstJson] = writeComponentJsonMock.getCall(2).args;
-    expect(rootDst).to.equal(projectRootDir);
-    expect(dstDir).to.equal("/mock/project/root/dstDir");
-    expect(updatedDstJson.previous).to.deep.equal([]); //previousは空配列に
+    const writtenDstJson = writeComponentJsonStub.getCall(2).args[2];
+    expect(writtenDstJson.previous).to.deep.equal([]);
   });
 
-  it("should skip removing next if srcJson.next is not an array", async ()=>{
-    getComponentDirMock.onCall(0).resolves("/mock/project/root/dstDir");
-    readComponentJsonMock.onCall(0).resolves({ previous: ["srcCompC"] });
+  it("should not modify srcJson.next if it is not an array", async ()=>{
+    getComponentDirStub.withArgs(projectRootDir, componentID, true).resolves(dstDir);
+    readComponentJsonStub.withArgs(dstDir).resolves({ previous: ["srcCompC"] });
 
-    //srcCompC
-    getComponentDirMock.onCall(1).resolves("/mock/project/root/srcCompC");
-    readComponentJsonMock.onCall(1).resolves({
-      next: "not-an-array",
-      else: ["dstCompID"]
-    });
+    const srcDirC = "/mock/project/root/srcCompC";
+    const srcJsonC = { next: "not-an-array", else: [componentID] };
+    getComponentDirStub.withArgs(projectRootDir, "srcCompC", true).resolves(srcDirC);
+    readComponentJsonStub.withArgs(srcDirC).resolves(srcJsonC);
 
-    await removeAllLink(projectRootDir, componentID);
+    await projectFilesOperator.removeAllLink(projectRootDir, componentID);
 
-    //書き込みは最終的にsrcCompC, dst の2回
-    expect(writeComponentJsonMock.callCount).to.equal(2);
-
-    const [rootC, dirC, newSrcCjson] = writeComponentJsonMock.getCall(0).args;
-    expect(rootC).to.equal(projectRootDir);
-    expect(dirC).to.equal("/mock/project/root/srcCompC");
-    //nextは配列でないので除去処理が行われず、元のまま
-    expect(newSrcCjson.next).to.equal("not-an-array");
-    //elseは配列なのでdstCompIDがfilterされる
-    expect(newSrcCjson.else).to.deep.equal([]);
-
-    //dstJsonはpreviousが空配列に
-    //eslint-disable-next-line no-unused-vars
-    const [_rootDst, _dstDir, updatedDst] = writeComponentJsonMock.getCall(1).args;
-    expect(updatedDst.previous).to.deep.equal([]);
+    expect(writeComponentJsonStub.callCount).to.equal(2);
+    const writtenJsonC = writeComponentJsonStub.getCall(0).args[2];
+    expect(writtenJsonC.next).to.equal("not-an-array");
+    expect(writtenJsonC.else).to.deep.equal([]);
   });
 
-  it("should skip removing else if srcJson.else is not an array", async ()=>{
-    getComponentDirMock.onCall(0).resolves("/mock/project/root/dstDir");
-    readComponentJsonMock.onCall(0).resolves({ previous: ["srcCompD"] });
+  it("should not modify srcJson.else if it is not an array", async ()=>{
+    getComponentDirStub.withArgs(projectRootDir, componentID, true).resolves(dstDir);
+    readComponentJsonStub.withArgs(dstDir).resolves({ previous: ["srcCompD"] });
 
-    //srcCompD
-    getComponentDirMock.onCall(1).resolves("/mock/project/root/srcCompD");
-    readComponentJsonMock.onCall(1).resolves({
-      next: ["dstCompID"],
-      else: "not-array-else"
-    });
+    const srcDirD = "/mock/project/root/srcCompD";
+    const srcJsonD = { next: [componentID], else: "not-an-array" };
+    getComponentDirStub.withArgs(projectRootDir, "srcCompD", true).resolves(srcDirD);
+    readComponentJsonStub.withArgs(srcDirD).resolves(srcJsonD);
 
-    await removeAllLink(projectRootDir, componentID);
+    await projectFilesOperator.removeAllLink(projectRootDir, componentID);
 
-    //書き込み回数はsrcCompD と dst の2回
-    expect(writeComponentJsonMock.callCount).to.equal(2);
-
-    //srcCompD検証
-    //eslint-disable-next-line no-unused-vars
-    const [_rootS, _dirS, newSrcDjson] = writeComponentJsonMock.getCall(0).args;
-    expect(newSrcDjson.next).to.deep.equal([]); //filterされてdstCompID削除
-    expect(newSrcDjson.else).to.equal("not-array-else");
-
-    //dstJson検証
-    //eslint-disable-next-line no-unused-vars
-    const [_rootD, _dirD, newDstJson] = writeComponentJsonMock.getCall(1).args;
-    expect(newDstJson.previous).to.deep.equal([]);
+    expect(writeComponentJsonStub.callCount).to.equal(2);
+    const writtenJsonD = writeComponentJsonStub.getCall(0).args[2];
+    expect(writtenJsonD.next).to.deep.equal([]);
+    expect(writtenJsonD.else).to.equal("not-an-array");
   });
 });

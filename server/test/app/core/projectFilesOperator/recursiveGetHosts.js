@@ -5,101 +5,105 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#recursiveGetHosts", ()=>{
-  let recursiveGetHosts, getChildrenMock, hasChildMock;
+describe("#recursiveGetHosts", ()=>{
+  let getChildrenStub;
+  let hasChildStub;
 
   beforeEach(()=>{
-    recursiveGetHosts = projectFilesOperator._internal.recursiveGetHosts;
+    getChildrenStub = sinon.stub(projectFilesOperator._internal, "getChildren");
+    hasChildStub = sinon.stub(projectFilesOperator._internal, "hasChild");
+  });
 
-    getChildrenMock = sinon.stub();
-    hasChildMock = sinon.stub();
-
-    projectFilesOperator._internal.getChildren = getChildrenMock;
-    projectFilesOperator._internal.hasChild = hasChildMock;
+  afterEach(()=>{
+    sinon.restore();
   });
 
   it("should not add any hosts if there are no children", async ()=>{
-    getChildrenMock.resolves([]);
+    getChildrenStub.resolves([]);
     const hosts = [];
     const storageHosts = [];
+    const gfarmHosts = [];
 
-    await recursiveGetHosts("mockProjectRoot", "rootID", hosts, storageHosts);
+    await projectFilesOperator._internal.recursiveGetHosts("mockProjectRoot", "rootID", hosts, storageHosts, gfarmHosts);
 
     expect(hosts).to.be.empty;
     expect(storageHosts).to.be.empty;
+    expect(gfarmHosts).to.be.empty;
   });
 
   it("should add task component hosts correctly", async ()=>{
-    getChildrenMock.resolves([{ ID: "comp1", type: "task", host: "remote1" }]);
-    hasChildMock.returns(false);
-
+    const taskComponent = { ID: "comp1", type: "task", host: "remote1" };
+    getChildrenStub.resolves([taskComponent]);
+    hasChildStub.withArgs(taskComponent).returns(false);
     const hosts = [];
     const storageHosts = [];
+    const gfarmHosts = [];
 
-    await recursiveGetHosts("mockProjectRoot", "rootID", hosts, storageHosts);
+    await projectFilesOperator._internal.recursiveGetHosts("mockProjectRoot", "rootID", hosts, storageHosts, gfarmHosts);
 
     expect(hosts).to.deep.equal([{ hostname: "remote1" }]);
     expect(storageHosts).to.be.empty;
   });
 
   it("should add storage component hosts correctly", async ()=>{
-    getChildrenMock.resolves([{ ID: "comp2", type: "storage", host: "storage1" }]);
-    hasChildMock.returns(false);
-
+    const storageComponent = { ID: "comp2", type: "storage", host: "storage1" };
+    getChildrenStub.resolves([storageComponent]);
+    hasChildStub.withArgs(storageComponent).returns(false);
     const hosts = [];
     const storageHosts = [];
+    const gfarmHosts = [];
 
-    await recursiveGetHosts("mockProjectRoot", "rootID", hosts, storageHosts);
+    await projectFilesOperator._internal.recursiveGetHosts("mockProjectRoot", "rootID", hosts, storageHosts, gfarmHosts);
 
     expect(hosts).to.be.empty;
     expect(storageHosts).to.deep.equal([{ hostname: "storage1", isStorage: true }]);
   });
 
   it("should skip disabled components", async ()=>{
-    getChildrenMock.resolves([{ ID: "comp3", type: "task", host: "remote2", disable: true }]);
-    hasChildMock.returns(false);
-
+    getChildrenStub.resolves([{ ID: "comp3", type: "task", host: "remote2", disable: true }]);
+    hasChildStub.returns(false);
     const hosts = [];
     const storageHosts = [];
+    const gfarmHosts = [];
 
-    await recursiveGetHosts("mockProjectRoot", "rootID", hosts, storageHosts);
+    await projectFilesOperator._internal.recursiveGetHosts("mockProjectRoot", "rootID", hosts, storageHosts, gfarmHosts);
 
     expect(hosts).to.be.empty;
     expect(storageHosts).to.be.empty;
   });
 
   it("should skip localhost components", async ()=>{
-    getChildrenMock.resolves([{ ID: "comp4", type: "task", host: "localhost" }]);
-    hasChildMock.returns(false);
-
+    getChildrenStub.resolves([{ ID: "comp4", type: "task", host: "localhost" }]);
+    hasChildStub.returns(false);
     const hosts = [];
     const storageHosts = [];
+    const gfarmHosts = [];
 
-    await recursiveGetHosts("mockProjectRoot", "rootID", hosts, storageHosts);
+    await projectFilesOperator._internal.recursiveGetHosts("mockProjectRoot", "rootID", hosts, storageHosts, gfarmHosts);
 
     expect(hosts).to.be.empty;
     expect(storageHosts).to.be.empty;
   });
 
   it("should recursively add child hosts", async ()=>{
-    getChildrenMock.onFirstCall().resolves([{ ID: "comp5", type: "for", host: "remote3" }]);
-    getChildrenMock.onSecondCall().resolves([{ ID: "comp6", type: "task", host: "remote4" }]);
+    const parentComponent = { ID: "comp5", type: "for", host: "remote3" };
+    const childComponent = { ID: "comp6", type: "task", host: "remote4" };
 
-    hasChildMock.withArgs({ ID: "comp5", type: "for", host: "remote3" }).returns(true);
-    hasChildMock.withArgs({ ID: "comp6", type: "task", host: "remote4" }).returns(false);
-
+    getChildrenStub.onFirstCall().resolves([parentComponent]);
+    getChildrenStub.onSecondCall().resolves([childComponent]);
+    hasChildStub.withArgs(parentComponent).returns(true);
+    hasChildStub.withArgs(childComponent).returns(false);
     const hosts = [];
     const storageHosts = [];
+    const gfarmHosts = [];
 
-    await recursiveGetHosts("mockProjectRoot", "rootID", hosts, storageHosts);
+    await projectFilesOperator._internal.recursiveGetHosts("mockProjectRoot", "rootID", hosts, storageHosts, gfarmHosts);
 
+    // parent is not a task, so it should not be added.
     expect(hosts).to.deep.equal([{ hostname: "remote4" }]);
     expect(storageHosts).to.be.empty;
   });

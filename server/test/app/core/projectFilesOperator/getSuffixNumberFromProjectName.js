@@ -6,23 +6,15 @@
 "use strict";
 const { expect } = require("chai");
 const { describe, it } = require("mocha");
-const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#getSuffixNumberFromProjectName", ()=>{
-  let getSuffixNumberFromProjectName;
-
-  beforeEach(()=>{
-    getSuffixNumberFromProjectName = projectFilesOperator._internal.getSuffixNumberFromProjectName;
-  });
+describe("#getSuffixNumberFromProjectName", ()=>{
+  const { getSuffixNumberFromProjectName } = projectFilesOperator._internal;
 
   it("should return the suffix number if the project name ends with numbers", ()=>{
     const projectName = "Project123";
     const result = getSuffixNumberFromProjectName(projectName);
-    expect(result).to.equal("3");
+    expect(result).to.equal("123");
   });
 
   it("should return 0 if the project name does not end with numbers", ()=>{
@@ -31,7 +23,7 @@ describe.skip("#getSuffixNumberFromProjectName", ()=>{
     expect(result).to.equal(0);
   });
 
-  it("should return the correct suffix when the project name contains numbers but does not end with them", ()=>{
+  it("should return 0 when the project name contains numbers but does not end with them", ()=>{
     const projectName = "Project123abc";
     const result = getSuffixNumberFromProjectName(projectName);
     expect(result).to.equal(0);
@@ -49,7 +41,7 @@ describe.skip("#getSuffixNumberFromProjectName", ()=>{
     expect(result).to.equal(0);
   });
 
-  it("should return 0 if the project name consists only of spaces", ()=>{
+  it("should return 0 if the project name ends with spaces", ()=>{
     const projectName = "Project123   ";
     const result = getSuffixNumberFromProjectName(projectName);
     expect(result).to.equal(0);
@@ -58,6 +50,6 @@ describe.skip("#getSuffixNumberFromProjectName", ()=>{
   it("should handle names with leading spaces correctly", ()=>{
     const projectName = "   Project123";
     const result = getSuffixNumberFromProjectName(projectName);
-    expect(result).to.equal("3");
+    expect(result).to.equal("123");
   });
 });

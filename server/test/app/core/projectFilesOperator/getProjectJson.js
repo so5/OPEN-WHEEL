@@ -5,22 +5,16 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
 const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#getProjectJson", ()=>{
-  let getProjectJson;
-  let readJsonGreedyMock;
+describe("#getProjectJson", ()=>{
+  let readJsonGreedyStub;
 
   beforeEach(()=>{
-    getProjectJson = projectFilesOperator._internal.getProjectJson;
-
-    readJsonGreedyMock = sinon.stub();
-    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
+    readJsonGreedyStub = sinon.stub(projectFilesOperator._internal, "readJsonGreedy");
   });
 
   afterEach(()=>{
@@ -30,32 +24,28 @@ describe.skip("#getProjectJson", ()=>{
   it("should return the project JSON data when readJsonGreedy resolves", async ()=>{
     const mockProjectRootDir = "/mock/project/root";
     const mockProjectJson = { name: "test_project", version: 2 };
+    const expectedPath = path.resolve(mockProjectRootDir, "prj.wheel.json");
+    readJsonGreedyStub.resolves(mockProjectJson);
 
-    readJsonGreedyMock.resolves(mockProjectJson);
+    const result = await projectFilesOperator._internal.getProjectJson(mockProjectRootDir);
 
-    const result = await getProjectJson(mockProjectRootDir);
-
-    expect(readJsonGreedyMock.calledOnceWithExactly(
-            `${mockProjectRootDir}/prj.wheel.json`
-    )).to.be.true;
+    expect(readJsonGreedyStub.calledOnceWith(expectedPath)).to.be.true;
     expect(result).to.deep.equal(mockProjectJson);
   });
 
   it("should throw an error when readJsonGreedy rejects", async ()=>{
     const mockProjectRootDir = "/mock/project/root";
     const mockError = new Error("File not found");
-
-    readJsonGreedyMock.rejects(mockError);
+    const expectedPath = path.resolve(mockProjectRootDir, "prj.wheel.json");
+    readJsonGreedyStub.rejects(mockError);
 
     try {
-      await getProjectJson(mockProjectRootDir);
+      await projectFilesOperator._internal.getProjectJson(mockProjectRootDir);
       throw new Error("Expected getProjectJson to throw");
     } catch (err) {
       expect(err).to.equal(mockError);
     }
 
-    expect(readJsonGreedyMock.calledOnceWithExactly(
-            `${mockProjectRootDir}/prj.wheel.json`
-    )).to.be.true;
+    expect(readJsonGreedyStub.calledOnceWith(expectedPath)).to.be.true;
   });
 });

@@ -5,66 +5,62 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
 const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#getAllComponentIDs", ()=>{
-  let getAllComponentIDs;
-  let readJsonGreedyMock;
-
+describe("#getAllComponentIDs", ()=>{
+  let readJsonGreedyStub;
   const mockProjectRootDir = "/mock/project/root";
-  const mockProjectJson = {
-    componentPath: {
-      component1: "./path/to/component1",
-      component2: "./path/to/component2",
-      component3: "./path/to/component3"
-    }
-  };
   const mockFileName = path.resolve(mockProjectRootDir, "prj.wheel.json");
 
   beforeEach(()=>{
-    readJsonGreedyMock = sinon.stub();
+    readJsonGreedyStub = sinon.stub(projectFilesOperator._internal, "readJsonGreedy");
+  });
 
-    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
-
-    getAllComponentIDs = projectFilesOperator._internal.getAllComponentIDs;
+  afterEach(()=>{
+    sinon.restore();
   });
 
   it("should return all component IDs from the project JSON", async ()=>{
-    readJsonGreedyMock.resolves(mockProjectJson);
+    const mockProjectJson = {
+      componentPath: {
+        component1: "./path/to/component1",
+        component2: "./path/to/component2",
+        component3: "./path/to/component3"
+      }
+    };
+    readJsonGreedyStub.resolves(mockProjectJson);
 
-    const result = await getAllComponentIDs(mockProjectRootDir);
+    const result = await projectFilesOperator._internal.getAllComponentIDs(mockProjectRootDir);
 
-    expect(readJsonGreedyMock.calledOnceWithExactly(mockFileName)).to.be.true;
+    expect(readJsonGreedyStub.calledOnceWith(mockFileName)).to.be.true;
     expect(result).to.deep.equal(Object.keys(mockProjectJson.componentPath));
   });
 
   it("should throw an error if readJsonGreedy fails", async ()=>{
     const mockError = new Error("Failed to read JSON");
-    readJsonGreedyMock.rejects(mockError);
+    readJsonGreedyStub.rejects(mockError);
 
     try {
-      await getAllComponentIDs(mockProjectRootDir);
+      await projectFilesOperator._internal.getAllComponentIDs(mockProjectRootDir);
       throw new Error("Expected getAllComponentIDs to throw");
     } catch (err) {
       expect(err).to.equal(mockError);
     }
 
-    expect(readJsonGreedyMock.calledOnceWithExactly(mockFileName)).to.be.true;
+    expect(readJsonGreedyStub.calledOnceWith(mockFileName)).to.be.true;
   });
 
   it("should return an empty array if componentPath is not present in the JSON", async ()=>{
-    readJsonGreedyMock.resolves({
+    readJsonGreedyStub.resolves({
       componentPath: {}
     });
 
-    const result = await getAllComponentIDs(mockProjectRootDir);
+    const result = await projectFilesOperator._internal.getAllComponentIDs(mockProjectRootDir);
 
-    expect(readJsonGreedyMock.calledOnceWithExactly(mockFileName)).to.be.true;
+    expect(readJsonGreedyStub.calledOnceWith(mockFileName)).to.be.true;
     expect(result).to.deep.equal([]);
   });
 });

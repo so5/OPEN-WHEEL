@@ -5,30 +5,19 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#checkRemoteStoragePathWritePermission", ()=>{
-  let checkRemoteStoragePathWritePermission;
-  let getSshMock;
-  let remoteHostMock;
-  let sshExecMock;
+describe("#checkRemoteStoragePathWritePermission", ()=>{
+  let getSshStub;
+  let remoteHostGetIDStub;
+  let sshExecStub;
 
   beforeEach(()=>{
-    checkRemoteStoragePathWritePermission = projectFilesOperator._internal.checkRemoteStoragePathWritePermission;
-
-    remoteHostMock = {
-      getID: sinon.stub()
-    };
-
-    sshExecMock = sinon.stub();
-    getSshMock = sinon.stub().returns({ exec: sshExecMock });
-    projectFilesOperator._internal.getSsh = getSshMock;
-    projectFilesOperator._internal.remoteHost = remoteHostMock;
+    sshExecStub = sinon.stub();
+    getSshStub = sinon.stub(projectFilesOperator._internal, "getSsh").returns({ exec: sshExecStub });
+    remoteHostGetIDStub = sinon.stub(projectFilesOperator._internal.remoteHost, "getID");
   });
 
   afterEach(()=>{
@@ -38,33 +27,51 @@ describe.skip("#checkRemoteStoragePathWritePermission", ()=>{
   it("should resolve when the storage path has write permission", async ()=>{
     const projectRootDir = "/mock/project/root";
     const params = { host: "remoteHost1", storagePath: "/remote/path" };
+    const hostID = "host123";
 
-    remoteHostMock.getID.withArgs("name", "remoteHost1").returns("host123");
-    sshExecMock.withArgs("test -w /remote/path").returns(0);
+    remoteHostGetIDStub.withArgs("name", params.host).returns(hostID);
+    sshExecStub.withArgs(`test -w ${params.storagePath}`).returns(0);
 
-    await expect(checkRemoteStoragePathWritePermission(projectRootDir, params)).to.be.fulfilled;
-    expect(remoteHostMock.getID.calledOnceWithExactly("name", "remoteHost1")).to.be.true;
-    expect(getSshMock.calledOnceWithExactly(projectRootDir, "host123")).to.be.true;
-    expect(sshExecMock.calledOnceWithExactly("test -w /remote/path")).to.be.true;
+    await projectFilesOperator._internal.checkRemoteStoragePathWritePermission(projectRootDir, params);
+
+    expect(remoteHostGetIDStub.calledOnceWith("name", params.host)).to.be.true;
+    expect(getSshStub.calledOnceWith(projectRootDir, hostID)).to.be.true;
+    expect(sshExecStub.calledOnceWith(`test -w ${params.storagePath}`)).to.be.true;
   });
 
   it("should throw an error when the storage path does not have write permission", async ()=>{
     const projectRootDir = "/mock/project/root";
     const params = { host: "remoteHost1", storagePath: "/remote/path" };
+    const hostID = "host123";
 
-    remoteHostMock.getID.withArgs("name", "remoteHost1").returns("host123");
-    sshExecMock.withArgs("test -w /remote/path").returns(1);
+    remoteHostGetIDStub.withArgs("name", params.host).returns(hostID);
+    sshExecStub.withArgs(`test -w ${params.storagePath}`).returns(1);
 
-    await expect(checkRemoteStoragePathWritePermission(projectRootDir, params)).to.be.rejectedWith("bad permission");
+    try {
+      await projectFilesOperator._internal.checkRemoteStoragePathWritePermission(projectRootDir, params);
+      throw new Error("should have been rejected");
+    } catch (err) {
+      expect(err.message).to.equal("bad permission");
+      expect(err.host).to.equal(params.host);
+      expect(err.storagePath).to.equal(params.storagePath);
+      expect(err.reason).to.equal("invalidRemoteStorage");
+    }
   });
 
   it("should throw an error when SSH instance is not available", async ()=>{
     const projectRootDir = "/mock/project/root";
     const params = { host: "remoteHost1", storagePath: "/remote/path" };
+    const hostID = "host123";
+    const sshError = new Error("ssh instance is not registered for the project");
 
-    remoteHostMock.getID.withArgs("name", "remoteHost1").returns("host123");
-    getSshMock.throws(new Error("ssh instance is not registerd for the project"));
+    remoteHostGetIDStub.withArgs("name", params.host).returns(hostID);
+    getSshStub.throws(sshError);
 
-    await expect(checkRemoteStoragePathWritePermission(projectRootDir, params)).to.be.rejectedWith("ssh instance is not registerd for the project");
+    try {
+      await projectFilesOperator._internal.checkRemoteStoragePathWritePermission(projectRootDir, params);
+      throw new Error("should have been rejected");
+    } catch (err) {
+      expect(err).to.equal(sshError);
+    }
   });
 });

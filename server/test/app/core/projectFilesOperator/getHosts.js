@@ -5,62 +5,76 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#getHosts", ()=>{
-  let getHosts;
-  let recursiveGetHostsMock;
+describe("#getHosts", ()=>{
+  let recursiveGetHostsStub;
 
   beforeEach(()=>{
-    getHosts = projectFilesOperator._internal.getHosts;
-
-    recursiveGetHostsMock = sinon.stub();
-    projectFilesOperator._internal.recursiveGetHosts = recursiveGetHostsMock;
+    recursiveGetHostsStub = sinon.stub(projectFilesOperator._internal, "recursiveGetHosts");
   });
 
   afterEach(()=>{
     sinon.restore();
   });
 
-  it("should call recursiveGetHosts with correct arguments", async ()=>{
+  it("should call recursiveGetHosts with correct initial arguments", async ()=>{
     const projectRootDir = "/mock/project";
     const rootID = "rootComponent";
-    recursiveGetHostsMock.resolves();
+    recursiveGetHostsStub.resolves();
 
-    await getHosts(projectRootDir, rootID);
+    await projectFilesOperator.getHosts(projectRootDir, rootID);
 
-    expect(recursiveGetHostsMock).to.be.calledOnceWithExactly(projectRootDir, rootID, [], [], []);
+    expect(recursiveGetHostsStub.calledOnceWith(projectRootDir, rootID, [], [], [])).to.be.true;
   });
 
-  it("should correctly classify task and storage hosts", async ()=>{
-    recursiveGetHostsMock.resolves();
+  it("should correctly classify and combine hosts, removing duplicates", async ()=>{
     const projectRootDir = "/mock/project";
     const rootID = "rootComponent";
 
-    const taskHosts = [{ hostname: "task1" }, { hostname: "task2" }];
-    const storageHosts = [{ hostname: "storage1", isStorage: true }];
-
-    recursiveGetHostsMock.callsFake(async (_, __, hosts, storageHostsList)=>{
-      hosts.push(...taskHosts);
-      storageHostsList.push(...storageHosts);
+    recursiveGetHostsStub.callsFake(async (projectRootDir, rootID, hosts, storageHosts, gfarmHosts)=>{
+      hosts.push({ hostname: "task1" }, { hostname: "task2" }, { hostname: "task1" });
+      storageHosts.push({ hostname: "storage1", isStorage: true }, { hostname: "storage1", isStorage: true });
+      gfarmHosts.push({ hostname: "gfarm1", isGfarm: true });
     });
 
-    const result = await getHosts(projectRootDir, rootID);
+    const result = await projectFilesOperator.getHosts(projectRootDir, rootID);
 
-    expect(result).to.deep.include.members([...storageHosts, ...taskHosts]);
+    expect(result).to.have.deep.members([
+      { hostname: "storage1", isStorage: true },
+      { hostname: "gfarm1", isGfarm: true },
+      { hostname: "task1" },
+      { hostname: "task2" }
+    ]);
+  });
+
+  it("should not include task hosts that are already listed as storage or gfarm hosts", async ()=>{
+    const projectRootDir = "/mock/project";
+    const rootID = "rootComponent";
+
+    recursiveGetHostsStub.callsFake(async (projectRootDir, rootID, hosts, storageHosts, gfarmHosts)=>{
+      hosts.push({ hostname: "host1" }, { hostname: "host2" });
+      storageHosts.push({ hostname: "host1", isStorage: true });
+      gfarmHosts.push({ hostname: "host2", isGfarm: true });
+    });
+
+    const result = await projectFilesOperator.getHosts(projectRootDir, rootID);
+
+    expect(result).to.have.deep.members([
+      { hostname: "host1", isStorage: true },
+      { hostname: "host2", isGfarm: true }
+    ]);
+    expect(result.filter((h)=>!h.isStorage && !h.isGfarm)).to.be.empty;
   });
 
   it("should return an empty array if no hosts are found", async ()=>{
-    recursiveGetHostsMock.resolves();
     const projectRootDir = "/mock/project";
     const rootID = "rootComponent";
+    recursiveGetHostsStub.resolves();
 
-    const result = await getHosts(projectRootDir, rootID);
+    const result = await projectFilesOperator.getHosts(projectRootDir, rootID);
 
     expect(result).to.deep.equal([]);
   });

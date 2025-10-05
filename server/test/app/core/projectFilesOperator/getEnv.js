@@ -5,70 +5,54 @@
  */
 "use strict";
 const { expect } = require("chai");
-const { describe, it } = require("mocha");
+const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
-describe.skip("#getEnv", ()=>{
-  let rewireProjectFilesOperator;
-  let getEnv;
-  let readComponentJsonByIDMock;
+describe("#getEnv", ()=>{
+  let readComponentJsonByIDStub;
 
   beforeEach(()=>{
-    //projectFilesOperator.jsをrewireで読み込む
-    rewireProjectFilesOperator = rewire("../../../app/core/projectFilesOperator.js");
+    readComponentJsonByIDStub = sinon.stub(projectFilesOperator._internal, "readComponentJsonByID");
+  });
 
-    //テスト対象の関数を取得
-    getEnv = rewireProjectFilesOperator.__get__("getEnv");
-
-    //依存するreadComponentJsonByIDをモック化
-    readComponentJsonByIDMock = sinon.stub();
-    rewireProjectFilesOperator.__set__({
-      readComponentJsonByID: readComponentJsonByIDMock
-    });
+  afterEach(()=>{
+    sinon.restore();
   });
 
   it("should return the env object if the component has env property", async ()=>{
-    //モックが返すコンポーネントJSONを定義
     const mockComponentJson = {
       env: {
         VAR_A: "VALUE_A",
         VAR_B: "VALUE_B"
       }
     };
+    readComponentJsonByIDStub.resolves(mockComponentJson);
 
-    //stubがresolveする値を設定
-    readComponentJsonByIDMock.resolves(mockComponentJson);
-
-    //テスト対象関数を呼び出し
     const projectRootDir = "/mock/project/root";
     const componentID = "mockComponentID";
-    const result = await getEnv(projectRootDir, componentID);
+    const result = await projectFilesOperator.getEnv(projectRootDir, componentID);
 
-    //アサーション
-    expect(readComponentJsonByIDMock.calledOnceWithExactly(projectRootDir, componentID)).to.be.true;
+    expect(readComponentJsonByIDStub.calledOnceWith(projectRootDir, componentID)).to.be.true;
     expect(result).to.deep.equal(mockComponentJson.env);
   });
 
   it("should return an empty object if env property is not defined", async ()=>{
-    //envプロパティなし
     const mockComponentJson = { name: "testComponent" };
-    readComponentJsonByIDMock.resolves(mockComponentJson);
+    readComponentJsonByIDStub.resolves(mockComponentJson);
 
-    const result = await getEnv("/mock/project/root", "mockComponentID");
+    const result = await projectFilesOperator.getEnv("/mock/project/root", "mockComponentID");
+
     expect(result).to.deep.equal({});
   });
 
   it("should throw an error if readComponentJsonByID rejects", async ()=>{
     const mockError = new Error("Failed to read component JSON");
-    readComponentJsonByIDMock.rejects(mockError);
+    readComponentJsonByIDStub.rejects(mockError);
 
     try {
-      await getEnv("/mock/project/root", "errorComponentID");
-      expect.fail("getEnv should throw an error, but did not");
+      await projectFilesOperator.getEnv("/mock/project/root", "errorComponentID");
+      throw new Error("getEnv should have thrown an error");
     } catch (err) {
       expect(err).to.equal(mockError);
     }
