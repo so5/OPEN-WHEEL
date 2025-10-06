@@ -12,15 +12,14 @@ const projectFilesOperator = require("../../../../app/core/projectFilesOperator.
 describe("#checkRunningJobs", ()=>{
   let promisifyStub;
   let readJsonStub;
-  let getLoggerStub;
   let loggerWarnStub;
 
   beforeEach(()=>{
-    const globStub = sinon.stub();
+    const globStub = sinon.stub(projectFilesOperator._internal, "glob");
     promisifyStub = sinon.stub(projectFilesOperator._internal, "promisify").returns(globStub);
     readJsonStub = sinon.stub(projectFilesOperator._internal.fs, "readJson");
     loggerWarnStub = sinon.spy();
-    getLoggerStub = sinon.stub(projectFilesOperator._internal, "getLogger").returns({ warn: loggerWarnStub });
+    sinon.stub(projectFilesOperator._internal, "getLogger").returns({ warn: loggerWarnStub });
   });
 
   afterEach(()=>{
@@ -79,8 +78,8 @@ describe("#checkRunningJobs", ()=>{
     const validTask = [{ id: 1, name: "Task1" }];
 
     promisifyStub().resolves(mockFiles);
-    readJsonStub.withArgs("/mock/project/root/job1.json").resolves([]); // empty array
-    readJsonStub.withArgs("/mock/project/root/job2.json").resolves({ notArray: true }); // not an array
+    readJsonStub.withArgs("/mock/project/root/job1.json").resolves([]); //empty array
+    readJsonStub.withArgs("/mock/project/root/job2.json").resolves({ notArray: true }); //not an array
     readJsonStub.withArgs("/mock/project/root/job3.json").resolves(validTask);
 
     const result = await projectFilesOperator._internal.checkRunningJobs(projectRootDir);
