@@ -60,9 +60,11 @@ describe("validateMisc UT", function() {
       return undefined;
     });
 
-    _internal.jobScheduler.hoge = { queueOpt: "-q" };
-    _internal.jobScheduler.huga = { queueOpt: "-q", supportStepjob: true };
-    _internal.jobScheduler.hige = { queueOpt: "-q", supportBulkjob: true };
+    sinon.stub(_internal, "jobScheduler").value({
+      hoge: { queueOpt: "-q" },
+      huga: { queueOpt: "-q", supportStepjob: true },
+      hige: { queueOpt: "-q", supportBulkjob: true }
+    });
 
     try {
       await createNewProject(projectRootDir, "test project", null, "test", "test@example.com");

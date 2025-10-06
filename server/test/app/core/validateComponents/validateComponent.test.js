@@ -103,6 +103,11 @@ describe("validateComponents function", function() {
     bulkjobTask.manualFinishCondition = true;
     bulkjobTask.condition = "condition.js";
     sinon.stub(_internal.remoteHost, "query").returns({ name: "dummy", jobScheduler: "hige", useBulkjob: true });
+    sinon.stub(_internal, "jobScheduler").value({
+      hoge: { queueOpt: "-q" },
+      huga: { queueOpt: "-q", supportStepjob: true },
+      hige: { queueOpt: "-q", supportBulkjob: true }
+    });
 
 
     //スクリプトファイルを作成
