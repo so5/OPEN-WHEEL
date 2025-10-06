@@ -15,7 +15,7 @@ jobs:
       - name: disable platform specific build option
         shell: bash
         run: |
-          sed -i -e 's/^\(ARG PLATFORM\)/# \1/' -e 's/^\(FROM --platform\)/# \1/' Dockerfile
+          sed -i -e 's/^\(ARG PLATFORM\)/# \1/' -e 's/--platform=${PLATFORM} //' Dockerfile
           cat Dockerfile
       - name: Run tests in docker-compose
         shell: bash
