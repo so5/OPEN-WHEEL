@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 ARG PLATFORM=linux/amd64
 FROM --platform=${PLATFORM} node:22-slim AS base
 RUN apt-get update && apt -y install curl git rsync openssh-server bzip2 python3 g++ build-essential&&\
