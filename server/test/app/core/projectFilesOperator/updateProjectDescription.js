@@ -20,13 +20,9 @@ describe("#updateProjectDescription", ()=>{
   beforeEach(()=>{
     updateProjectDescription = projectFilesOperator._internal.updateProjectDescription;
 
-    readJsonGreedyMock = sinon.stub();
-    writeJsonWrapperMock = sinon.stub();
-    gitAddMock = sinon.stub();
-
-    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
-    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
-    projectFilesOperator._internal.gitAdd = gitAddMock;
+    readJsonGreedyMock = sinon.stub(projectFilesOperator._internal, "readJsonGreedy");
+    writeJsonWrapperMock = sinon.stub(projectFilesOperator._internal, "writeJsonWrapper");
+    gitAddMock = sinon.stub(projectFilesOperator._internal, "gitAdd");
   });
 
   afterEach(()=>{

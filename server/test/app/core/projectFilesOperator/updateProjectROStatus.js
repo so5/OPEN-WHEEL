@@ -19,11 +19,8 @@ describe("#updateProjectROStatus", ()=>{
   beforeEach(()=>{
     updateProjectROStatus = projectFilesOperator._internal.updateProjectROStatus;
 
-    readJsonGreedyMock = sinon.stub();
-    writeJsonWrapperMock = sinon.stub();
-
-    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
-    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
+    readJsonGreedyMock = sinon.stub(projectFilesOperator._internal, "readJsonGreedy ");
+    writeJsonWrapperMock = sinon.stub(projectFilesOperator._internal, "writeJsonWrapper ");
   });
 
   afterEach(()=>{

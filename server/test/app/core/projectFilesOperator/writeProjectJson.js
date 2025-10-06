@@ -11,7 +11,6 @@ const path = require("path");
 const { promisify } = require("util");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
 describe("#writeProjectJson", ()=>{
   let writeProjectJson;
   let writeJsonWrapperMock;
@@ -22,13 +21,8 @@ describe("#writeProjectJson", ()=>{
   const mockFileName = `${mockProjectRootDir}/prj.wheel.json`;
 
   beforeEach(()=>{
-    writeJsonWrapperMock = sinon.stub();
-    gitAddMock = sinon.stub();
-
-    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
-    projectFilesOperator._internal.gitAdd = gitAddMock;
-
-    writeProjectJson = projectFilesOperator._internal.writeProjectJson;
+    writeJsonWrapperMock = sinon.stub(projectFilesOperator._internal, "writeJson");
+    gitAddMock = sinon.stub(projectFilesOperator._internal, "gitAdd ");
   });
   afterEach(()=>{
     sinon.restore();
