@@ -10,30 +10,30 @@ concurrency:
 jobs:
   test:
     runs-on: windows-2022
-    env:
-      DOCKER_DEFAULT_PLATFORM: linux
     steps:
       - uses: actions/checkout@v4
-      - name: Run tests in docker-compose
-        shell: bash
+      - name: Run tests in ubuntu container on windows host
         run: |
-          cd server/test
-          export WHEEL_CONFIG_DIR=$(mktemp -d tmp.XXXXXXXXXX)
-          {
-          echo '[{'
-          echo '  "name": "testServer",'
-          echo '  "host": "wheel_release_test_server",'
-          echo '  "path": "/home/testuser",'
-          echo '  "username": "testuser",'
-          echo '  "numJob": 1,'
-          echo '  "port": 22,'
-          echo '  "id": "dummy-id",'
-          echo '  "jobScheduler": "PBSPro",'
-          echo '  "renewInterval": 0,'
-          echo '  "renewDelay": 0,'
-          echo '  "statusCheckInterval": 10,'
-          echo '  "maxStatusCheckError": 10,'
-          echo '  "readyTimeout": 5000'
-          echo '}]'
-          } > ${WHEEL_CONFIG_DIR}/remotehost.json
-          docker compose run --build wheel_release_test
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v ${PWD}:/app -w /app ubuntu:22.04 sh -c " \
+          apt-get update && \
+          apt-get install -y docker-compose && \
+          cd server/test && \
+          export WHEEL_CONFIG_DIR=\$(mktemp -d tmp.XXXXXXXXXX) && \
+          { \
+          echo '[{' && \
+          echo '  \"name\": \"testServer\",' && \
+          echo '  \"host\": \"wheel_release_test_server\",' && \
+          echo '  \"path\": \"/home/testuser\",' && \
+          echo '  \"username\": \"testuser\",' && \
+          echo '  \"numJob\": 1,' && \
+          echo '  \"port\": 22,' && \
+          echo '  \"id\": \"dummy-id\",' && \
+          echo '  \"jobScheduler\": \"PBSPro\",' && \
+          echo '  \"renewInterval\": 0,' && \
+          echo '  \"renewDelay\": 0,' && \
+          echo '  \"statusCheckInterval\": 10,' && \
+          echo '  \"maxStatusCheckError\": 10,' && \
+          echo '  \"readyTimeout\": 5000' && \
+          echo '}]' && \
+          } > \${WHEEL_CONFIG_DIR}/remotehost.json && \
+          docker-compose run --build wheel_release_test"
