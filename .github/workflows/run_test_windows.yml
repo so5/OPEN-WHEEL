@@ -12,6 +12,11 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: disable platform specific build option
+        shell: bash
+        run: |
+          sed -i -e 's/^\(ARG PLATFORM\)/# \1/' -e 's/^\(FROM --platform\)/# \1/' Dockerfile
+          cat Dockerfile
       - name: Run tests in docker-compose
         shell: bash
         run: |
