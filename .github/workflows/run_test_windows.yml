@@ -12,11 +12,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: disable platform specific build option
-        shell: bash
-        run: |
-          sed -i -e 's/^\(ARG PLATFORM\)/# \1/' -e 's/--platform=${PLATFORM} //' Dockerfile
-          cat Dockerfile
       - name: Run tests in docker-compose
         shell: bash
         run: |
@@ -39,4 +34,4 @@ jobs:
           echo '  "readyTimeout": 5000'
           echo '}]'
           } > ${WHEEL_CONFIG_DIR}/remotehost.json
-          docker compose run --build wheel_release_test
+          docker compose -f compose.yml -f compose.ci.yml run --build wheel_release_test
