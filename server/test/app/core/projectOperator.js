@@ -22,18 +22,12 @@ const senders = require("../../../app/handlers/senders.js");
 const projectController = require("../../../app/handlers/projectController.js");
 const { onProjectOperation } = projectController;
 const { _internal } = projectController;
-const onRunProject = sinon.stub();
-const onStopProject = sinon.stub();
-const onCleanProject = sinon.stub();
-const onRevertProject = sinon.stub();
-const onSaveProject = sinon.stub();
+const onRunProject = sinon.stub(_internal, "onRunProject");
+const onStopProject = sinon.stub(_internal, "onStopProject");
+const onCleanProject = sinon.stub(_internal, "onCleanProject");
+const onRevertProject = sinon.stub(_internal, "onRevertProject");
+const onSaveProject = sinon.stub(_internal, "onSaveProject");
 const queues = _internal.projectOperationQueues;
-
-_internal.onRunProject = onRunProject;
-_internal.onStopProject = onStopProject;
-_internal.onCleanProject = onCleanProject;
-_internal.onRevertProject = onRevertProject;
-_internal.onSaveProject = onSaveProject;
 
 sinon.stub(senders, "sendWorkflow");
 sinon.stub(senders, "sendTaskStateList");

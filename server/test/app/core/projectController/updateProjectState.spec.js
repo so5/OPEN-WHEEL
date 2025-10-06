@@ -47,9 +47,9 @@ describe("project Controller UT", function() {
       }
     });
     describe("#updateProjectState", ()=>{
-        let eventEmitStub, eventEmitterStub;
+        let setProjectStateStub, eventEmitStub, eventEmitterStub;
         beforeEach(()=>{
-          sinon.stub(_internal, "setProjectState");
+          setProjectStateStub = sinon.stub(_internal, "setProjectState");
           eventEmitterStub = { emit: sinon.stub() };
           eventEmitStub = sinon.stub(_internal.eventEmitters, "get");
         });
@@ -60,10 +60,10 @@ describe("project Controller UT", function() {
           const projectRootDir = "/test/project";
           const state = "running";
           const mockProjectJson = { state: "running" };
-          _internal.setProjectState.resolves(mockProjectJson);
+          setProjectStateStub.resolves(mockProjectJson);
           eventEmitStub.withArgs(projectRootDir).returns(eventEmitterStub);
           await updateProjectState(projectRootDir, state);
-          sinon.assert.calledOnceWithExactly(_internal.setProjectState, projectRootDir, state);
+          sinon.assert.calledOnceWithExactly(setProjectStateStub, projectRootDir, state);
           sinon.assert.calledOnceWithExactly(eventEmitStub, projectRootDir);
           sinon.assert.calledOnceWithExactly(eventEmitterStub.emit, "projectStateChanged", mockProjectJson);
         });
@@ -71,17 +71,17 @@ describe("project Controller UT", function() {
           const projectRootDir = "/test/project";
           const state = "stopped";
           const mockProjectJson = { state: "stopped" };
-          _internal.setProjectState.resolves(mockProjectJson);
+          setProjectStateStub.resolves(mockProjectJson);
           eventEmitStub.withArgs(projectRootDir).returns(undefined);
           await updateProjectState(projectRootDir, state);
-          sinon.assert.calledOnceWithExactly(_internal.setProjectState, projectRootDir, state);
+          sinon.assert.calledOnceWithExactly(setProjectStateStub, projectRootDir, state);
           sinon.assert.calledOnceWithExactly(eventEmitStub, projectRootDir);
           sinon.assert.notCalled(eventEmitterStub.emit);
         });
         it("should handle errors if setProjectState fails", async ()=>{
           const projectRootDir = "/test/project";
           const state = "failed";
-          _internal.setProjectState.rejects(new Error("Failed to update project state"));
+          setProjectStateStub.rejects(new Error("Failed to update project state"));
           eventEmitStub.withArgs(projectRootDir).returns(eventEmitterStub);
 
           try {
@@ -90,7 +90,7 @@ describe("project Controller UT", function() {
           } catch (error) {
             expect(error.message).to.equal("Failed to update project state");
           }
-          sinon.assert.calledOnceWithExactly(_internal.setProjectState, projectRootDir, state);
+          sinon.assert.calledOnceWithExactly(setProjectStateStub, projectRootDir, state);
           sinon.assert.notCalled(eventEmitStub);
           sinon.assert.notCalled(eventEmitterStub.emit);
         });
