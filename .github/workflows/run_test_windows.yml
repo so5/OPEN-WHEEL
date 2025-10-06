@@ -10,6 +10,8 @@ concurrency:
 jobs:
   test:
     runs-on: windows-2022
+    env:
+      DOCKER_DEFAULT_PLATFORM: linux
     steps:
       - uses: actions/checkout@v4
       - name: Run tests in docker-compose
