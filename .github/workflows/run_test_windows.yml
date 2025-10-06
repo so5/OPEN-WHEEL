@@ -1,0 +1,53 @@
+name: run UT on windows
+on:
+  push:
+    branches:
+      - '**'
+      - '!master'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    env:
+      WHEEL_USE_HTTP: 1
+      WHEEL_TEST_REMOTEHOST: testServer
+      WHEEL_TEST_REMOTE_PASSWORD: passw0rd
+      TZ: JST-9
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        node-version: [20.x]
+    steps:
+      - run: mkdir .wheel
+        shell: bash
+      - run: >
+          echo '[{
+            "name": "testServer",
+            "host": "localhost",
+            "path": "/home/testuser",
+            "keyFile": null,
+            "username": "testuser",
+            "numJob": 5,
+            "port": 4000,
+            "id": "dummy-id",
+            "jobScheduler": "PBSPro",
+            "renewInterval": 0,
+            "renewDelay": 0,
+            "statusCheckInterval": 10,
+            "maxStatusCheckError": 10,
+            "readyTimeout": 5000
+          }]' > .wheel/remotehost.json
+        shell: bash
+      - run: cat .wheel/remotehost.json
+        shell: bash
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm ci
+      - run: docker run -d -p 4000:22 --name testbed naoso5/openpbs
+      - run: npm run test
+        working-directory: ./server
