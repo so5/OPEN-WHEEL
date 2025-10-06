@@ -23,13 +23,9 @@ describe("#rewriteIncludeExclude", ()=>{
 
     changedFiles = [];
 
-    readJsonGreedyMock = sinon.stub();
-    writeComponentJsonMock = sinon.stub().resolves();
-    glob2ArrayMock = sinon.stub();
-
-    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
-    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
-    projectFilesOperator._internal.glob2Array = glob2ArrayMock;
+    readJsonGreedyMock = sinon.stub(projectFilesOperator._internal, "readJsonGreedy");
+    writeComponentJsonMock = sinon.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
+    glob2ArrayMock = sinon.stub(projectFilesOperator._internal, "glob2Array");
   });
 
   afterEach(()=>{

@@ -12,7 +12,6 @@ const { promisify } = require("util");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
 describe("#writeProjectJson", ()=>{
-  let writeProjectJson;
   let writeJsonWrapperMock;
   let gitAddMock;
 
@@ -21,8 +20,8 @@ describe("#writeProjectJson", ()=>{
   const mockFileName = `${mockProjectRootDir}/prj.wheel.json`;
 
   beforeEach(()=>{
-    writeJsonWrapperMock = sinon.stub(projectFilesOperator._internal, "writeJson");
-    gitAddMock = sinon.stub(projectFilesOperator._internal, "gitAdd ");
+    writeJsonWrapperMock = sinon.stub(projectFilesOperator._internal, "writeJsonWrapper");
+    gitAddMock = sinon.stub(projectFilesOperator._internal, "gitAdd");
   });
   afterEach(()=>{
     sinon.restore();
@@ -32,7 +31,7 @@ describe("#writeProjectJson", ()=>{
     writeJsonWrapperMock.resolves();
     gitAddMock.resolves();
 
-    await writeProjectJson(mockProjectRootDir, mockProjectJson);
+    await projectFilesOperator._internal.writeProjectJson(mockProjectRootDir, mockProjectJson);
 
     expect(writeJsonWrapperMock.calledOnceWithExactly(mockFileName, mockProjectJson)).to.be.true;
     expect(gitAddMock.calledOnceWithExactly(mockProjectRootDir, mockFileName)).to.be.true;
@@ -43,7 +42,7 @@ describe("#writeProjectJson", ()=>{
     writeJsonWrapperMock.rejects(mockError);
 
     try {
-      await writeProjectJson(mockProjectRootDir, mockProjectJson);
+      await projectFilesOperator._internal.writeProjectJson(mockProjectRootDir, mockProjectJson);
       throw new Error("Expected writeProjectJson to throw");
     } catch (err) {
       expect(err).to.equal(mockError);
@@ -59,7 +58,7 @@ describe("#writeProjectJson", ()=>{
     gitAddMock.rejects(mockError);
 
     try {
-      await writeProjectJson(mockProjectRootDir, mockProjectJson);
+      await projectFilesOperator._internal.writeProjectJson(mockProjectRootDir, mockProjectJson);
       throw new Error("Expected writeProjectJson to throw");
     } catch (err) {
       expect(err).to.equal(mockError);

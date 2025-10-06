@@ -23,8 +23,6 @@ const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 const Dispatcher = require("../../../app/core/dispatcher");
 const { _internal } = require("../../../app/core/dispatcher");
 const { eventEmitters } = require("../../../app/core/global.js");
-eventEmitters.set(projectRootDir, { emit: sinon.stub() });
-
 //helper functions
 const { projectJsonFilename, componentJsonFilename } = require("../../../app/db/db.js");
 const { createNewProject, updateComponent, createNewComponent, addInputFile, addOutputFile, addLink, addFileLink, renameOutputFile } = require("../../../app/core/projectFilesOperator.js");
@@ -47,6 +45,10 @@ describe("UT for Dispatcher class", function () {
     await fs.remove(testDirRoot);
     await createNewProject(projectRootDir, "test project", null, "test", "test@example.com");
     rootWF = await fs.readJson(path.resolve(projectRootDir, componentJsonFilename));
+    eventEmitters.set(projectRootDir, { emit: sinon.stub() });
+  });
+  afterEach(()=>{
+    sinon.restore();
   });
   after(async ()=>{
     if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {

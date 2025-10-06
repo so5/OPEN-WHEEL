@@ -13,13 +13,11 @@ describe("#getChildren", ()=>{
   let getComponentDirStub;
   let readJsonGreedyStub;
   let globStub;
-  let promisifyStub;
 
   beforeEach(()=>{
     getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
     readJsonGreedyStub = sinon.stub(projectFilesOperator._internal, "readJsonGreedy");
-    globStub = sinon.stub();
-    promisifyStub = sinon.stub(projectFilesOperator._internal, "promisify").returns(globStub);
+    globStub = sinon.stub(projectFilesOperator._internal, "glob");
   });
 
   afterEach(()=>{

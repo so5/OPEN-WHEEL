@@ -136,16 +136,13 @@ describe("#getThreeGenerationFamily", ()=>{
 });
 
 describe("#getChildren", ()=>{
-  const glob = ()=>{};
   let globMock;
   const componentJsonFilename = "component.json";
 
   beforeEach(()=>{
     sinon.stub(_internal, "getComponentDir");
     sinon.stub(_internal, "readJsonGreedy");
-    globMock = sinon.stub();
-    sinon.stub(_internal, "promisify").returns(globMock);
-    sinon.stub(_internal, "glob").value(glob);
+    globMock = sinon.stub(_internal, "glob");
     sinon.stub(_internal, "path").value(require("path"));
     sinon.stub(_internal, "componentJsonFilename").value(componentJsonFilename);
   });
@@ -161,7 +158,6 @@ describe("#getChildren", ()=>{
     expect(result).to.be.an("array").that.is.empty;
 
     expect(_internal.getComponentDir.calledOnceWithExactly("/some/project", "parentID", true)).to.be.true;
-    expect(_internal.promisify.notCalled).to.be.true;
     expect(globMock.notCalled).to.be.true;
   });
 
@@ -173,7 +169,6 @@ describe("#getChildren", ()=>{
     expect(result).to.be.an("array").that.is.empty;
 
     const expectedGlobPath = require("path").join("/path/to/component", "*", componentJsonFilename);
-    expect(_internal.promisify.calledOnce).to.be.true;
     expect(globMock.calledOnceWithExactly(expectedGlobPath)).to.be.true;
   });
 

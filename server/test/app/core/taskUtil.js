@@ -20,10 +20,8 @@ describe("UT for taskUtil class", function() {
     let cancelStub, killTaskStub;
     beforeEach(()=>{
       sinon.restore();
-      cancelStub = sinon.stub();
-      killTaskStub = sinon.stub();
-      _internal.cancel = cancelStub;
-      _internal.killTask = killTaskStub;
+      cancelStub = sinon.stub(_internal, "cancel");
+      killTaskStub = sinon.stub(_internal, "killTask");
     });
     afterEach(()=>{
       sinon.restore();
@@ -82,12 +80,9 @@ describe("UT for taskUtil class", function() {
   describe("#killTask", ()=>{
     let cancelLocalJobStub, killLocalProcessStub, cancelRemoteJobStub;
     beforeEach(()=>{
-      cancelLocalJobStub = sinon.stub();
-      killLocalProcessStub = sinon.stub();
-      cancelRemoteJobStub = sinon.stub();
-      _internal.cancelLocalJob = cancelLocalJobStub;
-      _internal.killLocalProcess = killLocalProcessStub;
-      _internal.cancelRemoteJob = cancelRemoteJobStub;
+      cancelLocalJobStub = sinon.stub(_internal, "cancelLocalJob");
+      killLocalProcessStub = sinon.stub(_internal, "killLocalProcess");
+      cancelRemoteJobStub = sinon.stub(_internal, "cancelRemoteJob");
     });
     afterEach(()=>{
       sinon.restore();
@@ -152,25 +147,19 @@ describe("UT for taskUtil class", function() {
         remotehostID: "host1",
         name: "testTask"
       };
-      getSshStub = sinon.stub();
-      getSshHostinfoStub = sinon.stub();
       sshStub = {
         exec: sinon.stub().resolves()
       };
-      getSshStub.returns(sshStub);
-      getSshHostinfoStub.returns({
+      getSshStub = sinon.stub(_internal, "getSsh").returns(sshStub);
+      getSshHostinfoStub = sinon.stub(_internal, "getSshHostinfo").returns({
         jobScheduler: "SLURM"
       });
-      _internal.getSsh = getSshStub;
-      _internal.getSshHostinfo = getSshHostinfoStub;
       _internal.jobScheduler = jobScheduler;
       jobScheduler.SLURM = { del: "scancel" };
       loggerStub = {
         debug: sinon.stub()
       };
-      getLoggerStub = sinon.stub();
-      getLoggerStub.returns(loggerStub);
-      _internal.getLogger = getLoggerStub;
+      getLoggerStub = sinon.stub(_internal, "getLogger").returns(loggerStub);
     });
     afterEach(()=>{
       sinon.restore();

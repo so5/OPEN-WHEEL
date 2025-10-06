@@ -11,14 +11,12 @@ const path = require("path");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
 describe("#getSourceComponents", ()=>{
-  let promisifyStub;
   let globStub;
   let readJsonGreedyStub;
   const mockProjectRootDir = "/mock/project/root";
 
   beforeEach(()=>{
-    globStub = sinon.stub();
-    promisifyStub = sinon.stub(projectFilesOperator._internal, "promisify").returns(globStub);
+    globStub = sinon.stub(projectFilesOperator._internal, "glob");
     readJsonGreedyStub = sinon.stub(projectFilesOperator._internal, "readJsonGreedy");
   });
 

@@ -18,13 +18,9 @@ describe("#removeFileLinkToParent", ()=>{
   beforeEach(()=>{
     removeFileLinkToParent = projectFilesOperator._internal.removeFileLinkToParent;
 
-    getComponentDirMock = sinon.stub();
-    readComponentJsonMock = sinon.stub();
-    writeComponentJsonMock = sinon.stub().resolves();
-
-    projectFilesOperator._internal.getComponentDir = getComponentDirMock;
-    projectFilesOperator._internal.readComponentJson = readComponentJsonMock;
-    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
+    getComponentDirMock = sinon.stub(projectFilesOperator._internal, "getComponentDir");
+    readComponentJsonMock = sinon.stub(projectFilesOperator._internal, "readComponentJson");
+    writeComponentJsonMock = sinon.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
   });
 
   afterEach(()=>{

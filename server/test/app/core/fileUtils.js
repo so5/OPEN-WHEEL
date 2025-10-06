@@ -305,15 +305,10 @@ describe("#openFile", ()=>{
       readFile: sinon.stub(),
       ensureFile: sinon.stub()
     };
-    //logger のスタブ
-    loggerMock = { warn: sinon.stub() };
-    getLoggerMock = sinon.stub().returns(loggerMock);
-    //readJsonGreedy のスタブ
-    readJsonGreedyMock = sinon.stub();
-
     sinon.replace(_internal, "fs", fsMock);
-    sinon.replace(_internal, "getLogger", getLoggerMock);
-    sinon.replace(_internal, "readJsonGreedy", readJsonGreedyMock);
+    loggerMock = { warn: sinon.stub() };
+    getLoggerMock = sinon.stub(_internal, "getLogger").returns(loggerMock);
+    readJsonGreedyMock = sinon.stub(_internal, "readJsonGreedy");
   });
 
   afterEach(()=>{

@@ -18,13 +18,9 @@ describe("#setComponentStateR", ()=>{
   beforeEach(()=>{
     setComponentStateR = projectFilesOperator._internal.setComponentStateR;
 
-    globMock = sinon.stub();
-    readJsonGreedyMock = sinon.stub();
-    writeComponentJsonMock = sinon.stub();
-
-    projectFilesOperator._internal.promisify = ()=>{ return globMock; };
-    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
-    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
+    globMock = sinon.stub(projectFilesOperator._internal, "glob");
+    readJsonGreedyMock = sinon.stub(projectFilesOperator._internal, "readJsonGreedy");
+    writeComponentJsonMock = sinon.stub(projectFilesOperator._internal, "writeComponentJson");
   });
 
   afterEach(()=>{

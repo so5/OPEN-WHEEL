@@ -312,7 +312,7 @@ _internal.readProject = async function(projectRootDir) {
   return projectRootDir;
 };
 _internal.setComponentStateR = async function(projectRootDir, dir, state, doNotAdd = false, ignoreStates = []) {
-  const filenames = await _internal.promisify(_internal.glob)(_internal.path.join(dir, "**", _internal.componentJsonFilename));
+  const filenames = await _internal.glob(_internal.path.join(dir, "**", _internal.componentJsonFilename));
   filenames.push(_internal.path.join(dir, _internal.componentJsonFilename));
   if (!ignoreStates.includes(state)) {
     ignoreStates.push(state);
@@ -659,7 +659,7 @@ _internal.getChildren = async function(projectRootDir, parentID, isParentDir) {
   if (!dir) {
     return [];
   }
-  const children = await _internal.promisify(_internal.glob)(_internal.path.join(dir, "*", _internal.componentJsonFilename));
+  const children = await _internal.glob(_internal.path.join(dir, "*", _internal.componentJsonFilename));
   if (children.length === 0) {
     return [];
   }
@@ -1197,7 +1197,7 @@ _internal.removeComponent = async function(projectRootDir, ID) {
   return _internal.removeComponentPath(projectRootDir, descendantsIDs);
 };
 _internal.getSourceComponents = async function(projectRootDir) {
-  const componentJsonFiles = await _internal.promisify(_internal.glob)(_internal.path.join(projectRootDir, "**", _internal.componentJsonFilename));
+  const componentJsonFiles = await _internal.glob(_internal.path.join(projectRootDir, "**", _internal.componentJsonFilename));
   const components = await Promise.all(componentJsonFiles
     .map((componentJsonFile)=>{
       return _internal.readJsonGreedy(componentJsonFile);

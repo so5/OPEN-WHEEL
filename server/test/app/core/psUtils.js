@@ -51,8 +51,7 @@ describe("UT for psUtils class", function() {
     let nunjucksStub;
     beforeEach(()=>{
       mockLogger = { trace: sinon.stub() };
-      globStub = sinon.stub().resolves(["source.txt"]);
-      sinon.stub(_internal, "promisify").callsFake(()=>globStub);
+      globStub = sinon.stub(_internal, "glob").resolves(["source.txt"]);
       fsCopyStub = sinon.stub(_internal.fs, "copy").resolves();
       nunjucksStub = sinon.stub(_internal.nunjucks, "renderString");
     });
@@ -107,9 +106,8 @@ describe("UT for psUtils class", function() {
     let rsyncStub;
     let mockLogger;
     beforeEach(()=>{
-      globStub = sinon.stub().resolves(["file1.txt", "file2.txt"]);
+      globStub = sinon.stub(_internal, "glob").resolves(["file1.txt", "file2.txt"]);
       mockLogger = { trace: sinon.stub() };
-      sinon.stub(_internal, "promisify").callsFake(()=>globStub);
       nunjucksStub = sinon.stub(_internal.nunjucks, "renderString");
       fsCopyStub = sinon.stub(_internal.fs, "copy").resolves();
       rsyncStub = sinon.stub(_internal, "overwriteByRsync").resolves();
@@ -224,8 +222,7 @@ describe("UT for psUtils class", function() {
   describe("#getScatterFilesV2", ()=>{
     let globStub;
     beforeEach(()=>{
-      globStub = sinon.stub();
-      sinon.stub(_internal, "promisify").callsFake(()=>globStub);
+      globStub = sinon.stub(_internal, "glob");
     });
     afterEach(()=>{
       sinon.restore();

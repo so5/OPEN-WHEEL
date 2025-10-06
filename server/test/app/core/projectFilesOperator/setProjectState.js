@@ -21,15 +21,10 @@ describe("#setProjectState", ()=>{
   beforeEach(()=>{
     setProjectState = projectFilesOperator._internal.setProjectState;
 
-    readJsonGreedyMock = sinon.stub();
-    writeJsonWrapperMock = sinon.stub();
-    gitAddMock = sinon.stub();
-    getDateStringMock = sinon.stub().returns("20250101-123456");
-
-    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
-    projectFilesOperator._internal.writeJsonWrapper = writeJsonWrapperMock;
-    projectFilesOperator._internal.gitAdd = gitAddMock;
-    projectFilesOperator._internal.getDateString = getDateStringMock;
+    readJsonGreedyMock = sinon.stub(projectFilesOperator._internal, "readJsonGreedy");
+    writeJsonWrapperMock = sinon.stub(projectFilesOperator._internal, "writeJsonWrapper");
+    gitAddMock = sinon.stub(projectFilesOperator._internal, "gitAdd");
+    getDateStringMock = sinon.stub(projectFilesOperator._internal, "getDateString").returns("20250101-123456");
   });
 
   afterEach(()=>{

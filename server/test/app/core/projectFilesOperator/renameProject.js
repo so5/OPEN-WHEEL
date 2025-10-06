@@ -14,37 +14,23 @@ const projectFilesOperator = require("../../../../app/core/projectFilesOperator.
 describe("#renameProject", ()=>{
   let renameProject;
   let isValidNameMock;
-  let fsMock;
   let readJsonGreedyMock;
   let writeProjectJsonMock;
   let writeComponentJsonMock;
   let gitCommitMock;
-  let projectListMock;
 
   beforeEach(()=>{
     renameProject = projectFilesOperator._internal.renameProject;
 
-    isValidNameMock = sinon.stub();
-    fsMock = {
-      move: sinon.stub(),
-      pathExists: sinon.stub()
-    };
-    readJsonGreedyMock = sinon.stub();
-    writeProjectJsonMock = sinon.stub();
-    writeComponentJsonMock = sinon.stub();
-    gitCommitMock = sinon.stub();
-    projectListMock = {
-      get: sinon.stub(),
-      update: sinon.stub()
-    };
-
-    projectFilesOperator._internal.isValidName = isValidNameMock;
-    projectFilesOperator._internal.fs = fsMock;
-    projectFilesOperator._internal.readJsonGreedy = readJsonGreedyMock;
-    projectFilesOperator._internal.writeProjectJson = writeProjectJsonMock;
-    projectFilesOperator._internal.writeComponentJson = writeComponentJsonMock;
-    projectFilesOperator._internal.gitCommit = gitCommitMock;
-    projectFilesOperator._internal.projectList = projectListMock;
+    isValidNameMock = sinon.stub(projectFilesOperator._internal, "isValidName");
+    sinon.stub(projectFilesOperator._internal.fs, "move").resolves();
+    sinon.stub(projectFilesOperator._internal.fs, "pathExists").resolves(false);
+    readJsonGreedyMock = sinon.stub(projectFilesOperator._internal, "readJsonGreedy");
+    writeProjectJsonMock = sinon.stub(projectFilesOperator._internal, "writeProjectJson");
+    writeComponentJsonMock = sinon.stub(projectFilesOperator._internal, "writeComponentJson");
+    gitCommitMock = sinon.stub(projectFilesOperator._internal, "gitCommit");
+    sinon.stub(projectFilesOperator._internal.projectList, "get");
+    sinon.stub(projectFilesOperator._internal.projectList, "update");
   });
 
   afterEach(()=>{
@@ -61,26 +47,26 @@ describe("#renameProject", ()=>{
     const mockProjectListEntry = { id: mockId, path: mockOldDir };
 
     isValidNameMock.returns(true);
-    fsMock.pathExists.resolves(false);
-    fsMock.move.resolves();
+    projectFilesOperator._internal.fs.pathExists.resolves(false);
+    projectFilesOperator._internal.fs.move.resolves();
     readJsonGreedyMock.onCall(0).resolves(mockProjectJson);
     readJsonGreedyMock.onCall(1).resolves(mockRootWorkflow);
     writeProjectJsonMock.resolves();
     writeComponentJsonMock.resolves();
     gitCommitMock.resolves();
-    projectListMock.get.returns(mockProjectListEntry);
+    projectFilesOperator._internal.projectList.get.returns(mockProjectListEntry);
 
     await renameProject(mockId, mockNewName, mockOldDir);
 
     expect(isValidNameMock.calledOnceWithExactly(mockNewName)).to.be.true;
-    expect(fsMock.pathExists.calledOnceWithExactly(`${mockNewDir}.wheel`)).to.be.true;
-    expect(fsMock.move.calledOnceWithExactly(mockOldDir, `${mockNewDir}.wheel`)).to.be.true;
+    expect(projectFilesOperator._internal.fs.pathExists.calledOnceWithExactly(`${mockNewDir}.wheel`)).to.be.true;
+    expect(projectFilesOperator._internal.fs.move.calledOnceWithExactly(mockOldDir, `${mockNewDir}.wheel`)).to.be.true;
     expect(readJsonGreedyMock.calledTwice).to.be.true;
     expect(writeProjectJsonMock.calledOnce).to.be.true;
     expect(writeComponentJsonMock.calledOnce).to.be.true;
     expect(gitCommitMock.calledOnce).to.be.true;
-    expect(projectListMock.get.calledOnceWithExactly(mockId)).to.be.true;
-    expect(projectListMock.update.calledOnceWithExactly({ id: mockId, path: `${mockNewDir}.wheel` })).to.be.true;
+    expect(projectFilesOperator._internal.projectList.get.calledOnceWithExactly(mockId)).to.be.true;
+    expect(projectFilesOperator._internal.projectList.update.calledOnceWithExactly({ id: mockId, path: `${mockNewDir}.wheel` })).to.be.true;
   });
 
   it("should throw an error if the new name is invalid", async ()=>{
@@ -106,7 +92,7 @@ describe("#renameProject", ()=>{
     const mockNewDir = "/old/project/existingProjectName";
 
     isValidNameMock.returns(true);
-    fsMock.pathExists.withArgs(`${mockNewDir}.wheel`).resolves(true);
+    projectFilesOperator._internal.fs.pathExists.withArgs(`${mockNewDir}.wheel`).resolves(true);
 
     try {
       await renameProject(mockId, mockNewName, mockOldDir);
@@ -124,17 +110,17 @@ describe("#renameProject", ()=>{
     const mockNewDir = "/old/project/validProjectName";
 
     isValidNameMock.returns(true);
-    fsMock.pathExists.resolves(false);
-    fsMock.move.rejects(new Error("File system error"));
+    projectFilesOperator._internal.fs.pathExists.resolves(false);
+    projectFilesOperator._internal.fs.move.rejects(new Error("File system error"));
 
     try {
       await renameProject(mockId, mockNewName, mockOldDir);
       throw new Error("Expected renameProject to throw");
     } catch (err) {
       expect(err.message).to.equal("File system error");
-      expect(fsMock.pathExists.calledOnceWithExactly(`${mockNewDir}.wheel`)).to.be.true;
+      expect(projectFilesOperator._internal.fs.pathExists.calledOnceWithExactly(`${mockNewDir}.wheel`)).to.be.true;
       expect(isValidNameMock.calledOnceWithExactly(mockNewName)).to.be.true;
-      expect(fsMock.move.calledOnceWithExactly(mockOldDir, `${mockNewDir}.wheel`)).to.be.true;
+      expect(projectFilesOperator._internal.fs.move.calledOnceWithExactly(mockOldDir, `${mockNewDir}.wheel`)).to.be.true;
     }
   });
 });

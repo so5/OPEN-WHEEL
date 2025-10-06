@@ -14,42 +14,42 @@ const chai = require("chai");
 const expect = chai.expect;
 chai.use(require("chai-fs"));
 chai.use(require("chai-as-promised"));
+const sinon = require("sinon");
 
 //helper
 const { updateComponent, createNewComponent, createNewProject, readProject, _internal } = require("../../../app/core/projectFilesOperator.js");
 const { gitAdd, gitRm, gitStatus, gitCommit } = require("../../../app/core/gitOperator2.js");
 const { componentJsonFilename, projectJsonFilename } = require("../../../app/db/db.js");
 
-//testee
-let onList = false;
-_internal.projectList.query = ()=>{
-  return onList;
-};
-_internal.projectList.write = ()=>{};
-
-////for debug
-//_internal.getLogger = ()=>{return {
-//trace: console.log.bind(console),
-//debug: console.log.bind(console),
-//info: console.log.bind(console),
-//warn: console.log.bind(console),
-//error: console.log.bind(console)
-//}})
-
 //test data
 const testDirRoot = path.resolve("./", "WHEEL_TEST_TMP");
 const projectRootDir = path.resolve(testDirRoot, "test_project.wheel");
 
-describe("readProject UT", function () {
+describe("readProject UT", function() {
   this.timeout(10000);
   let task0;
+  const onList = false;
+
   beforeEach(async ()=>{
+    const globStub = sinon.stub(_internal, "glob");
+    sinon.stub(_internal.projectList, "query").returns(onList);
+    sinon.stub(_internal.projectList, "write");
     await fs.remove(testDirRoot);
     await createNewProject(projectRootDir, "test_project", null, "test", "test@example.com");
     task0 = await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
-    await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
-    await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
+    const task1 = await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
+    const task2 = await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
     await gitCommit(projectRootDir);
+    globStub.withArgs(`./**/${componentJsonFilename}`, { cwd: projectRootDir }).resolves([
+      path.join(task0.name, componentJsonFilename),
+      path.join(task1.name, componentJsonFilename),
+      path.join(task2.name, componentJsonFilename),
+      componentJsonFilename
+    ]);
+    globStub.resolves([]);
+  });
+  afterEach(()=>{
+    sinon.restore();
   });
   after(async ()=>{
     if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {

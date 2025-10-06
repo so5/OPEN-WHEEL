@@ -33,7 +33,7 @@ async function getScatterFilesV2(templateRoot, paramSettings) {
   const srcNames = await Promise.all(
     paramSettings.scatter
       .map((e)=>{
-        return _internal.promisify(_internal.glob)(e.srcName, { cwd: templateRoot });
+        return _internal.glob(e.srcName, { cwd: templateRoot });
       })
   );
   return Array.prototype.concat.apply([], srcNames);
@@ -71,7 +71,7 @@ async function scatterFilesV2(templateRoot, instanceRoot, scatterRecipe, params,
   const p = [];
   for (const recipe of scatterRecipe) {
     const srcName = _internal.nunjucks.renderString(recipe.srcName, params);
-    const srces = await _internal.promisify(_internal.glob)(srcName, { cwd: templateRoot });
+    const srces = await _internal.glob(srcName, { cwd: templateRoot });
     const dstDir = Object.prototype.hasOwnProperty.call(recipe, "dstNode") ? path.join(instanceRoot, recipe.dstNode) : instanceRoot;
     const dstName = _internal.nunjucks.renderString(recipe.dstName, params);
     for (const src of srces) {
@@ -107,7 +107,7 @@ async function gatherFilesV2(templateRoot, instanceRoot, gatherRecipe, params, l
   for (const recipe of gatherRecipe) {
     const srcDir = Object.prototype.hasOwnProperty.call(recipe, "srcNode") ? path.join(instanceRoot, recipe.srcNode) : instanceRoot;
     const srcName = _internal.nunjucks.renderString(recipe.srcName, params);
-    const srces = await _internal.promisify(_internal.glob)(srcName, { cwd: srcDir });
+    const srces = await _internal.glob(srcName, { cwd: srcDir });
     const dstName = _internal.nunjucks.renderString(recipe.dstName, params);
     for (const src of srces) {
       const dst = recipe.dstName.endsWith("/") || recipe.dstName.endsWith("\\") ? path.join(templateRoot, dstName.slice(0, -1), src) : path.join(templateRoot, dstName);
