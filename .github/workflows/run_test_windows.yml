@@ -34,4 +34,4 @@ jobs:
           echo '  "readyTimeout": 5000'
           echo '}]'
           } > ${WHEEL_CONFIG_DIR}/remotehost.json
-          docker compose -f compose.yml -f compose.ci.yml run --build wheel_release_test
+          docker compose run --build wheel_release_test
