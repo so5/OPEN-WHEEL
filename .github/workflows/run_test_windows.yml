@@ -12,9 +12,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Pull base image
-        shell: bash
-        run: docker pull --platform linux/amd64 node:22-slim
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Run tests in docker-compose
         shell: bash
         run: |
