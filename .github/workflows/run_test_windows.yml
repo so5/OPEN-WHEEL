@@ -13,6 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Pull base image
+        shell: bash
         run: docker pull --platform linux/amd64 node:22-slim
       - name: Run tests in docker-compose
         shell: bash
