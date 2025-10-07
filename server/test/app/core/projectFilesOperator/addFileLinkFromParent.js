@@ -82,4 +82,28 @@ describe("#addFileLinkFromParent", ()=>{
     expect(childJson.inputFiles[0].src).to.have.lengthOf(1);
     expect(writeComponentJsonStub.calledTwice).to.be.true;
   });
+
+  it("should handle cases where parent inputFiles does not exist", async ()=>{
+    const parentJson = {
+      ID: "parentID"
+    };
+    const childJson = {
+      ID: dstNode,
+      inputFiles: []
+    };
+
+    getComponentDirStub.withArgs(projectRootDir, dstNode, true).resolves(dstDir);
+    pathDirnameStub.withArgs(dstDir).returns(parentDir);
+    readComponentJsonStub.withArgs(parentDir).resolves(parentJson);
+    readComponentJsonStub.withArgs(dstDir).resolves(childJson);
+
+    await projectFilesOperator._internal.addFileLinkFromParent(projectRootDir, srcName, dstNode, dstName);
+
+    expect(parentJson.inputFiles[0].forwardTo).to.deep.include({ dstNode, dstName });
+    expect(childJson.inputFiles).to.deep.include({
+      name: dstName,
+      src: [{ srcNode: "parentID", srcName }]
+    });
+    expect(writeComponentJsonStub.calledTwice).to.be.true;
+  });
 });

@@ -244,4 +244,62 @@ describe("#runProject with nested components", function () {
           });
         });
     });
+    describe("check ancestors prop in task component", ()=>{
+      beforeEach(async ()=>{
+        const for0 = await createNewComponent(projectRootDir, projectRootDir, "for", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, for0.ID, "start", 0);
+        await updateComponent(projectRootDir, for0.ID, "end", 1);
+        await updateComponent(projectRootDir, for0.ID, "step", 1);
+
+        const while0 = await createNewComponent(projectRootDir, path.join(projectRootDir, "for0"), "while", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, while0.ID, "condition", "WHEEL_CURRENT_INDEX < 2");
+        await createNewComponent(projectRootDir, path.join(projectRootDir, "for0", "while0"), "workflow", { x: 10, y: 10 });
+        const ps0 = await createNewComponent(projectRootDir, path.join(projectRootDir, "for0", "while0", "workflow0"), "PS", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, ps0.ID, "parameterFile", "input.txt.json");
+        await fs.outputFile(path.join(projectRootDir, "for0", "while0", "workflow0", "PS0", "input.txt"), "%%KEYWORD1%%");
+        const parameterSetting = {
+          version: 2,
+          target_file: "input.txt",
+          target_param: [
+            {
+              target: "hoge",
+              keyword: "KEYWORD1",
+              type: "integer",
+              min: 1,
+              max: 2,
+              step: 1,
+              list: ""
+            }
+          ]
+        };
+        await fs.writeJson(path.join(projectRootDir, "for0", "while0", "workflow0", "PS0", "input.txt.json"), parameterSetting, { spaces: 4 });
+
+        const foreach0 = await createNewComponent(projectRootDir, path.join(projectRootDir, "for0", "while0", "workflow0", "PS0"), "foreach", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, foreach0.ID, "indexList", ["foo", "bar"]);
+
+        const task0 = await createNewComponent(projectRootDir, path.join(projectRootDir, "for0", "while0", "workflow0", "PS0", "foreach0"), "task", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, task0.ID, "script", scriptName);
+        await fs.outputFile(path.join(projectRootDir, "for0", "while0", "workflow0", "PS0", "foreach0", "task0", scriptName), scriptPwd);
+      });
+      it("should have acestors name and type in task object", async ()=>{
+        await runProject(projectRootDir);
+
+        for (const i1 of ["for0_0", "for0_1"]) {
+          for (const i2 of ["while0_0", "while0_1"]) {
+            for (const i3 of ["PS0_KEYWORD1_1", "PS0_KEYWORD1_2"]) {
+              for (const i4 of ["foreach0_foo", "foreach0_bar"]) {
+                expect(path.resolve(projectRootDir, i1, i2, "workflow0", i3, i4, "task0", componentJsonFilename)).to.be.a.file().with.json.using.schema({
+                  required: ["state", "ancestorsName", "ancestorsType"],
+                  properties: {
+                    state: { enum: ["finished"] },
+                    ancestorsName: { type: "string", enum: [`${i1}/${i2}/workflow0/${i3}/${i4}`] },
+                    ancestorsType: { type: "string", enum: ["for/while/workflow/parameterStudy/foreach"] }
+                  }
+                });
+              }
+            }
+          }
+        }
+      });
+    });
 });

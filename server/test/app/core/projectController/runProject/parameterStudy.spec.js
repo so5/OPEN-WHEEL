@@ -221,4 +221,53 @@ describe("#runProject with parameter study component", function () {
           });
         });
     });
+    describe("with deleteLoopInstance option", ()=>{
+      let ps0;
+      beforeEach(async ()=>{
+        ps0 = await createNewComponent(projectRootDir, projectRootDir, "PS", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, ps0.ID, "parameterFile", "input.txt.json");
+        await fs.outputFile(path.join(projectRootDir, "PS0", "input.txt"), "%%KEYWORD1%%");
+        const parameterSetting = {
+          version: 2,
+          target_file: "input.txt",
+          target_param: [
+            {
+              target: "hoge",
+              keyword: "KEYWORD1",
+              type: "integer",
+              min: 1,
+              max: 3,
+              step: 1,
+              list: ""
+            }
+          ]
+        };
+        await fs.writeJson(path.join(projectRootDir, "PS0", "input.txt.json"), parameterSetting, { spaces: 4 });
+
+        const task0 = await createNewComponent(projectRootDir, path.join(projectRootDir, "PS0"), "task", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, task0.ID, "script", scriptName);
+        await fs.outputFile(path.join(projectRootDir, "PS0", "task0", scriptName), scriptPwd);
+        await updateComponent(projectRootDir, ps0.ID, "deleteLoopInstance", true);
+      });
+      it("should delete all loop instance", async ()=>{
+        await runProject(projectRootDir);
+        expect(path.resolve(projectRootDir, `${ps0.name}_KEYWORD1_1`)).not.to.be.a.path();
+        expect(path.resolve(projectRootDir, `${ps0.name}_KEYWORD1_2`)).not.to.be.a.path();
+        expect(path.resolve(projectRootDir, `${ps0.name}_KEYWORD1_3`)).not.to.be.a.path();
+        expect(path.resolve(projectRootDir, ps0.name, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+          properties: {
+            numFinishd: {
+              type: "integer",
+              minimum: 3,
+              maximum: 3
+            },
+            numTotal: {
+              type: "integer",
+              minimum: 3,
+              maximum: 3
+            }
+          }
+        });
+      });
+    });
 });

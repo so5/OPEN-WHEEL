@@ -202,4 +202,150 @@ describe("#runProject with conditional components", function () {
           });
         });
     });
+    describe("Break", ()=>{
+      let for0;
+      let task0;
+      let task1;
+      let break0;
+      beforeEach(async ()=>{
+        for0 = await createNewComponent(projectRootDir, projectRootDir, "for", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, for0.ID, "start", 0);
+        await updateComponent(projectRootDir, for0.ID, "end", 3);
+        await updateComponent(projectRootDir, for0.ID, "step", 1);
+        task0 = await createNewComponent(projectRootDir, path.join(projectRootDir, for0.name), "task", { x: 10, y: 10 });
+        task1 = await createNewComponent(projectRootDir, path.join(projectRootDir, for0.name), "task", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, task0.ID, "script", scriptName);
+        await updateComponent(projectRootDir, task1.ID, "script", scriptName);
+        await fs.outputFile(path.join(projectRootDir, for0.name, task0.name, scriptName), "echo task0 ${WHEEL_CURRENT_INDEX} >hoge");
+        await fs.outputFile(path.join(projectRootDir, for0.name, task1.name, scriptName), "echo task1 ${WHEEL_CURRENT_INDEX} >hoge");
+        break0 = await createNewComponent(projectRootDir, path.join(projectRootDir, for0.name), "break", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, break0.ID, "condition", "WHEEL_CURRENT_INDEX == 2");
+        await addLink(projectRootDir, task0.ID, break0.ID);
+        await addLink(projectRootDir, break0.ID, task1.ID);
+      });
+      it("should run from 0 to 2 and task1 under for0_2 should not run", async ()=>{
+        await runProject(projectRootDir);
+        expect(path.resolve(projectRootDir, `${for0.name}_0`)).to.be.a.directory();
+        expect(path.resolve(projectRootDir, `${for0.name}_1`)).to.be.a.directory();
+        expect(path.resolve(projectRootDir, `${for0.name}_2`)).to.be.a.directory();
+        expect(path.resolve(projectRootDir, `${for0.name}_3`)).not.to.be.a.path();
+        expect(path.resolve(projectRootDir, `${for0.name}`, task0.name, "hoge")).to.be.a.file().with.content("task0 2\n");
+        expect(path.resolve(projectRootDir, `${for0.name}`, task1.name, "hoge")).to.be.a.file().with.content("task1 1\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_0`, task0.name, "hoge")).to.be.a.file().with.content("task0 0\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_0`, task1.name, "hoge")).to.be.a.file().with.content("task1 0\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_1`, task0.name, "hoge")).to.be.a.file().with.content("task0 1\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_1`, task1.name, "hoge")).to.be.a.file().with.content("task1 1\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_2`, task0.name, "hoge")).to.be.a.file().with.content("task0 2\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_2`, task1.name, "hoge")).to.be.a.file().with.content("task1 1\n");
+
+        for (const dir of ["for0_0", "for0_1"]) {
+          expect(path.resolve(projectRootDir, dir, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+            required: ["state"],
+            properties: {
+              state: { enum: ["finished"] }
+            }
+          });
+          expect(path.resolve(projectRootDir, dir, task0.name, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+            required: ["state"],
+            properties: {
+              state: { enum: ["finished"] }
+            }
+          });
+          expect(path.resolve(projectRootDir, dir, task1.name, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+            required: ["state"],
+            properties: {
+              state: { enum: ["finished"] }
+            }
+          });
+        }
+        for (const dir of ["for0", "for0_2"]) {
+          expect(path.resolve(projectRootDir, dir, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+            required: ["state"],
+            properties: {
+              state: { enum: ["finished"] }
+            }
+          });
+          expect(path.resolve(projectRootDir, dir, task0.name, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+            required: ["state"],
+            properties: {
+              state: { enum: ["finished"] }
+            }
+          });
+          expect(path.resolve(projectRootDir, dir, task1.name, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+            required: ["state"],
+            properties: {
+              state: { enum: ["not-started"] }
+            }
+          });
+        }
+      });
+    });
+    describe("Continue", ()=>{
+      let for0;
+      let task0;
+      let task1;
+      let continue0;
+      beforeEach(async ()=>{
+        for0 = await createNewComponent(projectRootDir, projectRootDir, "for", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, for0.ID, "start", 0);
+        await updateComponent(projectRootDir, for0.ID, "end", 3);
+        await updateComponent(projectRootDir, for0.ID, "step", 1);
+        task0 = await createNewComponent(projectRootDir, path.join(projectRootDir, for0.name), "task", { x: 10, y: 10 });
+        task1 = await createNewComponent(projectRootDir, path.join(projectRootDir, for0.name), "task", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, task0.ID, "script", scriptName);
+        await updateComponent(projectRootDir, task1.ID, "script", scriptName);
+        await fs.outputFile(path.join(projectRootDir, for0.name, task0.name, scriptName), "echo task0 ${WHEEL_CURRENT_INDEX} >hoge");
+        await fs.outputFile(path.join(projectRootDir, for0.name, task1.name, scriptName), "echo task1 ${WHEEL_CURRENT_INDEX} >hoge");
+        continue0 = await createNewComponent(projectRootDir, path.join(projectRootDir, for0.name), "continue", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, continue0.ID, "condition", "WHEEL_CURRENT_INDEX == 2");
+        await addLink(projectRootDir, task0.ID, continue0.ID);
+        await addLink(projectRootDir, continue0.ID, task1.ID);
+      });
+      it("should run from 0 to 3 but task1 should be skipped when index=2", async ()=>{
+        await runProject(projectRootDir);
+        expect(path.resolve(projectRootDir, `${for0.name}_0`)).to.be.a.directory();
+        expect(path.resolve(projectRootDir, `${for0.name}_1`)).to.be.a.directory();
+        expect(path.resolve(projectRootDir, `${for0.name}_2`)).to.be.a.directory();
+        expect(path.resolve(projectRootDir, `${for0.name}_3`)).to.be.a.directory();
+        expect(path.resolve(projectRootDir, `${for0.name}`, task0.name, "hoge")).to.be.a.file().with.content("task0 3\n");
+        expect(path.resolve(projectRootDir, `${for0.name}`, task1.name, "hoge")).to.be.a.file().with.content("task1 3\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_0`, task0.name, "hoge")).to.be.a.file().with.content("task0 0\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_0`, task1.name, "hoge")).to.be.a.file().with.content("task1 0\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_1`, task0.name, "hoge")).to.be.a.file().with.content("task0 1\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_1`, task1.name, "hoge")).to.be.a.file().with.content("task1 1\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_2`, task0.name, "hoge")).to.be.a.file().with.content("task0 2\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_2`, task1.name, "hoge")).to.be.a.file().with.content("task1 1\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_3`, task0.name, "hoge")).to.be.a.file().with.content("task0 3\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_3`, task1.name, "hoge")).to.be.a.file().with.content("task1 3\n");
+
+        for (const dir of ["for0", "for0_0", "for0_1", "for0_2", "for0_3"]) {
+          expect(path.resolve(projectRootDir, dir, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+            required: ["state"],
+            properties: {
+              state: { enum: ["finished"] }
+            }
+          });
+          expect(path.resolve(projectRootDir, dir, task0.name, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+            required: ["state"],
+            properties: {
+              state: { enum: ["finished"] }
+            }
+          });
+        }
+        for (const dir of ["for0", "for0_0", "for0_1", "for0_3"]) {
+          expect(path.resolve(projectRootDir, dir, task1.name, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+            required: ["state"],
+            properties: {
+              state: { enum: ["finished"] }
+            }
+          });
+        }
+        expect(path.resolve(projectRootDir, "for0_2", task1.name, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+          required: ["state"],
+          properties: {
+            state: { enum: ["not-started"] }
+          }
+        });
+      });
+    });
 });

@@ -538,9 +538,18 @@ _internal.addFileLinkFromParent = async function (projectRootDir, srcName, dstNo
   const parentDir = _internal.path.dirname(dstDir);
   const parentJson = await _internal.readComponentJson(parentDir);
   const parentID = parentJson.ID;
-  const parentInputFile = parentJson.inputFiles.find((e)=>{
+
+  if (!Object.prototype.hasOwnProperty.call(parentJson, "inputFiles")) {
+    parentJson.inputFiles = [];
+  }
+  let parentInputFile = parentJson.inputFiles.find((e)=>{
     return e.name === srcName;
   });
+  if (typeof parentInputFile === "undefined") {
+    parentInputFile = { name: srcName, forwardTo: [] };
+    parentJson.inputFiles.push(parentInputFile);
+  }
+
   if (!Object.prototype.hasOwnProperty.call(parentInputFile, "forwardTo")) {
     parentInputFile.forwardTo = [];
   }
@@ -565,9 +574,7 @@ _internal.addFileLinkBetweenSiblings = async function (projectRootDir, srcNode, 
   const srcOutputFile = srcJson.outputFiles.find((e)=>{
     return e.name === srcName;
   });
-  if (!srcOutputFile.dst.some((e)=>{ return e.dstNode === dstNode && e.dstName === dstName; })) {
-    srcOutputFile.dst.push({ dstNode, dstName });
-  }
+  srcOutputFile.dst.push({ dstNode, dstName });
   const p1 = _internal.writeComponentJson(projectRootDir, srcDir, srcJson);
   const dstDir = await _internal.getComponentDir(projectRootDir, dstNode, true);
   const dstJson = await _internal.readComponentJson(dstDir);
@@ -576,7 +583,7 @@ _internal.addFileLinkBetweenSiblings = async function (projectRootDir, srcNode, 
   });
   if (typeof dstInputFile === "undefined") {
     dstJson.inputFiles.push({ name: dstName, src: [{ srcNode, srcName }] });
-  } else if (!dstInputFile.src.some((e)=>{ return e.srcNode === srcNode && e.srcName === srcName; })) {
+  } else {
     dstInputFile.src.push({ srcNode, srcName });
   }
   await p1;

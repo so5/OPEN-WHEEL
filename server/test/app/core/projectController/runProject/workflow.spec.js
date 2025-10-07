@@ -18,6 +18,7 @@ chai.use(require("chai-json-schema"));
 
 const { runProject } = require("../../../../../app/core/projectController.js");
 const { eventEmitters } = require("../../../../../app/core/global.js");
+const projectFilesOperator = require("../../../../../app/core/projectFilesOperator.js");
 const { _internal: gitOpe2Internal } = require("../../../../../app/core/gitOperator2.js");
 
 //test data
@@ -236,5 +237,37 @@ describe("#runProject with workflows", function () {
           expect(path.resolve(projectRootDir, "wf0", "e")).not.to.be.a.path();
           expect(path.resolve(projectRootDir, "parentTask1", "f")).to.be.a.file().with.contents("a");
         });
+    });
+    describe("[reproduction test] root workflow has only source and connected for loop", ()=>{
+      let task0;
+      let for0;
+      let source0;
+      beforeEach(async ()=>{
+        source0 = await createNewComponent(projectRootDir, projectRootDir, "source", { x: 10, y: 10 });
+        await projectFilesOperator.renameOutputFile(projectRootDir, source0.ID, 0, "foo");
+
+        for0 = await createNewComponent(projectRootDir, projectRootDir, "for", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, for0.ID, "start", 0);
+        await updateComponent(projectRootDir, for0.ID, "end", 2);
+        await updateComponent(projectRootDir, for0.ID, "step", 1);
+        await addInputFile(projectRootDir, for0.ID, "foo");
+
+        task0 = await createNewComponent(projectRootDir, path.join(projectRootDir, for0.name), "task", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, task0.ID, "script", scriptName);
+        await addInputFile(projectRootDir, task0.ID, "foo");
+        await fs.outputFile(path.join(projectRootDir, for0.name, task0.name, scriptName), "echo hoge ${WHEEL_CURRENT_INDEX} > hoge");
+        await gitOpe2Internal.gitAdd(projectRootDir, path.join(projectRootDir, for0.name, task0.name, scriptName));
+
+        await addFileLink(projectRootDir, source0.ID, "foo", for0.ID, "foo");
+        await addFileLink(projectRootDir, for0.ID, "foo", task0.ID, "foo");
+        await gitOpe2Internal.gitCommit(projectRootDir, "hoge");
+      });
+      it("should run task0", async ()=>{
+        await runProject(projectRootDir);
+        expect(path.resolve(projectRootDir, for0.name, task0.name, "hoge")).to.be.a.file().with.content("hoge 2\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_0`, task0.name, "hoge")).to.be.a.file().with.content("hoge 0\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_1`, task0.name, "hoge")).to.be.a.file().with.content("hoge 1\n");
+        expect(path.resolve(projectRootDir, `${for0.name}_2`, task0.name, "hoge")).to.be.a.file().with.content("hoge 2\n");
+      });
     });
 });
