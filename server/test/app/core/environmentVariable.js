@@ -170,9 +170,19 @@ describe("UT for environment variables", function () {
 
     state = await runProject(projectRootDir);
   });
-  after(async ()=>{
+  after(async function(){
+    this.timeout(2000);
     if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {
-      await fs.remove(testDirRoot);
+      return new Promise((resolve, reject)=>{
+        setTimeout(async()=>{
+          try {
+            await fs.remove(testDirRoot);
+          } catch (e) {
+            return reject(e);
+          }
+          return resolve();
+        }, 1000);
+      });
     }
   });
   it("should be successfully finished", async ()=>{

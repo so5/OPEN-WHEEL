@@ -60,14 +60,16 @@ const _internal = {
  * @param {string} projectRootDir - project's root path
  * @param {string} state - status
  */
-_internal.updateProjectState = async(projectRootDir, state)=>{
-  const projectJson = await _internal.setProjectState(projectRootDir, state);
-  if (projectJson) {
+_internal.updateProjectState = async(projectRootDir, state, projectJson)=>{
+  const updatedProjectJson = await _internal.setProjectState(projectRootDir, state, false, projectJson);
+  if (updatedProjectJson) {
     const ee = _internal.eventEmitters.get(projectRootDir);
     if (ee) {
-      ee.emit("projectStateChanged", projectJson);
+      ee.emit("projectStateChanged", updatedProjectJson);
     }
+    return updatedProjectJson;
   }
+  return projectJson;
 };
 
 /**
@@ -125,11 +127,11 @@ _internal.runProject = async(projectRootDir)=>{
   }
   _internal.rootDispatchers.set(projectRootDir, rootDispatcher);
 
-  await _internal.updateProjectState(projectRootDir, "running", projectJson);
+  const projectJsonRunning = await _internal.updateProjectState(projectRootDir, "running", projectJson);
   _internal.getLogger(projectRootDir).info("project start");
   rootWF.state = await rootDispatcher.start();
   _internal.getLogger(projectRootDir).info(`project ${rootWF.state}`);
-  await _internal.updateProjectState(projectRootDir, rootWF.state, projectJson);
+  await _internal.updateProjectState(projectRootDir, rootWF.state, projectJsonRunning);
   await _internal.writeComponentJson(projectRootDir, projectRootDir, rootWF, true);
   _internal.rootDispatchers.delete(projectRootDir);
   _internal.removeExecuters(projectRootDir);

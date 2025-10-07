@@ -56,7 +56,7 @@ const _internal = {
   path,
   promisify,
   EventEmitter,
-  glob,
+  glob: promisify(glob),
   hasMagic,
   debounce,
   nunjucks,

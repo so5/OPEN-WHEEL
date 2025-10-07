@@ -15,7 +15,7 @@ const { overwriteByRsync } = require("./rsync.js");
 const _internal = {
   fs,
   promisify,
-  glob,
+  glob: promisify(glob),
   nunjucks,
   overwriteByRsync
 };

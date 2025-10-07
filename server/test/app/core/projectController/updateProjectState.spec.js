@@ -63,7 +63,7 @@ describe("project Controller UT", function() {
           setProjectStateStub.resolves(mockProjectJson);
           eventEmitStub.withArgs(projectRootDir).returns(eventEmitterStub);
           await updateProjectState(projectRootDir, state);
-          sinon.assert.calledOnceWithExactly(setProjectStateStub, projectRootDir, state);
+          sinon.assert.calledOnceWithExactly(setProjectStateStub, projectRootDir, state, false, undefined);
           sinon.assert.calledOnceWithExactly(eventEmitStub, projectRootDir);
           sinon.assert.calledOnceWithExactly(eventEmitterStub.emit, "projectStateChanged", mockProjectJson);
         });
@@ -74,7 +74,7 @@ describe("project Controller UT", function() {
           setProjectStateStub.resolves(mockProjectJson);
           eventEmitStub.withArgs(projectRootDir).returns(undefined);
           await updateProjectState(projectRootDir, state);
-          sinon.assert.calledOnceWithExactly(setProjectStateStub, projectRootDir, state);
+          sinon.assert.calledOnceWithExactly(setProjectStateStub, projectRootDir, state, false, undefined);
           sinon.assert.calledOnceWithExactly(eventEmitStub, projectRootDir);
           sinon.assert.notCalled(eventEmitterStub.emit);
         });
@@ -90,7 +90,7 @@ describe("project Controller UT", function() {
           } catch (error) {
             expect(error.message).to.equal("Failed to update project state");
           }
-          sinon.assert.calledOnceWithExactly(setProjectStateStub, projectRootDir, state);
+          sinon.assert.calledOnceWithExactly(setProjectStateStub, projectRootDir, state, false, undefined);
           sinon.assert.notCalled(eventEmitStub);
           sinon.assert.notCalled(eventEmitterStub.emit);
         });

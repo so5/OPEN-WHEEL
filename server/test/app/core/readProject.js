@@ -40,12 +40,19 @@ describe("readProject UT", function() {
     const task1 = await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
     const task2 = await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
     await gitCommit(projectRootDir);
-    const pattern = `./**/${componentJsonFilename}`;
-    globStub.withArgs(pattern, { cwd: projectRootDir }).resolves([
+    const relativeComponentJsonFiles = [
       path.join(task0.name, componentJsonFilename),
       path.join(task1.name, componentJsonFilename),
       path.join(task2.name, componentJsonFilename)
-    ]);
+    ];
+    const absoluteComponentJsonFiles = relativeComponentJsonFiles.map((e)=>{
+      return path.resolve(projectRootDir, e);
+    });
+    const relativePattern = `./**/${componentJsonFilename}`;
+    const absolutePattern = `${projectRootDir}/**/${componentJsonFilename}`;
+    globStub.withArgs(relativePattern, { cwd: projectRootDir }).resolves(relativeComponentJsonFiles);
+    globStub.withArgs(absolutePattern).resolves(absoluteComponentJsonFiles);
+
     globStub.resolves([]);
   });
   afterEach(()=>{
