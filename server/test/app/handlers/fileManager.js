@@ -25,7 +25,6 @@ const {
 } = require("../../../app/handlers/fileManager.js");
 
 //stubs
-const emit = sinon.stub();
 const cb = sinon.stub();
 
 //helper function
@@ -39,7 +38,6 @@ describe("fileManager UT", ()=>{
     this.timeout(10000);
     await fs.remove(testDirRoot);
     cb.reset();
-    emit.reset();
     await gitInit(testDirRoot, "test user", "testUser@exeample.com");
     await Promise.all([
       fs.ensureDir(path.join(testDirRoot, "foo")),

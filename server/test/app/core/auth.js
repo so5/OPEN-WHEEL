@@ -8,7 +8,7 @@ const { expect } = require("chai");
 const { describe, it, beforeEach, afterEach } = require("mocha");
 const sinon = require("sinon");
 
-// testee
+//testee
 const {
   initialize,
   getHashedPassword,
@@ -28,7 +28,7 @@ describe("#initialize", ()=>{
       exec: sinon.stub().resolves()
     };
     openStub = sinon.stub(_internal, "open").resolves(dbMock);
-    _internal.initialized = false;
+    sinon.replace(_internal, "initialized", false);
   });
 
   afterEach(()=>{
@@ -100,8 +100,8 @@ describe("#addUser", ()=>{
     randomBytesStub = sinon.stub(_internal.crypto, "randomBytes");
     getHashedPasswordStub = sinon.stub(_internal, "getHashedPassword");
     dbRunMock = sinon.stub();
-    _internal.db = { run: dbRunMock };
-    _internal.initialized = false;
+
+    sinon.replace(_internal, "db", { run: dbRunMock });
   });
 
   afterEach(()=>{
@@ -132,7 +132,7 @@ describe("#addUser", ()=>{
   });
 
   it("should skip initialize if already initialized is true and user does not exist", async ()=>{
-    _internal.initialized = true;
+    sinon.replace(_internal, "initialized", true);
     initializeStub.resolves();
     getUserDataStub.resolves(null);
     randomUUIDStub.returns("unique-id-abc");
@@ -151,6 +151,7 @@ describe("#addUser", ()=>{
   it("should throw an error if user already exists", async ()=>{
     initializeStub.resolves();
     getUserDataStub.resolves({ username: "bob" });
+
     try {
       await addUser("bob", "secret2");
       expect.fail("Expected addUser to throw an error, but it did not");
@@ -169,7 +170,7 @@ describe("#getUserData", ()=>{
     dbMock = {
       get: sinon.stub()
     };
-    _internal.db = dbMock;
+    sinon.replace(_internal, "db", dbMock);
   });
   afterEach(()=>{
     sinon.restore();
@@ -230,7 +231,6 @@ describe("#isValidUser", ()=>{
   });
 
   it("should call initialize if not initialized", async ()=>{
-    _internal.initialized = false;
     getUserDataStub.resolves(null);
     const result = await isValidUser("testUser", "testPassword");
     expect(initializeStub.calledOnce).to.be.true;
@@ -239,7 +239,7 @@ describe("#isValidUser", ()=>{
   });
 
   it("should return false if user does not exist", async ()=>{
-    _internal.initialized = true;
+    sinon.replace(_internal, "initialized", true);
     getUserDataStub.resolves(null);
     const result = await isValidUser("notExisting", "somePassword");
     expect(result).to.be.false;
@@ -247,7 +247,7 @@ describe("#isValidUser", ()=>{
   });
 
   it("should return false if password is wrong", async ()=>{
-    _internal.initialized = true;
+    sinon.replace(_internal, "initialized", true);
     getUserDataStub.resolves({
       username: "someUser",
       hashed_password: Buffer.from("correctHash"),
@@ -263,7 +263,7 @@ describe("#isValidUser", ()=>{
   });
 
   it("should return the user row if password is correct", async ()=>{
-    _internal.initialized = true;
+    sinon.replace(_internal, "initialized", true);
     const userRow = {
       username: "someUser",
       hashed_password: Buffer.from("correctHash"),
@@ -289,8 +289,7 @@ describe("#listUser", ()=>{
       all: sinon.stub().resolves([])
     };
     initializeStub = sinon.stub(_internal, "initialize");
-    _internal.db = dbMock;
-    _internal.initialized = false;
+    sinon.replace(_internal, "db", dbMock);
   });
 
   afterEach(()=>{
@@ -306,7 +305,7 @@ describe("#listUser", ()=>{
   });
 
   it("should not call initialize if already initialized", async ()=>{
-    _internal.initialized = true;
+    sinon.replace(_internal, "initialized", true);
     const result = await listUser();
     expect(initializeStub.notCalled).to.be.true;
     expect(dbMock.all.calledOnce).to.be.true;
@@ -338,8 +337,7 @@ describe("#delUser", ()=>{
     dbMock = {
       run: sinon.stub()
     };
-    _internal.db = dbMock;
-    _internal.initialized = true;
+    sinon.replace(_internal, "db", dbMock);
   });
 
   afterEach(()=>{
@@ -348,7 +346,6 @@ describe("#delUser", ()=>{
   });
 
   it("should call initialize if not initialized", async ()=>{
-    _internal.initialized = false;
     dbMock.run.resolves({ changes: 1 });
     await delUser("testUserA");
     expect(initializeStub.calledOnce).to.be.true;
@@ -358,7 +355,7 @@ describe("#delUser", ()=>{
   });
 
   it("should not call initialize if already initialized", async ()=>{
-    _internal.initialized = true;
+    sinon.replace(_internal, "initialized", true);
     dbMock.run.resolves({ changes: 1 });
     await delUser("testUserB");
     expect(initializeStub.notCalled).to.be.true;
@@ -368,6 +365,7 @@ describe("#delUser", ()=>{
   });
 
   it("should return statement object if user exists (changes=1)", async ()=>{
+    sinon.replace(_internal, "initialized", true);
     const statement = { changes: 1 };
     dbMock.run.resolves(statement);
     const result = await delUser("existingUser");
@@ -375,6 +373,7 @@ describe("#delUser", ()=>{
   });
 
   it("should return statement object if user does not exist (changes=0)", async ()=>{
+    sinon.replace(_internal, "initialized", true);
     const statement = { changes: 0 };
     dbMock.run.resolves(statement);
     const result = await delUser("nonExistingUser");

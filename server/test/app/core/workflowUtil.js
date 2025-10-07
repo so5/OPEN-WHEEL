@@ -135,7 +135,7 @@ describe("#getThreeGenerationFamily", ()=>{
   });
 });
 
-describe.only("#getChildren", ()=>{
+describe("#getChildren", ()=>{
   let getComponentDirStub;
   let readJsonGreedyStub;
   let globStub;

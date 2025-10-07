@@ -20,13 +20,12 @@ describe("#pspawn", ()=>{
   let traceStub;
 
   beforeEach(()=>{
-    spawnStub = sinon.stub();
     onStub = sinon.stub();
     stdoutStub = sinon.stub();
     stderrStub = sinon.stub();
     debugStub = sinon.stub();
     traceStub = sinon.stub();
-    sinon.replace(_internal, "childProcess", { spawn: spawnStub });
+    spawnStub = sinon.stub(_internal.childProcess, "spawn");
     sinon.stub(_internal, "getLogger").returns({ debug: debugStub, trace: traceStub });
   });
 
@@ -148,16 +147,12 @@ describe("#evalCondition", ()=>{
   let pspawnStub;
 
   beforeEach(()=>{
-    pathExistsStub = sinon.stub();
     debugStub = sinon.stub();
     warnStub = sinon.stub();
-    addXStub = sinon.stub();
-    pspawnStub = sinon.stub();
-    sinon.replace(_internal, "fs", { pathExists: pathExistsStub });
+    pathExistsStub = sinon.stub(_internal.fs, "pathExists");
     sinon.stub(_internal, "getLogger").returns({ debug: debugStub, warn: warnStub });
-    sinon.replace(_internal, "addX", addXStub);
-    sinon.replace(_internal, "pspawn", pspawnStub);
-    sinon.replace(_internal, "path", require("path"));
+    addXStub = sinon.stub(_internal, "addX");
+    pspawnStub = sinon.stub(_internal, "pspawn");
   });
 
   afterEach(()=>{
@@ -234,12 +229,9 @@ describe("#getRemoteRootWorkingDir", ()=>{
   let replacePathsepStub;
 
   beforeEach(()=>{
-    getIDStub = sinon.stub();
-    getSshHostinfoStub = sinon.stub();
-    replacePathsepStub = sinon.stub();
-    sinon.replace(_internal, "remoteHost", { getID: getIDStub });
-    sinon.replace(_internal, "getSshHostinfo", getSshHostinfoStub);
-    sinon.replace(_internal, "replacePathsep", replacePathsepStub);
+    getIDStub = sinon.stub(_internal.remoteHost, "getID");
+    getSshHostinfoStub = sinon.stub(_internal, "getSshHostinfo");
+    replacePathsepStub = sinon.stub(_internal, "replacePathsep");
   });
 
   afterEach(()=>{
@@ -330,10 +322,8 @@ describe("#getRemoteWorkingDir", ()=>{
   let replacePathsepStub;
 
   beforeEach(()=>{
-    getRemoteRootWorkingDirStub = sinon.stub();
-    replacePathsepStub = sinon.stub();
-    sinon.replace(_internal, "getRemoteRootWorkingDir", getRemoteRootWorkingDirStub);
-    sinon.replace(_internal, "replacePathsep", replacePathsepStub);
+    getRemoteRootWorkingDirStub = sinon.stub(_internal, "getRemoteRootWorkingDir");
+    replacePathsepStub = sinon.stub(_internal, "replacePathsep");
   });
 
   afterEach(()=>{
@@ -413,11 +403,9 @@ describe("#isSubComponent", ()=>{
   let readJsonGreedyStub;
 
   beforeEach(()=>{
-    statStub = sinon.stub();
     isDirectoryStub = sinon.stub();
-    readJsonGreedyStub = sinon.stub();
-    sinon.replace(_internal, "fs", { stat: statStub });
-    sinon.replace(_internal, "readJsonGreedy", readJsonGreedyStub);
+    statStub = sinon.stub(_internal.fs, "stat");
+    readJsonGreedyStub = sinon.stub(_internal, "readJsonGreedy");
   });
 
   afterEach(()=>{

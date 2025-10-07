@@ -10,7 +10,6 @@ const sinon = require("sinon");
 const path = require("path");
 const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
 
-
 describe("#renameComponentDir", ()=>{
   let isValidNameStub;
   let getComponentDirStub;
@@ -27,8 +26,7 @@ describe("#renameComponentDir", ()=>{
     isValidNameStub = sinon.stub(projectFilesOperator._internal, "isValidName");
     getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
     gitRmStub = sinon.stub(projectFilesOperator._internal, "gitRm").resolves();
-    fsMoveStub = sinon.stub().resolves();
-    fsStub=sinon.stub(projectFilesOperator._internal,"fs").value({move: fsMoveStub});
+    fsStub = sinon.stub(projectFilesOperator._internal.fs, "move").resolves();
     gitAddStub = sinon.stub(projectFilesOperator._internal, "gitAdd").resolves();
     updateComponentPathStub = sinon.stub(projectFilesOperator._internal, "updateComponentPath").resolves("updated-path-map");
   });

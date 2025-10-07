@@ -49,14 +49,13 @@ describe("#register", ()=>{
 
   beforeEach(()=>{
     //各Mock定義
-    getSshStub = sinon.stub();
-    getDateStringStub = sinon.stub();
-    getLoggerStub = sinon.stub();
+    getSshStub = sinon.stub(_internal, "getSsh");
+    getDateStringStub = sinon.stub(_internal, "getDateStringStub");
 
     loggerStub = {
       debug: sinon.stub()
     };
-    getLoggerStub.returns(loggerStub);
+    getLoggerStub = sinon.stub(_internal, "getLogger").returns(loggerStub);
 
     sshSendStub = sinon.stub().resolves();
     sshRecvStub = sinon.stub().resolves();
@@ -71,12 +70,9 @@ describe("#register", ()=>{
         name: options.name
       };
     });
+    sinon.replace(_internal, "SBS", SBSStub);
 
     _internal.transferrers.clear();
-    _internal.getSsh = getSshStub;
-    _internal.getDateString = getDateStringStub;
-    _internal.getLogger = getLoggerStub;
-    _internal.SBS = SBSStub;
   });
 
   afterEach(()=>{

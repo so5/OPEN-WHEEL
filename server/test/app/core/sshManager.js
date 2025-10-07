@@ -20,7 +20,6 @@ const {
   _internal
 } = require("../../../app/core/sshManager.js");
 
-
 describe("#hasEntry", ()=>{
   let dbMock;
 
@@ -200,7 +199,7 @@ describe("#getSshPW", ()=>{
   });
 
   it("should return the password (function) if pw is defined as a function", ()=>{
-    const pwFunc = ()=>"secretFromFunction";
+    const pwFunc = ()=>{ return "secretFromFunction"; };
     dbMock.set("/path/to/project", new Map([
       ["hostID", { pw: pwFunc }]
     ]));
@@ -249,7 +248,10 @@ describe("#removeSsh", ()=>{
 
   beforeEach(()=>{
     dbMock = new Map();
-    _internal.db = dbMock;
+    sinon.replace(_internal, "db", dbMock);
+  });
+  afterEach(()=>{
+    sinon.restore();
   });
 
   it("should return immediately if db does not have projectRootDir", ()=>{
@@ -337,7 +339,7 @@ describe("#createSsh", ()=>{
   beforeEach(()=>{
     canConnectStub = sinon.stub();
     askPasswordStub = sinon.stub(_internal, "askPassword");
-    SshClientWrapperStub = sinon.stub(_internal, "SshClientWrapper").callsFake(function() {
+    SshClientWrapperStub = sinon.stub(_internal, "SshClientWrapper").callsFake(function () {
       return {
         canConnect: canConnectStub
       };
