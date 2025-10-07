@@ -316,7 +316,8 @@ _internal.readProject = async function (projectRootDir) {
   return projectRootDir;
 };
 _internal.setComponentStateR = async function (projectRootDir, dir, state, doNotAdd = false, ignoreStates = []) {
-  const filenames = await _internal.glob(_internal.path.join(dir, "**", _internal.componentJsonFilename));
+  const globbed = await _internal.glob(_internal.path.join(dir, "**", _internal.componentJsonFilename));
+  const filenames = Array.isArray(globbed) ? globbed : [];
   filenames.push(_internal.path.join(dir, _internal.componentJsonFilename));
   if (!ignoreStates.includes(state)) {
     ignoreStates.push(state);

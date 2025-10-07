@@ -7,7 +7,7 @@
 const fs = require("fs-extra");
 const path = require("path");
 const { promisify } = require("util");
-const glob = require("glob");
+const { glob } = require("glob");
 const nunjucks = require("nunjucks");
 const { getParamSpacev2 } = require("./parameterParser");
 const { overwriteByRsync } = require("./rsync.js");

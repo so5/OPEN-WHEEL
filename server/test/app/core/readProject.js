@@ -40,7 +40,6 @@ describe("readProject UT", function() {
     const task1 = await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
     const task2 = await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
     await gitCommit(projectRootDir);
-
     const relativeComponentJsonFiles = [
       path.join(task0.name, componentJsonFilename),
       path.join(task1.name, componentJsonFilename),
@@ -53,6 +52,7 @@ describe("readProject UT", function() {
     const absolutePattern = `${projectRootDir}/**/${componentJsonFilename}`;
     globStub.withArgs(relativePattern, { cwd: projectRootDir }).resolves(relativeComponentJsonFiles);
     globStub.withArgs(absolutePattern).resolves(absoluteComponentJsonFiles);
+
     globStub.resolves([]);
   });
   afterEach(()=>{
