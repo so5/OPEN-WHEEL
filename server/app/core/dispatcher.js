@@ -20,7 +20,8 @@ const { sanitizePath, convertPathSep, replacePathsep } = require("./pathUtils");
 const { readJsonGreedy } = require("./fileUtils.js");
 const { deliverFile, deliverFilesOnRemote, deliverFilesFromRemote, deliverFilesFromHPCISS } = require("./deliverFile.js");
 const { paramVecGenerator, getParamSize, getFilenames, getParamSpacev2 } = require("./parameterParser.js");
-const { getChildren, isLocal, isSameRemoteHost, setComponentStateR } = require("./projectFilesOperator.js");
+const { isLocal, isSameRemoteHost, setComponentStateR } = require("./projectFilesOperator.js");
+const { getChildren } = require("./workflowUtil.js");
 const { writeComponentJson, readComponentJson, readComponentJsonByID } = require("./componentJsonIO.js");
 const { isInitialComponent, removeDuplicatedComponent, hasStoragePath, isLocalComponent } = require("./workflowComponent.js");
 const { evalCondition, getRemoteWorkingDir, isFinishedState, isSubComponent } = require("./dispatchUtils.js");
@@ -923,7 +924,7 @@ class Dispatcher extends EventEmitter {
       }
 
       const options = { overwrite: component.forceOverwrite };
-      options.filter = function(filename) {
+      options.filter = function (filename) {
         return !ignoreFiles.includes(filename);
       };
       _internal.getLogger(this.projectRootDir).debug("copy from", templateRoot, "to ", instanceRoot);
