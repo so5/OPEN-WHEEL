@@ -26,10 +26,11 @@ const _internal = {
    * get array of child components
    * @param {string} projectRootDir - project's root path
    * @param {string} parentID - parent component's ID
+   * @param {boolean} isParentDir - treat parentID as parent component dir path
    * @returns {object[]} - array of components
    */
-  async getChildren(projectRootDir, parentID) {
-    const dir = await _internal.getComponentDir(projectRootDir, parentID, true);
+  async getChildren(projectRootDir, parentID, isParentDir) {
+    const dir = isParentDir ? parentID : parentID === null ? projectRootDir : await _internal.getComponentDir(projectRootDir, parentID, true);
     if (!dir) {
       return [];
     }

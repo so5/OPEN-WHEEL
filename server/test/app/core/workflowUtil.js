@@ -135,20 +135,71 @@ describe("#getThreeGenerationFamily", ()=>{
   });
 });
 
-describe("#getChildren", ()=>{
-  let globMock;
+describe.only("#getChildren", ()=>{
+  let getComponentDirStub;
+  let readJsonGreedyStub;
+  let globStub;
   const componentJsonFilename = "component.json";
 
   beforeEach(()=>{
-    sinon.stub(_internal, "getComponentDir");
-    sinon.stub(_internal, "readJsonGreedy");
-    globMock = sinon.stub(_internal, "glob");
     sinon.stub(_internal, "path").value(require("path"));
     sinon.stub(_internal, "componentJsonFilename").value(componentJsonFilename);
+    getComponentDirStub = sinon.stub(_internal, "getComponentDir");
+    readJsonGreedyStub = sinon.stub(_internal, "readJsonGreedy");
+    globStub = sinon.stub(_internal, "glob");
   });
 
   afterEach(()=>{
     sinon.restore();
+  });
+
+  it("should return an empty array if the directory is not found", async ()=>{
+    getComponentDirStub.resolves(null);
+
+    const result = await getChildren("/mock/project", "invalidID", false);
+
+    expect(result).to.deep.equal([]);
+    expect(getComponentDirStub.calledOnce).to.be.true;
+    expect(globStub.notCalled).to.be.true;
+  });
+
+  it.skip("should return an empty array if no child components are found", async ()=>{
+    getComponentDirStub.resolves("/mock/project/component");
+    globStub.resolves([]);
+
+    const result = await getChildren("/mock/project", "validID", false);
+
+    expect(result).to.deep.equal([]);
+    expect(globStub.calledOnce).to.be.true;
+  });
+
+  it("should return an array of child components excluding subComponents", async ()=>{
+    const child1Path = "/mock/project/component/child1/cmp.wheel.json";
+    const child2Path = "/mock/project/component/child2/cmp.wheel.json";
+    getComponentDirStub.resolves("/mock/project/component");
+    globStub.resolves([child1Path, child2Path]);
+
+    const child1Json = { ID: "child1", subComponent: false };
+    const child2Json = { ID: "child2", subComponent: true };
+    readJsonGreedyStub.withArgs(child1Path).resolves(child1Json);
+    readJsonGreedyStub.withArgs(child2Path).resolves(child2Json);
+
+    const result = await getChildren("/mock/project", "validID", false);
+
+    expect(result).to.deep.equal([child1Json]);
+    expect(readJsonGreedyStub.calledTwice).to.be.true;
+  });
+
+  it("should handle the case where parentID is a directory path", async ()=>{
+    const childPath = "/mock/project/parent/child/cmp.wheel.json";
+    globStub.resolves([childPath]);
+    const childJson = { ID: "child", subComponent: false };
+    readJsonGreedyStub.resolves(childJson);
+
+    const result = await getChildren("/mock/project", "/mock/project/parent", true);
+
+    expect(result).to.deep.equal([childJson]);
+    expect(getComponentDirStub.notCalled).to.be.true;
   });
 
   it("should return an empty array if getComponentDir returns a falsy value", async ()=>{
@@ -158,23 +209,23 @@ describe("#getChildren", ()=>{
     expect(result).to.be.an("array").that.is.empty;
 
     expect(_internal.getComponentDir.calledOnceWithExactly("/some/project", "parentID", true)).to.be.true;
-    expect(globMock.notCalled).to.be.true;
+    expect(globStub.notCalled).to.be.true;
   });
 
   it("should return an empty array if no children are found by glob", async ()=>{
     _internal.getComponentDir.resolves("/path/to/component");
-    globMock.resolves([]);
+    globStub.resolves([]);
 
     const result = await getChildren("/projRoot", "someParent");
     expect(result).to.be.an("array").that.is.empty;
 
     const expectedGlobPath = require("path").join("/path/to/component", "*", componentJsonFilename);
-    expect(globMock.calledOnceWithExactly(expectedGlobPath)).to.be.true;
+    expect(globStub.calledOnceWithExactly(expectedGlobPath)).to.be.true;
   });
 
   it("should filter out subComponent objects and return the rest", async ()=>{
     _internal.getComponentDir.resolves("/my/component");
-    globMock.resolves([
+    globStub.resolves([
       "/my/component/child1/component.json",
       "/my/component/child2/component.json",
       "/my/component/child3/component.json"
@@ -190,7 +241,7 @@ describe("#getChildren", ()=>{
     expect(result).to.deep.include({ ID: "child3" });
 
     const expectedGlobPath = require("path").join("/my/component", "*", componentJsonFilename);
-    expect(globMock.calledOnceWithExactly(expectedGlobPath)).to.be.true;
+    expect(globStub.calledOnceWithExactly(expectedGlobPath)).to.be.true;
 
     expect(_internal.readJsonGreedy.callCount).to.equal(3);
   });

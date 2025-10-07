@@ -20,6 +20,7 @@ const { readJsonGreedy } = require("./fileUtils");
 const { gitInit, gitAdd, gitCommit, gitRm } = require("./gitOperator2");
 const { getLogger: actualGetLogger } = require("../logSettings");
 const { getSsh } = require("./sshManager.js");
+const { getChildren } = require("./workflowUtil.js");
 
 const _internal = {
   promisify,
@@ -59,37 +60,38 @@ const _internal = {
   gitCommit,
   gitRm,
   getLogger: actualGetLogger,
+  getChildren,
   getSsh
 };
 
-_internal.isSurrounded = function(token) {
-    return token.startsWith("{") && token.endsWith("}");
+_internal.isSurrounded = function (token) {
+  return token.startsWith("{") && token.endsWith("}");
 };
-_internal.trimSurrounded = function(token) {
+_internal.trimSurrounded = function (token) {
   if (!_internal.isSurrounded(token)) {
     return token;
   }
   const rt = /{+(.*)}+/.exec(token);
   return (Array.isArray(rt) && typeof rt[1] === "string") ? rt[1] : token;
 };
-_internal.glob2Array = function(token) {
+_internal.glob2Array = function (token) {
   return _internal.trimSurrounded(token).split(",");
 };
-_internal.removeTrailingPathSep = function(filename) {
+_internal.removeTrailingPathSep = function (filename) {
   if (filename.endsWith(_internal.path.sep)) {
     return _internal.removeTrailingPathSep(filename.slice(0, -1));
   }
   return filename;
 };
-_internal.getProjectJson = async function(projectRootDir) {
+_internal.getProjectJson = async function (projectRootDir) {
   return _internal.readJsonGreedy(_internal.path.resolve(projectRootDir, _internal.projectJsonFilename));
 };
-_internal.writeProjectJson = async function(projectRootDir, projectJson) {
+_internal.writeProjectJson = async function (projectRootDir, projectJson) {
   const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
   await _internal.writeJsonWrapper(filename, projectJson);
   return _internal.gitAdd(projectRootDir, filename);
 };
-_internal.getDescendantsIDs = async function(projectRootDir, ID) {
+_internal.getDescendantsIDs = async function (projectRootDir, ID) {
   const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
   const projectJson = await _internal.readJsonGreedy(filename);
   const poi = await _internal.getComponentDir(projectRootDir, ID, true);
@@ -101,16 +103,16 @@ _internal.getDescendantsIDs = async function(projectRootDir, ID) {
   }
   return rt;
 };
-_internal.getAllComponentIDs = async function(projectRootDir) {
+_internal.getAllComponentIDs = async function (projectRootDir) {
   const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
   const projectJson = await _internal.readJsonGreedy(filename);
   return Object.keys(projectJson.componentPath);
 };
-_internal.getSuffixNumberFromProjectName = function(projectName) {
+_internal.getSuffixNumberFromProjectName = function (projectName) {
   const reResult = /.*?(\d+)$/.exec(projectName);
   return reResult === null ? 0 : reResult[1];
 };
-_internal.getUnusedProjectDir = async function(projectRootDir, projectName) {
+_internal.getUnusedProjectDir = async function (projectRootDir, projectName) {
   if (!await _internal.fs.pathExists(projectRootDir)) {
     return projectRootDir;
   }
@@ -121,13 +123,14 @@ _internal.getUnusedProjectDir = async function(projectRootDir, projectName) {
   }
   let suffixNumber = _internal.getSuffixNumberFromProjectName(projectName);
   projectRootDirCandidate = _internal.path.resolve(dirname, `${projectName}${suffixNumber}${_internal.suffix}`);
+
   while (await _internal.fs.pathExists(projectRootDirCandidate)) {
     ++suffixNumber;
     projectRootDirCandidate = _internal.path.resolve(dirname, `${projectName}${suffixNumber}${_internal.suffix}`);
   }
   return projectRootDirCandidate;
 };
-_internal.createNewProject = async function(argProjectRootDir, name, argDescription, user, mail) {
+_internal.createNewProject = async function (argProjectRootDir, name, argDescription, user, mail) {
   const description = argDescription != null ? argDescription : "This is new project.";
   const projectRootDir = await _internal.getUnusedProjectDir(argProjectRootDir, name);
   await _internal.fs.ensureDir(projectRootDir);
@@ -156,7 +159,7 @@ _internal.createNewProject = async function(argProjectRootDir, name, argDescript
   await _internal.gitCommit(projectRootDir, "create new project");
   return projectRootDir;
 };
-_internal.removeComponentPath = async function(projectRootDir, IDs, force = false) {
+_internal.removeComponentPath = async function (projectRootDir, IDs, force = false) {
   const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
   const projectJson = await _internal.readJsonGreedy(filename);
   for (const [id, componentPath] of Object.entries(projectJson.componentPath)) {
@@ -169,7 +172,7 @@ _internal.removeComponentPath = async function(projectRootDir, IDs, force = fals
   await _internal.writeJsonWrapper(filename, projectJson);
   return _internal.gitAdd(projectRootDir, filename);
 };
-_internal.updateComponentPath = async function(projectRootDir, ID, absPath) {
+_internal.updateComponentPath = async function (projectRootDir, ID, absPath) {
   const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
   const projectJson = await _internal.readJsonGreedy(filename);
   let newRelativePath = _internal.replacePathsep(_internal.path.relative(projectRootDir, absPath));
@@ -189,7 +192,7 @@ _internal.updateComponentPath = async function(projectRootDir, ID, absPath) {
   await _internal.gitAdd(projectRootDir, filename);
   return projectJson.componentPath;
 };
-_internal.setProjectState = async function(projectRootDir, state, force) {
+_internal.setProjectState = async function (projectRootDir, state, force) {
   const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
   const projectJson = await _internal.readJsonGreedy(filename);
   if (force || projectJson.state !== state) {
@@ -202,18 +205,18 @@ _internal.setProjectState = async function(projectRootDir, state, force) {
   }
   return false;
 };
-_internal.getComponentFullName = async function(projectRootDir, ID) {
+_internal.getComponentFullName = async function (projectRootDir, ID) {
   const relativePath = await _internal.getComponentDir(projectRootDir, ID);
   if (relativePath === null) {
     return relativePath;
   }
   return relativePath.replace(/^\./, "");
 };
-_internal.getProjectState = async function(projectRootDir) {
+_internal.getProjectState = async function (projectRootDir) {
   const projectJson = await _internal.readJsonGreedy(_internal.path.resolve(projectRootDir, _internal.projectJsonFilename));
   return projectJson.state;
 };
-_internal.checkRunningJobs = async function(projectRootDir) {
+_internal.checkRunningJobs = async function (projectRootDir) {
   const tasks = [];
   const jmFiles = [];
   const candidates = await _internal.glob(`*.${_internal.jobManagerJsonFilename}`, { cwd: projectRootDir });
@@ -230,7 +233,7 @@ _internal.checkRunningJobs = async function(projectRootDir) {
   }
   return { tasks, jmFiles };
 };
-_internal.rewriteIncludeExclude = async function(projectRootDir, filename, changed) {
+_internal.rewriteIncludeExclude = async function (projectRootDir, filename, changed) {
   let needToWrite = false;
   const componentJson = await _internal.readJsonGreedy(filename);
   if (typeof componentJson.include === "string" && !Array.isArray(componentJson.include)) {
@@ -260,13 +263,13 @@ _internal.rewriteIncludeExclude = async function(projectRootDir, filename, chang
     changed.push(filename);
   }
 };
-_internal.rewriteAllIncludeExcludeProperty = async function(projectRootDir, changed) {
+_internal.rewriteAllIncludeExcludeProperty = async function (projectRootDir, changed) {
   const files = await _internal.glob(`./**/${_internal.componentJsonFilename}`, { cwd: projectRootDir });
   await Promise.all(files.map((filename)=>{
     return _internal.rewriteIncludeExclude(projectRootDir, _internal.path.resolve(projectRootDir, filename), changed);
   }));
 };
-_internal.readProject = async function(projectRootDir) {
+_internal.readProject = async function (projectRootDir) {
   const toBeCommited = [];
   const projectJson = await _internal.getProjectJson(projectRootDir);
   const isVersionOld = projectJson.version <= 2;
@@ -311,7 +314,7 @@ _internal.readProject = async function(projectRootDir) {
   _internal.projectList.unshift({ path: projectRootDir });
   return projectRootDir;
 };
-_internal.setComponentStateR = async function(projectRootDir, dir, state, doNotAdd = false, ignoreStates = []) {
+_internal.setComponentStateR = async function (projectRootDir, dir, state, doNotAdd = false, ignoreStates = []) {
   const filenames = await _internal.glob(_internal.path.join(dir, "**", _internal.componentJsonFilename));
   filenames.push(_internal.path.join(dir, _internal.componentJsonFilename));
   if (!ignoreStates.includes(state)) {
@@ -330,20 +333,20 @@ _internal.setComponentStateR = async function(projectRootDir, dir, state, doNotA
   });
   return Promise.all(p);
 };
-_internal.updateProjectROStatus = async function(projectRootDir, isRO) {
+_internal.updateProjectROStatus = async function (projectRootDir, isRO) {
   const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
   const projectJson = await _internal.readJsonGreedy(filename);
   projectJson.readOnly = isRO;
   await _internal.writeJsonWrapper(filename, projectJson);
 };
-_internal.updateProjectDescription = async function(projectRootDir, description) {
+_internal.updateProjectDescription = async function (projectRootDir, description) {
   const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
   const projectJson = await _internal.readJsonGreedy(filename);
   projectJson.description = description;
   await _internal.writeJsonWrapper(filename, projectJson);
   await _internal.gitAdd(projectRootDir, filename);
 };
-_internal.addProject = async function(projectDir, description) {
+_internal.addProject = async function (projectDir, description) {
   let projectRootDir = _internal.path.resolve(_internal.removeTrailingPathSep(_internal.convertPathSep(projectDir)));
   if (!projectRootDir.endsWith(_internal.suffix)) {
     projectRootDir += _internal.suffix;
@@ -367,7 +370,7 @@ _internal.addProject = async function(projectDir, description) {
   projectRootDir = await _internal.createNewProject(projectRootDir, projectName, description, "wheel", "wheel@example.com");
   _internal.projectList.unshift({ path: projectRootDir });
 };
-_internal.renameProject = async function(id, argNewName, oldDir) {
+_internal.renameProject = async function (id, argNewName, oldDir) {
   const newName = argNewName.endsWith(_internal.suffix) ? argNewName.slice(0, -_internal.suffix.length) : argNewName;
   if (!_internal.isValidName(newName)) {
     _internal.getLogger().error(newName, "is not allowed for project name");
@@ -392,13 +395,13 @@ _internal.renameProject = async function(id, argNewName, oldDir) {
   target.path = newDir;
   await _internal.projectList.update(target);
 };
-_internal.isDefaultPort = function(port) {
+_internal.isDefaultPort = function (port) {
   return typeof port === "undefined" || port === 22 || port === "22" || port === "";
 };
-_internal.isLocal = function(component) {
+_internal.isLocal = function (component) {
   return typeof component.host === "undefined" || component.host === "localhost";
 };
-_internal.isSameRemoteHost = async function(projectRootDir, src, dst) {
+_internal.isSameRemoteHost = async function (projectRootDir, src, dst) {
   if (src === dst) {
     return null;
   }
@@ -422,7 +425,7 @@ _internal.isSameRemoteHost = async function(projectRootDir, src, dst) {
   const dstHostPort = _internal.isDefaultPort(dstHostInfo.port) ? 22 : dstHostInfo.port;
   return srcHostPort === dstHostPort;
 };
-_internal.isParent = async function(projectRootDir, parentID, childID) {
+_internal.isParent = async function (projectRootDir, parentID, childID) {
   if (parentID === "parent") {
     return true;
   }
@@ -435,7 +438,7 @@ _internal.isParent = async function(projectRootDir, parentID, childID) {
   }
   return childJson.parent === parentID;
 };
-_internal.removeAllLinkFromComponent = async function(projectRootDir, ID) {
+_internal.removeAllLinkFromComponent = async function (projectRootDir, ID) {
   const counterparts = new Map();
   const component = await _internal.readComponentJsonByID(projectRootDir, ID);
   if (Object.prototype.hasOwnProperty.call(component, "previous")) {
@@ -502,7 +505,7 @@ _internal.removeAllLinkFromComponent = async function(projectRootDir, ID) {
     await _internal.writeComponentJsonByID(projectRootDir, counterPartID, counterpart);
   }
 };
-_internal.addFileLinkToParent = async function(projectRootDir, srcNode, srcName, dstName) {
+_internal.addFileLinkToParent = async function (projectRootDir, srcNode, srcName, dstName) {
   const srcDir = await _internal.getComponentDir(projectRootDir, srcNode, true);
   const srcJson = await _internal.readComponentJson(srcDir);
   const parentDir = _internal.path.dirname(srcDir);
@@ -511,7 +514,7 @@ _internal.addFileLinkToParent = async function(projectRootDir, srcNode, srcName,
   const srcOutputFile = srcJson.outputFiles.find((e)=>{
     return e.name === srcName;
   });
-  if (!srcOutputFile.dst.some((e)=>e.dstNode === parentID && e.dstName === dstName)) {
+  if (!srcOutputFile.dst.some((e)=>{ return e.dstNode === parentID && e.dstName === dstName; })) {
     srcOutputFile.dst.push({ dstNode: parentID, dstName });
   }
   const p = _internal.writeComponentJson(projectRootDir, srcDir, srcJson);
@@ -521,13 +524,13 @@ _internal.addFileLinkToParent = async function(projectRootDir, srcNode, srcName,
   if (!Object.prototype.hasOwnProperty.call(parentOutputFile, "origin")) {
     parentOutputFile.origin = [];
   }
-  if (!parentOutputFile.origin.some((e)=>e.srcNode === srcNode && e.srcName === srcName)) {
+  if (!parentOutputFile.origin.some((e)=>{ return e.srcNode === srcNode && e.srcName === srcName; })) {
     parentOutputFile.origin.push({ srcNode, srcName });
   }
   await p;
   return _internal.writeComponentJson(projectRootDir, parentDir, parentJson);
 };
-_internal.addFileLinkFromParent = async function(projectRootDir, srcName, dstNode, dstName) {
+_internal.addFileLinkFromParent = async function (projectRootDir, srcName, dstNode, dstName) {
   const dstDir = await _internal.getComponentDir(projectRootDir, dstNode, true);
   const dstJson = await _internal.readComponentJson(dstDir);
   const parentDir = _internal.path.dirname(dstDir);
@@ -539,7 +542,7 @@ _internal.addFileLinkFromParent = async function(projectRootDir, srcName, dstNod
   if (!Object.prototype.hasOwnProperty.call(parentInputFile, "forwardTo")) {
     parentInputFile.forwardTo = [];
   }
-  if (!parentInputFile.forwardTo.some((e)=>e.dstNode === dstNode && e.dstName === dstName)) {
+  if (!parentInputFile.forwardTo.some((e)=>{ return e.dstNode === dstNode && e.dstName === dstName; })) {
     parentInputFile.forwardTo.push({ dstNode, dstName });
   }
   const p = _internal.writeComponentJson(projectRootDir, parentDir, parentJson);
@@ -548,19 +551,19 @@ _internal.addFileLinkFromParent = async function(projectRootDir, srcName, dstNod
   });
   if (typeof dstInputFile === "undefined") {
     dstJson.inputFiles.push({ name: dstName, src: [{ srcNode: parentID, srcName }] });
-  } else if (!dstInputFile.src.some((e)=>e.srcNode === parentID && e.srcName === srcName)) {
+  } else if (!dstInputFile.src.some((e)=>{ return e.srcNode === parentID && e.srcName === srcName; })) {
     dstInputFile.src.push({ srcNode: parentID, srcName });
   }
   await p;
   return _internal.writeComponentJson(projectRootDir, dstDir, dstJson);
 };
-_internal.addFileLinkBetweenSiblings = async function(projectRootDir, srcNode, srcName, dstNode, dstName) {
+_internal.addFileLinkBetweenSiblings = async function (projectRootDir, srcNode, srcName, dstNode, dstName) {
   const srcDir = await _internal.getComponentDir(projectRootDir, srcNode, true);
   const srcJson = await _internal.readComponentJson(srcDir);
   const srcOutputFile = srcJson.outputFiles.find((e)=>{
     return e.name === srcName;
   });
-  if (!srcOutputFile.dst.some((e)=>e.dstNode === dstNode && e.dstName === dstName)) {
+  if (!srcOutputFile.dst.some((e)=>{ return e.dstNode === dstNode && e.dstName === dstName; })) {
     srcOutputFile.dst.push({ dstNode, dstName });
   }
   const p1 = _internal.writeComponentJson(projectRootDir, srcDir, srcJson);
@@ -571,13 +574,13 @@ _internal.addFileLinkBetweenSiblings = async function(projectRootDir, srcNode, s
   });
   if (typeof dstInputFile === "undefined") {
     dstJson.inputFiles.push({ name: dstName, src: [{ srcNode, srcName }] });
-  } else if (!dstInputFile.src.some((e)=>e.srcNode === srcNode && e.srcName === srcName)) {
+  } else if (!dstInputFile.src.some((e)=>{ return e.srcNode === srcNode && e.srcName === srcName; })) {
     dstInputFile.src.push({ srcNode, srcName });
   }
   await p1;
   return _internal.writeComponentJson(projectRootDir, dstDir, dstJson);
 };
-_internal.removeFileLinkToParent = async function(projectRootDir, srcNode, srcName, dstName) {
+_internal.removeFileLinkToParent = async function (projectRootDir, srcNode, srcName, dstName) {
   const srcDir = await _internal.getComponentDir(projectRootDir, srcNode, true);
   const srcJson = await _internal.readComponentJson(srcDir);
   const parentDir = _internal.path.dirname(srcDir);
@@ -600,7 +603,7 @@ _internal.removeFileLinkToParent = async function(projectRootDir, srcNode, srcNa
   await p;
   return _internal.writeComponentJson(projectRootDir, parentDir, parentJson);
 };
-_internal.removeFileLinkFromParent = async function(projectRootDir, srcName, dstNode, dstName) {
+_internal.removeFileLinkFromParent = async function (projectRootDir, srcName, dstNode, dstName) {
   const dstDir = await _internal.getComponentDir(projectRootDir, dstNode, true);
   const dstJson = await _internal.readComponentJson(dstDir);
   const parentDir = _internal.path.dirname(dstDir);
@@ -624,7 +627,7 @@ _internal.removeFileLinkFromParent = async function(projectRootDir, srcName, dst
   await p;
   return _internal.writeComponentJson(projectRootDir, dstDir, dstJson);
 };
-_internal.removeFileLinkBetweenSiblings = async function(projectRootDir, srcNode, srcName, dstNode, dstName) {
+_internal.removeFileLinkBetweenSiblings = async function (projectRootDir, srcNode, srcName, dstNode, dstName) {
   const srcDir = await _internal.getComponentDir(projectRootDir, srcNode, true);
   const srcJson = await _internal.readComponentJson(srcDir);
   const srcOutputFile = srcJson.outputFiles.find((e)=>{
@@ -645,7 +648,7 @@ _internal.removeFileLinkBetweenSiblings = async function(projectRootDir, srcNode
   await p;
   return _internal.writeComponentJson(projectRootDir, dstDir, dstJson);
 };
-_internal.makeDir = async function(basename, argSuffix) {
+_internal.makeDir = async function (basename, argSuffix) {
   let suffix = argSuffix;
   while (await _internal.fs.pathExists(basename + suffix)) {
     ++suffix;
@@ -654,23 +657,7 @@ _internal.makeDir = async function(basename, argSuffix) {
   await _internal.fs.mkdir(dirname);
   return dirname;
 };
-_internal.getChildren = async function(projectRootDir, parentID, isParentDir) {
-  const dir = isParentDir ? parentID : parentID === null ? projectRootDir : await _internal.getComponentDir(projectRootDir, parentID, true);
-  if (!dir) {
-    return [];
-  }
-  const children = await _internal.glob(_internal.path.join(dir, "*", _internal.componentJsonFilename));
-  if (children.length === 0) {
-    return [];
-  }
-  const rt = await Promise.all(children.map((e)=>{
-    return _internal.readJsonGreedy(e);
-  }));
-  return rt.filter((e)=>{
-    return !e.subComponent;
-  });
-};
-_internal.checkRemoteStoragePathWritePermission = async function(projectRootDir, { host, storagePath }) {
+_internal.checkRemoteStoragePathWritePermission = async function (projectRootDir, { host, storagePath }) {
   const remotehostID = _internal.remoteHost.getID("name", host);
   const ssh = _internal.getSsh(projectRootDir, remotehostID);
   const rt = ssh.exec(`test -w ${storagePath}`);
@@ -683,7 +670,7 @@ _internal.checkRemoteStoragePathWritePermission = async function(projectRootDir,
   }
   return Promise.resolve();
 };
-_internal.recursiveGetHosts = async function(projectRootDir, parentID, hosts, storageHosts, gfarmHosts) {
+_internal.recursiveGetHosts = async function (projectRootDir, parentID, hosts, storageHosts, gfarmHosts) {
   const promises = [];
   const children = await _internal.getChildren(projectRootDir, parentID);
   for (const component of children) {
@@ -706,15 +693,15 @@ _internal.recursiveGetHosts = async function(projectRootDir, parentID, hosts, st
   }
   return Promise.all(promises);
 };
-_internal.getHosts = async function(projectRootDir, rootID) {
+_internal.getHosts = async function (projectRootDir, rootID) {
   const hosts = [];
   const storageHosts = [];
   const gfarmHosts = [];
   await _internal.recursiveGetHosts(projectRootDir, rootID, hosts, storageHosts, gfarmHosts);
-  const storageHosts2 = [...new Map(storageHosts.map((item)=>[item.hostname, item])).values()];
-  const gfarmHosts2 = [...new Map(gfarmHosts.map((item)=>[item.hostname, item])).values()];
+  const storageHosts2 = [...new Map(storageHosts.map((item)=>{ return [item.hostname, item]; })).values()];
+  const gfarmHosts2 = [...new Map(gfarmHosts.map((item)=>{ return [item.hostname, item]; })).values()];
   const keepHosts = storageHosts2.concat(gfarmHosts2);
-  const hosts2 = [...new Map(hosts.map((item)=>[item.hostname, item])).values()]
+  const hosts2 = [...new Map(hosts.map((item)=>{ return [item.hostname, item]; })).values()]
     .filter((host)=>{
       return !keepHosts.some((e)=>{
         return e.hostname === host.hostname;
@@ -722,7 +709,7 @@ _internal.getHosts = async function(projectRootDir, rootID) {
     });
   return [...keepHosts, ...hosts2];
 };
-_internal.createNewComponent = async function(projectRootDir, parentDir, type, pos) {
+_internal.createNewComponent = async function (projectRootDir, parentDir, type, pos) {
   const parentJson = await _internal.readJsonGreedy(_internal.path.resolve(parentDir, _internal.componentJsonFilename));
   const parentID = parentJson.ID;
   const componentBasename = _internal.getComponentDefaultName(type);
@@ -738,7 +725,7 @@ _internal.createNewComponent = async function(projectRootDir, parentDir, type, p
   }
   return newComponent;
 };
-_internal.renameComponentDir = async function(projectRootDir, ID, newName) {
+_internal.renameComponentDir = async function (projectRootDir, ID, newName) {
   if (!_internal.isValidName(newName)) {
     return Promise.reject(new Error(`${newName} is not valid component name`));
   }
@@ -755,7 +742,7 @@ _internal.renameComponentDir = async function(projectRootDir, ID, newName) {
   await _internal.gitAdd(projectRootDir, newDir);
   return _internal.updateComponentPath(projectRootDir, ID, newDir);
 };
-_internal.replaceEnv = async function(projectRootDir, ID, newEnv) {
+_internal.replaceEnv = async function (projectRootDir, ID, newEnv) {
   const componentJson = await _internal.readComponentJsonByID(projectRootDir, ID);
   const env = componentJson.env || {};
   const patch = _internal.diff(env, newEnv);
@@ -764,7 +751,7 @@ _internal.replaceEnv = async function(projectRootDir, ID, newEnv) {
   await _internal.writeComponentJsonByID(projectRootDir, ID, componentJson);
   return componentJson;
 };
-_internal.replaceWebhook = async function(projectRootDir, newWebhook) {
+_internal.replaceWebhook = async function (projectRootDir, newWebhook) {
   const projectJson = await _internal.getProjectJson(projectRootDir);
   const { webhook } = projectJson;
   if (typeof webhook === "undefined") {
@@ -776,12 +763,12 @@ _internal.replaceWebhook = async function(projectRootDir, newWebhook) {
   await _internal.writeProjectJson(projectRootDir, projectJson);
   return webhook;
 };
-_internal.getEnv = async function(projectRootDir, ID) {
+_internal.getEnv = async function (projectRootDir, ID) {
   const componentJson = await _internal.readComponentJsonByID(projectRootDir, ID);
   const env = componentJson.env || {};
   return env;
 };
-_internal.updateComponent = async function(projectRootDir, ID, prop, value) {
+_internal.updateComponent = async function (projectRootDir, ID, prop, value) {
   if (prop === "path") {
     return Promise.reject(new Error("path property is deprecated. please use 'name' instead."));
   }
@@ -802,7 +789,7 @@ _internal.updateComponent = async function(projectRootDir, ID, prop, value) {
   await _internal.writeComponentJsonByID(projectRootDir, ID, componentJson);
   return componentJson;
 };
-_internal.updateStepNumber = async function(projectRootDir) {
+_internal.updateStepNumber = async function (projectRootDir) {
   const componentIDs = await _internal.getAllComponentIDs(projectRootDir);
   const stepjobTaskComponentJson = [];
   const stepjobComponentIDs = [];
@@ -835,7 +822,7 @@ _internal.updateStepNumber = async function(projectRootDir) {
   }
   return Promise.all(p);
 };
-_internal.arrangeComponent = async function(stepjobGroupArray) {
+_internal.arrangeComponent = async function (stepjobGroupArray) {
   const arrangedArray = [];
   for (const stepjobTaskComponents of stepjobGroupArray) {
     let arrangeArraytemp = [];
@@ -875,7 +862,7 @@ _internal.arrangeComponent = async function(stepjobGroupArray) {
   }
   return arrayList;
 };
-_internal.addInputFile = async function(projectRootDir, ID, name) {
+_internal.addInputFile = async function (projectRootDir, ID, name) {
   if (!_internal.isValidInputFilename(name)) {
     return Promise.reject(new Error(`${name} is not valid inputFile name`));
   }
@@ -889,7 +876,7 @@ _internal.addInputFile = async function(projectRootDir, ID, name) {
   componentJson.inputFiles.push({ name, src: [] });
   return _internal.writeComponentJson(projectRootDir, componentDir, componentJson);
 };
-_internal.addOutputFile = async function(projectRootDir, ID, name) {
+_internal.addOutputFile = async function (projectRootDir, ID, name) {
   if (!_internal.isValidOutputFilename(name)) {
     return Promise.reject(new Error(`${name} is not valid outputFile name`));
   }
@@ -908,7 +895,7 @@ _internal.addOutputFile = async function(projectRootDir, ID, name) {
   componentJson.outputFiles.push({ name, dst: [] });
   return _internal.writeComponentJson(projectRootDir, componentDir, componentJson);
 };
-_internal.setUploadOndemandOutputFile = async function(projectRootDir, ID) {
+_internal.setUploadOndemandOutputFile = async function (projectRootDir, ID) {
   const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
   const componentJson = await _internal.readComponentJson(componentDir);
   if (!Object.prototype.hasOwnProperty.call(componentJson, "outputFiles")) {
@@ -935,7 +922,7 @@ _internal.setUploadOndemandOutputFile = async function(projectRootDir, ID) {
   }
   return _internal.renameOutputFile(projectRootDir, ID, 0, "UPLOAD_ONDEMAND");
 };
-_internal.removeInputFile = async function(projectRootDir, ID, name) {
+_internal.removeInputFile = async function (projectRootDir, ID, name) {
   const counterparts = new Set();
   const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
   const componentJson = await _internal.readComponentJson(componentDir);
@@ -946,6 +933,7 @@ _internal.removeInputFile = async function(projectRootDir, ID, name) {
       }
     }
   });
+
   for (const counterPart of counterparts) {
     await _internal.removeFileLink(projectRootDir, counterPart.srcNode, counterPart.srcName, ID, name);
   }
@@ -954,7 +942,7 @@ _internal.removeInputFile = async function(projectRootDir, ID, name) {
   });
   return _internal.writeComponentJson(projectRootDir, componentDir, componentJson);
 };
-_internal.removeOutputFile = async function(projectRootDir, ID, name) {
+_internal.removeOutputFile = async function (projectRootDir, ID, name) {
   const counterparts = new Set();
   const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
   const componentJson = await _internal.readComponentJson(componentDir);
@@ -967,12 +955,13 @@ _internal.removeOutputFile = async function(projectRootDir, ID, name) {
     }
     return false;
   });
+
   for (const counterPart of counterparts) {
     await _internal.removeFileLink(projectRootDir, ID, name, counterPart.dstNode, counterPart.dstName);
   }
   return _internal.writeComponentJson(projectRootDir, componentDir, componentJson);
 };
-_internal.renameInputFile = async function(projectRootDir, ID, index, newName) {
+_internal.renameInputFile = async function (projectRootDir, ID, index, newName) {
   if (!_internal.isValidInputFilename(newName)) {
     return Promise.reject(new Error(`${newName} is not valid inputFile name`));
   }
@@ -1014,7 +1003,7 @@ _internal.renameInputFile = async function(projectRootDir, ID, index, newName) {
   }
   return Promise.all(p);
 };
-_internal.renameOutputFile = async function(projectRootDir, ID, index, newName) {
+_internal.renameOutputFile = async function (projectRootDir, ID, index, newName) {
   if (!_internal.isValidOutputFilename(newName)) {
     return Promise.reject(new Error(`${newName} is not valid outputFile name`));
   }
@@ -1056,7 +1045,7 @@ _internal.renameOutputFile = async function(projectRootDir, ID, index, newName) 
   }
   return Promise.all(promises);
 };
-_internal.addLink = async function(projectRootDir, src, dst, isElse = false) {
+_internal.addLink = async function (projectRootDir, src, dst, isElse = false) {
   if (src === dst) {
     return Promise.reject(new Error("cyclic link is not allowed"));
   }
@@ -1091,7 +1080,7 @@ _internal.addLink = async function(projectRootDir, src, dst, isElse = false) {
     await _internal.updateStepNumber(projectRootDir);
   }
 };
-_internal.removeLink = async function(projectRootDir, src, dst, isElse) {
+_internal.removeLink = async function (projectRootDir, src, dst, isElse) {
   const srcDir = await _internal.getComponentDir(projectRootDir, src, true);
   const srcJson = await _internal.readComponentJson(srcDir);
   if (isElse) {
@@ -1111,7 +1100,7 @@ _internal.removeLink = async function(projectRootDir, src, dst, isElse) {
   });
   await _internal.writeComponentJson(projectRootDir, dstDir, dstJson);
 };
-_internal.removeAllLink = async function(projectRootDir, componentID) {
+_internal.removeAllLink = async function (projectRootDir, componentID) {
   const dstDir = await _internal.getComponentDir(projectRootDir, componentID, true);
   const dstJson = await _internal.readComponentJson(dstDir);
   const srcComponents = dstJson.previous;
@@ -1135,7 +1124,7 @@ _internal.removeAllLink = async function(projectRootDir, componentID) {
   p.push(_internal.writeComponentJson(projectRootDir, dstDir, dstJson));
   return Promise.all(p);
 };
-_internal.addFileLink = async function(projectRootDir, srcNode, srcName, dstNode, dstName) {
+_internal.addFileLink = async function (projectRootDir, srcNode, srcName, dstNode, dstName) {
   if (srcNode === dstNode) {
     return Promise.reject(new Error("cyclic link is not allowed"));
   }
@@ -1147,7 +1136,7 @@ _internal.addFileLink = async function(projectRootDir, srcNode, srcName, dstNode
   }
   return _internal.addFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
 };
-_internal.removeFileLink = async function(projectRootDir, srcNode, srcName, dstNode, dstName) {
+_internal.removeFileLink = async function (projectRootDir, srcNode, srcName, dstNode, dstName) {
   if (await _internal.isParent(projectRootDir, dstNode, srcNode)) {
     return _internal.removeFileLinkToParent(projectRootDir, srcNode, srcName, dstName);
   }
@@ -1156,7 +1145,7 @@ _internal.removeFileLink = async function(projectRootDir, srcNode, srcName, dstN
   }
   return _internal.removeFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
 };
-_internal.removeAllFileLink = async function(projectRootDir, componentID, inputFilename, fromChildren) {
+_internal.removeAllFileLink = async function (projectRootDir, componentID, inputFilename, fromChildren) {
   const targetDir = await _internal.getComponentDir(projectRootDir, componentID, true);
   const componentJson = await _internal.readComponentJson(targetDir);
   const p = [];
@@ -1186,7 +1175,7 @@ _internal.removeAllFileLink = async function(projectRootDir, componentID, inputF
   }
   return Promise.all(p);
 };
-_internal.removeComponent = async function(projectRootDir, ID) {
+_internal.removeComponent = async function (projectRootDir, ID) {
   const targetDir = await _internal.getComponentDir(projectRootDir, ID, true);
   const descendantsIDs = await _internal.getDescendantsIDs(projectRootDir, ID);
   for (const descendantID of descendantsIDs) {
@@ -1196,7 +1185,7 @@ _internal.removeComponent = async function(projectRootDir, ID) {
   await _internal.fs.remove(targetDir);
   return _internal.removeComponentPath(projectRootDir, descendantsIDs);
 };
-_internal.getSourceComponents = async function(projectRootDir) {
+_internal.getSourceComponents = async function (projectRootDir) {
   const componentJsonFiles = await _internal.glob(_internal.path.join(projectRootDir, "**", _internal.componentJsonFilename));
   const components = await Promise.all(componentJsonFiles
     .map((componentJsonFile)=>{
@@ -1206,14 +1195,14 @@ _internal.getSourceComponents = async function(projectRootDir) {
     return componentJson.type === "source" && !componentJson.subComponent && !componentJson.disable;
   });
 };
-_internal.isComponentDir = async function(target) {
+_internal.isComponentDir = async function (target) {
   const stats = await _internal.fs.lstat(_internal.path.resolve(target));
   if (!stats.isDirectory()) {
     return false;
   }
   return _internal.fs.pathExists(_internal.path.resolve(target, _internal.componentJsonFilename));
 };
-_internal.getComponentTree = async function(projectRootDir, rootDir) {
+_internal.getComponentTree = async function (projectRootDir, rootDir) {
   const projectJson = await _internal.readJsonGreedy(_internal.path.resolve(projectRootDir, _internal.projectJsonFilename));
   const start = _internal.path.isAbsolute(rootDir) ? _internal.path.relative(projectRootDir, rootDir) || "./" : rootDir;
   const componentJsonFileList = Object.values(projectJson.componentPath)
@@ -1246,7 +1235,7 @@ _internal.getComponentTree = async function(projectRootDir, rootDir) {
   }
   return root;
 };
-_internal.removeInputFile = async function(projectRootDir, ID, name) {
+_internal.removeInputFile = async function (projectRootDir, ID, name) {
   const counterparts = new Set();
   const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
   const componentJson = await _internal.readComponentJson(componentDir);
@@ -1257,6 +1246,7 @@ _internal.removeInputFile = async function(projectRootDir, ID, name) {
       }
     }
   });
+
   for (const counterPart of counterparts) {
     await _internal.removeFileLink(projectRootDir, counterPart.srcNode, counterPart.srcName, ID, name);
   }
@@ -1265,7 +1255,7 @@ _internal.removeInputFile = async function(projectRootDir, ID, name) {
   });
   return _internal.writeComponentJson(projectRootDir, componentDir, componentJson);
 };
-_internal.removeOutputFile = async function(projectRootDir, ID, name) {
+_internal.removeOutputFile = async function (projectRootDir, ID, name) {
   const counterparts = new Set();
   const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
   const componentJson = await _internal.readComponentJson(componentDir);
@@ -1278,6 +1268,7 @@ _internal.removeOutputFile = async function(projectRootDir, ID, name) {
     }
     return false;
   });
+
   for (const counterPart of counterparts) {
     await _internal.removeFileLink(projectRootDir, ID, name, counterPart.dstNode, counterPart.dstName);
   }
