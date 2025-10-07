@@ -50,7 +50,7 @@ describe("#register", ()=>{
   beforeEach(()=>{
     //各Mock定義
     getSshStub = sinon.stub(_internal, "getSsh");
-    getDateStringStub = sinon.stub(_internal, "getDateStringStub");
+    getDateStringStub = sinon.stub(_internal, "getDateString");
 
     loggerStub = {
       debug: sinon.stub()

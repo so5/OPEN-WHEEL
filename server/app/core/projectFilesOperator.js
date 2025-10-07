@@ -8,7 +8,7 @@ const { promisify } = require("util");
 const fs = require("fs-extra");
 const path = require("path");
 const isPathInside = require("is-path-inside");
-const { glob } = require("glob");
+const glob = require("glob");
 const { diff } = require("just-diff");
 const { diffApply } = require("just-diff-apply");
 const { getComponentDir, writeComponentJson, writeComponentJsonByID, readComponentJson, readComponentJsonByID } = require("./componentJsonIO.js");
@@ -27,7 +27,7 @@ const _internal = {
   fs,
   path,
   isPathInside,
-  glob,
+  glob: promisify(glob),
   diff,
   diffApply,
   getComponentDir,
@@ -192,16 +192,17 @@ _internal.updateComponentPath = async function (projectRootDir, ID, absPath) {
   await _internal.gitAdd(projectRootDir, filename);
   return projectJson.componentPath;
 };
-_internal.setProjectState = async function (projectRootDir, state, force) {
+_internal.setProjectState = async function (projectRootDir, state, force, projectJson) {
   const filename = _internal.path.resolve(projectRootDir, _internal.projectJsonFilename);
-  const projectJson = await _internal.readJsonGreedy(filename);
-  if (force || projectJson.state !== state) {
-    projectJson.state = state;
+  const projectJsonForUpdate = projectJson || await _internal.readJsonGreedy(filename);
+
+  if (force || projectJsonForUpdate.state !== state) {
+    projectJsonForUpdate.state = state;
     const timestamp = _internal.getDateString(true);
-    projectJson.mtime = timestamp;
-    await _internal.writeJsonWrapper(filename, projectJson);
+    projectJsonForUpdate.mtime = timestamp;
+    await _internal.writeJsonWrapper(filename, projectJsonForUpdate);
     await _internal.gitAdd(projectRootDir, filename);
-    return projectJson;
+    return projectJsonForUpdate;
   }
   return false;
 };
@@ -292,7 +293,7 @@ _internal.readProject = async function (projectRootDir) {
   if (!await _internal.fs.pathExists(_internal.path.resolve(projectRootDir, ".git"))) {
     try {
       await _internal.gitInit(projectRootDir, "wheel", "wheel@example.com");
-      await _internal.setProjectState(projectRootDir, "not-started");
+      await _internal.setProjectState(projectRootDir, "not-started", true);
       await _internal.setComponentStateR(projectRootDir, projectRootDir, "not-started");
       await _internal.gitAdd(projectRootDir, "./");
       await _internal.gitCommit(projectRootDir, "import project");

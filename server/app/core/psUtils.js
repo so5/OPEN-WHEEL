@@ -15,7 +15,7 @@ const { overwriteByRsync } = require("./rsync.js");
 const _internal = {
   fs,
   promisify,
-  glob,
+  glob: promisify(glob),
   nunjucks,
   overwriteByRsync
 };
@@ -32,8 +32,9 @@ async function getScatterFilesV2(templateRoot, paramSettings) {
   }
   const srcNames = await Promise.all(
     paramSettings.scatter
-      .map((e)=>{
-        return _internal.glob(e.srcName, { cwd: templateRoot });
+      .map(async (e)=>{
+        const globbed = await _internal.glob(e.srcName, { cwd: templateRoot });
+        return Array.isArray(globbed) ? globbed : [];
       })
   );
   return Array.prototype.concat.apply([], srcNames);
