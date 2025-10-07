@@ -7,7 +7,7 @@
 const fs = require("fs-extra");
 const path = require("path");
 const { promisify } = require("util");
-const glob = require("glob");
+const { glob } = require("glob");
 const nunjucks = require("nunjucks");
 const { getParamSpacev2 } = require("./parameterParser");
 const { overwriteByRsync } = require("./rsync.js");
@@ -32,8 +32,9 @@ async function getScatterFilesV2(templateRoot, paramSettings) {
   }
   const srcNames = await Promise.all(
     paramSettings.scatter
-      .map((e)=>{
-        return _internal.glob(e.srcName, { cwd: templateRoot });
+      .map(async (e)=>{
+        const globbed = await _internal.glob(e.srcName, { cwd: templateRoot });
+        return Array.isArray(globbed) ? globbed : [];
       })
   );
   return Array.prototype.concat.apply([], srcNames);

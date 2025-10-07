@@ -17,9 +17,11 @@ const Dispatcher = require("./dispatcher");
 const { getDateString } = require("../lib/utility");
 const { getLogger } = require("../logSettings.js");
 const { eventEmitters } = require("./global.js");
+const { EventEmitter } = require("events");
 
 const _internal = {
   path,
+  EventEmitter,
   readJsonGreedy,
   gitResetHEAD,
   gitClean,
@@ -102,6 +104,9 @@ _internal.stopProject = async(projectRootDir)=>{
  * @returns {string} - project status after run
  */
 _internal.runProject = async(projectRootDir)=>{
+  if (!_internal.eventEmitters.has(projectRootDir)) {
+    _internal.eventEmitters.set(projectRootDir, new _internal.EventEmitter());
+  }
   if (_internal.rootDispatchers.has(projectRootDir)) {
     return new Error(`project is already running ${projectRootDir}`);
   }

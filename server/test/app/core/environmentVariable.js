@@ -193,7 +193,7 @@ describe("UT for environment variables", function () {
     expect(log).to.match(/^WHEEL_NEXT_INDEX=2$/m);
     expect(log).to.match(/^WHEEL_PREV_INDEX=null$/m);
   });
-  it("should have WHEEL_CURRENT_INDEX , WHEEL_PREV_INDEX, WHEEL_NEXT_INDEX, WHEEL_FOR_START, WHEEL_FOR_END, and WHEEL_FOR_STEP in task under for component", async ()=>{
+  it("should have WHEEL_CURRENT_INDEX , WHEEL_PREV_INDEX, WHEEL_NEXT_INDEX, WHEEL_FOR_START, WHEEL_FOR_END, and WHEEL_FOR_STEP in task under for component (2nd loop)", async ()=>{
     const logfile = path.join(projectRootDir, "for0_2", "task0", logfilename);
     expect(logfile).to.be.a.file();
     const log = await fs.readFile(logfile)
@@ -240,21 +240,24 @@ describe("UT for environment variables", function () {
     expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "foreach0_bar", "task0", logfilename)).to.be.a.file().with.contents.that.match(/^WHEEL_PS_PARAM_KEYWORD1=2$/m);
   });
   it("should have WHEEL_CURRENT_INDEX, WHEEL_PREV_INDEX, WHEEL_NEXT_INDEX, WHEEL_FOR_START, WHEEL_FOR_END, and WHEEL_FOR_STEP in task under inner while component", ()=>{
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "while0_1", "task0", logfilename)).to.be.a.file().and.with.contents.that.match(/^WHEEL_FOR_START=$/m);
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "while0_1", "task0", logfilename)).to.be.a.file().and.with.contents.that.match(/^WHEEL_FOR_END=$/m);
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "while0_1", "task0", logfilename)).to.be.a.file().and.with.contents.that.match(/^WHEEL_FOR_STEP=$/m);
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "while0_1", "task0", logfilename)).to.be.a.file().with.contents.that.match(/^WHEEL_CURRENT_INDEX=1$/m);
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "while0_1", "task0", logfilename)).to.be.a.file().with.contents.that.match(/^WHEEL_NEXT_INDEX=2$/m);
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "while0_1", "task0", logfilename)).to.be.a.file().with.contents.that.match(/^WHEEL_PREV_INDEX=0$/m);
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "foreach0_bar", "task0", logfilename)).to.be.a.file().with.contents.that.match(/^WHEEL_PS_PARAM_KEYWORD1=2$/m);
+    const logfile = path.join(projectRootDir, "PS0_KEYWORD1_2", "while0_1", "task0", logfilename);
+    expect(logfile).to.be.a.file().and.with.contents.that.match(/^WHEEL_FOR_START=$/m);
+    expect(logfile).to.be.a.file().and.with.contents.that.match(/^WHEEL_FOR_END=$/m);
+    expect(logfile).to.be.a.file().and.with.contents.that.match(/^WHEEL_FOR_STEP=$/m);
+    expect(logfile).to.be.a.file().with.contents.that.match(/^WHEEL_CURRENT_INDEX=1$/m);
+    expect(logfile).to.be.a.file().with.contents.that.match(/^WHEEL_NEXT_INDEX=2$/m);
+    expect(logfile).to.be.a.file().with.contents.that.match(/^WHEEL_PREV_INDEX=0$/m);
+    expect(logfile).to.be.a.file().with.contents.that.match(/^WHEEL_PS_PARAM_KEYWORD1=2$/m);
   });
   it("should have WHEEL_CURRENT_INDEX , WHEEL_PREV_INDEX, WHEEL_NEXT_INDEX, WHEEL_FOR_START, WHEEL_FOR_END, and WHEEL_FOR_STEP in task under inner foreach component", ()=>{
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "foreach0_bar", "task0", logfilename)).to.be.a.file().with.contents.that.match(/^WHEEL_FOR_START=$/m);
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "foreach0_bar", "task0", logfilename)).to.be.a.file().with.contents.that.match(/^WHEEL_FOR_END=$/m);
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "foreach0_bar", "task0", logfilename)).to.be.a.file().with.contents.that.match(/^WHEEL_FOR_STEP=$/m);
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "foreach0_bar", "task0", logfilename)).to.be.a.file().with.contents.that.match(/^WHEEL_CURRENT_INDEX=bar$/m);
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "foreach0_bar", "task0", logfilename)).to.be.a.file().with.contents.that.match(/^WHEEL_NEXT_INDEX=$/m);
-    expect(path.join(projectRootDir, "PS0_KEYWORD1_2", "foreach0_bar", "task0", logfilename)).to.be.a.file().with.contents.that.match(/^WHEEL_PREV_INDEX=foo$/m);
+    const logfile = path.join(projectRootDir, "PS0_KEYWORD1_2", "foreach0_bar", "task0", logfilename);
+    expect(logfile).to.be.a.file().with.contents.that.match(/^WHEEL_FOR_START=$/m);
+    expect(logfile).to.be.a.file().with.contents.that.match(/^WHEEL_FOR_END=$/m);
+    expect(logfile).to.be.a.file().with.contents.that.match(/^WHEEL_FOR_STEP=$/m);
+    expect(logfile).to.be.a.file().with.contents.that.match(/^WHEEL_CURRENT_INDEX=bar$/m);
+    expect(logfile).to.be.a.file().with.contents.that.match(/^WHEEL_NEXT_INDEX=$/m);
+    expect(logfile).to.be.a.file().with.contents.that.match(/^WHEEL_PREV_INDEX=foo$/m);
+    expect(logfile).to.be.a.file().with.contents.that.match(/^WHEEL_PS_PARAM_KEYWORD1=2$/m);
   });
   describe("[reproduction test] condition definition script can use environment variable", ()=>{
     it("should run task1 only if innermost for loop's index is 3, otherwise task2 should be executed", ()=>{

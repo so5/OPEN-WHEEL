@@ -26,7 +26,7 @@ describe("#renameComponentDir", ()=>{
     isValidNameStub = sinon.stub(projectFilesOperator._internal, "isValidName");
     getComponentDirStub = sinon.stub(projectFilesOperator._internal, "getComponentDir");
     gitRmStub = sinon.stub(projectFilesOperator._internal, "gitRm").resolves();
-    fsStub = sinon.stub(projectFilesOperator._internal.fs, "move").resolves();
+    fsMoveStub = sinon.stub(projectFilesOperator._internal.fs, "move").resolves();
     gitAddStub = sinon.stub(projectFilesOperator._internal, "gitAdd").resolves();
     updateComponentPathStub = sinon.stub(projectFilesOperator._internal, "updateComponentPath").resolves("updated-path-map");
   });

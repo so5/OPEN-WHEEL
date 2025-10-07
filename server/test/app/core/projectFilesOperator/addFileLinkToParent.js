@@ -29,7 +29,7 @@ describe("#addFileLinkToParent", ()=>{
     readComponentJsonStub = sinon.stub(projectFilesOperator._internal, "readComponentJson");
     writeComponentJsonStub = sinon.stub(projectFilesOperator._internal, "writeComponentJson").resolves();
     originalPath = projectFilesOperator._internal.path;
-    pathDirnameStub = sinon.stub(_internal.path, "dirname");
+    pathDirnameStub = sinon.stub(projectFilesOperator._internal.path, "dirname");
   });
 
   afterEach(()=>{
