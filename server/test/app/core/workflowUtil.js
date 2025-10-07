@@ -163,9 +163,9 @@ describe.only("#getChildren", ()=>{
     expect(globStub.notCalled).to.be.true;
   });
 
-  it.skip("should return an empty array if no child components are found", async ()=>{
+  it("should return an empty array if no child components are found", async ()=>{
     getComponentDirStub.resolves("/mock/project/component");
-    globStub.resolves([]);
+    globStub.callsArgWith(1, null, []);
 
     const result = await getChildren("/mock/project", "validID", false);
 
@@ -177,7 +177,7 @@ describe.only("#getChildren", ()=>{
     const child1Path = "/mock/project/component/child1/cmp.wheel.json";
     const child2Path = "/mock/project/component/child2/cmp.wheel.json";
     getComponentDirStub.resolves("/mock/project/component");
-    globStub.resolves([child1Path, child2Path]);
+    globStub.callsArgWith(1, null, [child1Path, child2Path]);
 
     const child1Json = { ID: "child1", subComponent: false };
     const child2Json = { ID: "child2", subComponent: true };
@@ -192,7 +192,7 @@ describe.only("#getChildren", ()=>{
 
   it("should handle the case where parentID is a directory path", async ()=>{
     const childPath = "/mock/project/parent/child/cmp.wheel.json";
-    globStub.resolves([childPath]);
+    globStub.callsArgWith(1, null, [childPath]);
     const childJson = { ID: "child", subComponent: false };
     readJsonGreedyStub.resolves(childJson);
 
@@ -214,18 +214,18 @@ describe.only("#getChildren", ()=>{
 
   it("should return an empty array if no children are found by glob", async ()=>{
     _internal.getComponentDir.resolves("/path/to/component");
-    globStub.resolves([]);
+    globStub.callsArgWith(1, null, []);
 
     const result = await getChildren("/projRoot", "someParent");
     expect(result).to.be.an("array").that.is.empty;
 
     const expectedGlobPath = require("path").join("/path/to/component", "*", componentJsonFilename);
-    expect(globStub.calledOnceWithExactly(expectedGlobPath)).to.be.true;
+    expect(globStub.calledOnceWith(expectedGlobPath)).to.be.true;
   });
 
   it("should filter out subComponent objects and return the rest", async ()=>{
     _internal.getComponentDir.resolves("/my/component");
-    globStub.resolves([
+    globStub.callsArgWith(1, null, [
       "/my/component/child1/component.json",
       "/my/component/child2/component.json",
       "/my/component/child3/component.json"
@@ -241,7 +241,7 @@ describe.only("#getChildren", ()=>{
     expect(result).to.deep.include({ ID: "child3" });
 
     const expectedGlobPath = require("path").join("/my/component", "*", componentJsonFilename);
-    expect(globStub.calledOnceWithExactly(expectedGlobPath)).to.be.true;
+    expect(globStub.calledOnceWith(expectedGlobPath)).to.be.true;
 
     expect(_internal.readJsonGreedy.callCount).to.equal(3);
   });
