@@ -8,7 +8,7 @@ const fs = require("fs-extra");
 const path = require("path");
 const { promisify } = require("util");
 const { EventEmitter } = require("events");
-const glob = require("glob");
+const { glob, hasMagic } = require("glob");
 const { debounce } = require("perfect-debounce");
 const nunjucks = require("nunjucks");
 nunjucks.configure({ autoescape: true });
@@ -57,6 +57,7 @@ const _internal = {
   promisify,
   EventEmitter,
   glob,
+  hasMagic,
   debounce,
   nunjucks,
   remoteHost,
@@ -698,6 +699,7 @@ class Dispatcher extends EventEmitter {
 
     //set current loop index
     if (!component.initialized) {
+      component.env = Object.assign({}, this.env, component.env);
       _internal.loopInitialize(component, getTripCount);
     } else if (component.restarting) {
       let done = false;
@@ -1485,8 +1487,9 @@ class Dispatcher extends EventEmitter {
       } else if (recipe.remoteToLocal) {
         p2.push(_internal.deliverFilesFromRemote(recipe));
       } else {
-        const srces = await _internal.promisify(_internal.glob)(recipe.srcName, { cwd: recipe.srcRoot });
-        const hasGlob = _internal.glob.hasMagic(recipe.srcName);
+        const globbed = await _internal.glob(recipe.srcName, { cwd: recipe.srcRoot });
+        const srces = Array.isArray(globbed) ? globbed : [];
+        const hasGlob = _internal.hasMagic(recipe.srcName);
         for (const srcFile of srces) {
           if (srcFile === "cmp.wheel.json") {
             continue;
