@@ -55,3 +55,9 @@ async function checkAllCommands() {
 }
 
 module.exports = checkAllCommands;
+
+if (process.env.NODE_ENV === "test") {
+  module.exports._internal = {
+    commands
+  };
+}
