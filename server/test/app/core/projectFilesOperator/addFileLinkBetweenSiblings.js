@@ -58,7 +58,7 @@ describe("#addFileLinkBetweenSiblings", ()=>{
     expect(writeComponentJsonStub.secondCall.args[1]).to.equal("/mock/project/componentB");
   });
 
-  it("should not add duplicate file links if a link already exists", async ()=>{
+  it("should allow duplicate file links if already exists", async ()=>{
     const projectRootDir = "/mock/project";
     const srcNode = "componentA";
     const srcName = "outputA.txt";
@@ -82,8 +82,8 @@ describe("#addFileLinkBetweenSiblings", ()=>{
 
     await projectFilesOperator._internal.addFileLinkBetweenSiblings(projectRootDir, srcNode, srcName, dstNode, dstName);
 
-    expect(srcComponentJson.outputFiles[0].dst).to.have.lengthOf(1);
-    expect(dstComponentJson.inputFiles[0].src).to.have.lengthOf(1);
+    expect(srcComponentJson.outputFiles[0].dst).to.have.length(2);
+    expect(dstComponentJson.inputFiles[0].src).to.have.length(2);
     expect(writeComponentJsonStub.calledTwice).to.be.true;
   });
 

@@ -96,4 +96,15 @@ describe("#addFileLinkToParent", ()=>{
     expect(parentJson.outputFiles[0].origin).to.have.lengthOf(1);
     expect(writeComponentJsonStub.calledTwice).to.be.true;
   });
+
+  it("should throw an error if srcNode does not exist", async ()=>{
+    getComponentDirStub.withArgs(projectRootDir, "invalidNode", true).rejects(new Error("srcNode not found"));
+
+    try {
+      await projectFilesOperator._internal.addFileLinkToParent(projectRootDir, "invalidNode", "outputFile1", "inputFile1");
+      throw new Error("Expected addFileLinkToParent to throw");
+    } catch (err) {
+      expect(err.message).to.equal("srcNode not found");
+    }
+  });
 });

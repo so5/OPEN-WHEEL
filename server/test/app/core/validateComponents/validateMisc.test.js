@@ -212,14 +212,39 @@ describe("validateMisc UT", function() {
     beforeEach(async () => {
       ps = await createNewComponent(projectRootDir, projectRootDir, "PS", { x: 0, y: 0 });
     });
-    it("should be rejected if parameterFile is not set", () => {
+    it("should be rejected if parameterFile is not specified", () => {
       ps.parameterFile = null;
       return expect(validateParameterStudy(projectRootDir, ps)).to.be.rejectedWith("parameter setting file is not specified");
     });
-    it("should be rejected if parameterFile is not file", () => {
+    it("should be rejected if parameterFile does not exist", ()=>{
       ps.parameterFile = "hoge";
-      fs.mkdirSync(path.resolve(projectRootDir, ps.name, "hoge"));
+      return expect(validateParameterStudy(projectRootDir, ps)).to.be.rejectedWith("parameter setting file is not existing");
+    });
+    it("should be rejected if parameterFile is not a file", async ()=>{
+      ps.parameterFile = "hoge";
+      await fs.mkdir(path.resolve(projectRootDir, ps.name, "hoge"));
       return expect(validateParameterStudy(projectRootDir, ps)).to.be.rejectedWith("parameter setting file is not file");
+    });
+    it("should be rejected if parameterFile is not valid JSON", ()=>{
+      ps.parameterFile = "hoge";
+      fs.writeFileSync(path.resolve(projectRootDir, ps.name, "hoge"), "hoge");
+      return expect(validateParameterStudy(projectRootDir, ps)).to.be.rejectedWith("parameter setting file is not JSON file");
+    });
+    it("should be rejected if parameterFile does not match schema", ()=>{
+      ps.parameterFile = "hoge";
+      const params = {
+        version: 2,
+        targetFiles: [
+          { targetName: "foo" }
+        ]
+      };
+      fs.writeJsonSync(path.resolve(projectRootDir, ps.name, "hoge"), params);
+      return expect(validateParameterStudy(projectRootDir, ps)).to.be.rejectedWith("parameter setting file does not have valid JSON data");
+    });
+    it("should be rejected if parameterFile has syntax error", async ()=>{
+      ps.parameterFile = "invalid_syntax.json";
+      await fs.outputFile(path.resolve(projectRootDir, ps.name, "invalid_syntax.json"), "{ 'version': 2, unclosed object");
+      return expect(validateParameterStudy(projectRootDir, ps)).to.be.rejectedWith("parameter setting file is not JSON file");
     });
     it("should be rejected if parameterFile is not valid JSON file", () => {
       ps.parameterFile = "hoge";

@@ -114,7 +114,7 @@ describe("#runProject with loop components", function () {
     describe("task in a While component", ()=>{
         beforeEach(async ()=>{
           const while0 = await createNewComponent(projectRootDir, projectRootDir, "while", { x: 10, y: 10 });
-          await updateComponent(projectRootDir, while0.ID, "condition", "WHEEL_CURRENT_INDEX < 2");
+          await updateComponent(projectRootDir, while0.ID, "condition", "WHEEL_CURRENT_INDEX < 3");
           const task0 = await createNewComponent(projectRootDir, path.join(projectRootDir, "while0"), "task", { x: 10, y: 10 });
           await updateComponent(projectRootDir, task0.ID, "script", scriptName);
           await fs.outputFile(path.join(projectRootDir, "while0", "task0", scriptName), scriptPwd);
@@ -157,6 +157,39 @@ describe("#runProject with loop components", function () {
               state: { enum: ["finished"] }
             }
           });
+          expect(path.resolve(projectRootDir, "while0_2", "task0", componentJsonFilename)).to.be.a.file().with.json.using.schema({
+            required: ["state"],
+            properties: {
+              state: { enum: ["finished"] }
+            }
+          });
+        });
+        it("should copy 3 times and delete all component", async ()=>{
+          const while0 = await fs.readJson(path.resolve(projectRootDir, "while0", componentJsonFilename));
+          await updateComponent(projectRootDir, while0.ID, "keep", 0);
+          await runProject(projectRootDir);
+          expect(path.resolve(projectRootDir, `${while0.name}_0`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${while0.name}_1`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${while0.name}_2`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${while0.name}_3`)).not.to.be.a.path();
+        });
+        it("should copy 3 times and keep last component", async ()=>{
+          const while0 = await fs.readJson(path.resolve(projectRootDir, "while0", componentJsonFilename));
+          await updateComponent(projectRootDir, while0.ID, "keep", 1);
+          await runProject(projectRootDir);
+          expect(path.resolve(projectRootDir, `${while0.name}_0`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${while0.name}_1`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${while0.name}_2`)).to.be.a.directory();
+          expect(path.resolve(projectRootDir, `${while0.name}_3`)).not.to.be.a.path();
+        });
+        it("should copy 3 times and keep last 2 component", async ()=>{
+          const while0 = await fs.readJson(path.resolve(projectRootDir, "while0", componentJsonFilename));
+          await updateComponent(projectRootDir, while0.ID, "keep", 2);
+          await runProject(projectRootDir);
+          expect(path.resolve(projectRootDir, `${while0.name}_0`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${while0.name}_1`)).to.be.a.directory();
+          expect(path.resolve(projectRootDir, `${while0.name}_2`)).to.be.a.directory();
+          expect(path.resolve(projectRootDir, `${while0.name}_3`)).not.to.be.a.path();
         });
     });
     describe("task in a Foreach component", ()=>{
@@ -217,6 +250,33 @@ describe("#runProject with loop components", function () {
               state: { enum: ["finished"] }
             }
           });
+        });
+        it("should copy 4 times and delete all component", async ()=>{
+          const foreach0 = await fs.readJson(path.resolve(projectRootDir, "foreach0", componentJsonFilename));
+          await updateComponent(projectRootDir, foreach0.ID, "keep", 0);
+          await runProject(projectRootDir);
+          expect(path.resolve(projectRootDir, `${foreach0.name}_foo`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${foreach0.name}_bar`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${foreach0.name}_baz`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${foreach0.name}_fizz`)).not.to.be.a.path();
+        });
+        it("should copy 4 times and keep last component", async ()=>{
+          const foreach0 = await fs.readJson(path.resolve(projectRootDir, "foreach0", componentJsonFilename));
+          await updateComponent(projectRootDir, foreach0.ID, "keep", 1);
+          await runProject(projectRootDir);
+          expect(path.resolve(projectRootDir, `${foreach0.name}_foo`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${foreach0.name}_bar`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${foreach0.name}_baz`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${foreach0.name}_fizz`)).to.be.a.directory();
+        });
+        it("should copy 4 times and keep last 2 component", async ()=>{
+          const foreach0 = await fs.readJson(path.resolve(projectRootDir, "foreach0", componentJsonFilename));
+          await updateComponent(projectRootDir, foreach0.ID, "keep", 2);
+          await runProject(projectRootDir);
+          expect(path.resolve(projectRootDir, `${foreach0.name}_foo`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${foreach0.name}_bar`)).not.to.be.a.path();
+          expect(path.resolve(projectRootDir, `${foreach0.name}_baz`)).to.be.a.directory();
+          expect(path.resolve(projectRootDir, `${foreach0.name}_fizz`)).to.be.a.directory();
         });
     });
     describe("file dependency between task in the For component", ()=>{
@@ -321,5 +381,152 @@ describe("#runProject with loop components", function () {
             }
           });
         });
+    });
+    describe("[reproduction test] task with sub directory in a for loop", ()=>{
+      beforeEach(async ()=>{
+        const for0 = await createNewComponent(projectRootDir, projectRootDir, "for", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, for0.ID, "start", 0);
+        await updateComponent(projectRootDir, for0.ID, "end", 2);
+        await updateComponent(projectRootDir, for0.ID, "step", 1);
+        const task0 = await createNewComponent(projectRootDir, path.join(projectRootDir, "for0"), "task", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, task0.ID, "script", scriptName);
+        await fs.outputFile(path.join(projectRootDir, "for0", "task0", scriptName), scriptPwd);
+        await fs.mkdir(path.join(projectRootDir, "for0", "task0", "empty_dir"));
+      });
+      it("should run and successfully finished", async ()=>{
+        await runProject(projectRootDir);
+        expect(path.resolve(projectRootDir, "for0", componentJsonFilename)).to.be.a.file().with.json.using.schema({
+          required: ["state"],
+          properties: {
+            state: { enum: ["finished"] }
+          }
+        });
+        expect(path.resolve(projectRootDir, "for0_0", "task0", componentJsonFilename)).to.be.a.file().with.json.using.schema({
+          required: ["state"],
+          properties: {
+            state: { enum: ["finished"] }
+          }
+        });
+        expect(path.resolve(projectRootDir, "for0_1", "task0", componentJsonFilename)).to.be.a.file().with.json.using.schema({
+          required: ["state"],
+          properties: {
+            state: { enum: ["finished"] }
+          }
+        });
+        expect(path.resolve(projectRootDir, "for0_2", "task0", componentJsonFilename)).to.be.a.file().with.json.using.schema({
+          required: ["state"],
+          properties: {
+            state: { enum: ["finished"] }
+          }
+        });
+        expect(path.resolve(projectRootDir, "for0", "task0", componentJsonFilename)).to.be.a.file().with.json.using.schema({
+          required: ["state"],
+          properties: {
+            state: { enum: ["finished"] }
+          }
+        });
+      });
+    });
+    describe("[reproduction test] PS in loop", ()=>{
+      let for0;
+      let PS0;
+      let task0;
+      beforeEach(async ()=>{
+        for0 = await createNewComponent(projectRootDir, projectRootDir, "for", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, for0.ID, "start", 0);
+        await updateComponent(projectRootDir, for0.ID, "end", 3);
+        await updateComponent(projectRootDir, for0.ID, "step", 1);
+
+        PS0 = await createNewComponent(projectRootDir, path.resolve(projectRootDir, for0.name), "PS", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, PS0.ID, "parameterFile", "input.txt.json");
+        await fs.outputFile(path.join(projectRootDir, for0.name, PS0.name, "input.txt"), "%%KEYWORD1%%");
+        const parameterSetting = {
+          version: 2,
+          target_file: "input.txt",
+          target_param: [
+            {
+              target: "hoge",
+              keyword: "KEYWORD1",
+              type: "integer",
+              min: 1,
+              max: 3,
+              step: 1,
+              list: ""
+            }
+          ]
+        };
+        await fs.writeJson(path.join(projectRootDir, for0.name, PS0.name, "input.txt.json"), parameterSetting, { spaces: 4 });
+
+        task0 = await createNewComponent(projectRootDir, path.resolve(projectRootDir, for0.name, PS0.name), "task", { x: 10, y: 10 });
+        await updateComponent(projectRootDir, task0.ID, "script", scriptName);
+        await fs.outputFile(path.join(projectRootDir, for0.name, PS0.name, task0.name, scriptName), "if [ ${WHEEL_CURRENT_INDEX} -eq 0 ];then echo hoge ${WHEEL_CURRENT_INDEX} > hoge;fi");
+      });
+      it("should run project and successfully finish", async ()=>{
+        await runProject(projectRootDir);
+        expect(path.resolve(projectRootDir, for0.name, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+          properties: {
+            numFinishd: {
+              type: "integer",
+              minimum: 4,
+              maximum: 4
+            },
+            numTotal: {
+              type: "integer",
+              minimum: 4,
+              maximum: 4
+            }
+          }
+        });
+        expect(path.resolve(projectRootDir, for0.name, PS0.name, componentJsonFilename)).to.be.a.file().with.json.using.schema({
+          properties: {
+            numFinishd: {
+              type: "integer",
+              minimum: 3,
+              maximum: 3
+            },
+            numTotal: {
+              type: "integer",
+              minimum: 3,
+              maximum: 3
+            }
+          }
+        });
+        expect(path.resolve(projectRootDir, for0.name, "PS0_KEYWORD1_1", "task0", componentJsonFilename)).to.be.a.file().with.json.using.schema({
+          properties: {
+            state: {
+              type: "string",
+              pattern: "^finished$"
+            }
+          }
+        });
+        expect(path.resolve(projectRootDir, for0.name, "PS0_KEYWORD1_2", "task0", componentJsonFilename)).to.be.a.file().with.json.using.schema({
+          properties: {
+            state: {
+              type: "string",
+              pattern: "^finished$"
+            }
+          }
+        });
+        expect(path.resolve(projectRootDir, for0.name, "PS0_KEYWORD1_3", "task0", componentJsonFilename)).to.be.a.file().with.json.using.schema({
+          properties: {
+            state: {
+              type: "string",
+              pattern: "^finished$"
+            }
+          }
+        });
+        expect(path.resolve(projectRootDir, "for0_0", "PS0_KEYWORD1_1", "task0", "hoge")).to.be.a.file().with.content("hoge 0\n");
+        expect(path.resolve(projectRootDir, "for0_0", "PS0_KEYWORD1_2", "task0", "hoge")).to.be.a.file().with.content("hoge 0\n");
+        expect(path.resolve(projectRootDir, "for0_0", "PS0_KEYWORD1_3", "task0", "hoge")).to.be.a.file().with.content("hoge 0\n");
+        expect(path.resolve(projectRootDir, "for0_1", "PS0_KEYWORD1_1", "task0", "hoge")).not.to.be.a.path();
+        expect(path.resolve(projectRootDir, "for0_1", "PS0_KEYWORD1_2", "task0", "hoge")).not.to.be.a.path();
+        expect(path.resolve(projectRootDir, "for0_1", "PS0_KEYWORD1_3", "task0", "hoge")).not.to.be.a.path();
+        expect(path.resolve(projectRootDir, "for0_2", "PS0_KEYWORD1_1", "task0", "hoge")).not.to.be.a.path();
+        expect(path.resolve(projectRootDir, "for0_2", "PS0_KEYWORD1_2", "task0", "hoge")).not.to.be.a.path();
+        expect(path.resolve(projectRootDir, "for0_2", "PS0_KEYWORD1_3", "task0", "hoge")).not.to.be.a.path();
+        expect(path.resolve(projectRootDir, "for0_3", "PS0_KEYWORD1_1", "task0", "hoge")).not.to.be.a.path();
+        expect(path.resolve(projectRootDir, "for0_3", "PS0_KEYWORD1_2", "task0", "hoge")).not.to.be.a.path();
+        expect(path.resolve(projectRootDir, "for0_3", "PS0_KEYWORD1_3", "task0", "hoge")).not.to.be.a.path();
+      });
     });
 });
