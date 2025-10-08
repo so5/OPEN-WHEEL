@@ -25,6 +25,7 @@ const { baseURL, setSio } = require("./core/global.js");
 const { tempdRoot } = require("./core/tempd.js");
 const { aboutWheel } = require("./core/versionInfo.js");
 const { hasEntry, hasCode, hasRefreshToken, storeCode, acquireAccessToken, getURLtoAcquireCode, getRemotehostIDFromState } = require("./core/webAPI.js");
+const checkAllCommands = require("./core/commandCheck.js");
 const secret = "wheel";
 const sessionDBFilename = "session.db";
 const sessionDBDir = process.env.WHEEL_SESSION_DB_DIR || path.resolve(__dirname, "db");
@@ -33,6 +34,13 @@ const sessionDBDir = process.env.WHEEL_SESSION_DB_DIR || path.resolve(__dirname,
 const logger = getLogger();
 process.on("unhandledRejection", logger.debug.bind(logger));
 process.on("uncaughtException", logger.debug.bind(logger));
+
+// check for essential commands
+(async ()=>{
+  if (!await checkAllCommands()) {
+    process.exit(1);
+  }
+})();
 
 if (process.env.WHEEL_CLEAR_SESSION_DB) {
   try {
