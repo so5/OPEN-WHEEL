@@ -12,7 +12,6 @@ const SshClientWrapper = require("ssh-client-wrapper");
 const chai = require("chai");
 const expect = chai.expect;
 const sinon = require("sinon");
-const rewire = require("rewire");
 chai.use(require("sinon-chai"));
 chai.use(require("chai-fs"));
 chai.use(require("chai-json-schema"));
@@ -22,9 +21,8 @@ const testDirRoot = "WHEEL_TEST_TMP";
 const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 //testee
 const Dispatcher = require("../../../app/core/dispatcher");
+const { _internal } = require("../../../app/core/dispatcher");
 const { eventEmitters } = require("../../../app/core/global.js");
-eventEmitters.set(projectRootDir, { emit: sinon.stub() });
-
 //helper functions
 const { projectJsonFilename, componentJsonFilename } = require("../../../app/db/db.js");
 const { createNewProject, updateComponent, createNewComponent, addInputFile, addOutputFile, addLink, addFileLink, renameOutputFile } = require("../../../app/core/projectFilesOperator.js");
@@ -47,6 +45,10 @@ describe("UT for Dispatcher class", function () {
     await fs.remove(testDirRoot);
     await createNewProject(projectRootDir, "test project", null, "test", "test@example.com");
     rootWF = await fs.readJson(path.resolve(projectRootDir, componentJsonFilename));
+    eventEmitters.set(projectRootDir, { emit: sinon.stub() });
+  });
+  afterEach(()=>{
+    sinon.restore();
   });
   after(async ()=>{
     if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {
@@ -63,8 +65,7 @@ describe("UT for Dispatcher class", function () {
       "template1.txt": "Hello, {{ key1 }}!",
       "template2.txt": "Goodbye, {{ key2 }}!"
     };
-    const reWireDispatcher = rewire("../../../app/core/dispatcher.js");
-    const replaceByNunjucksForBulkjob = reWireDispatcher.__get__("replaceByNunjucksForBulkjob");
+    const replaceByNunjucksForBulkjob = _internal.replaceByNunjucksForBulkjob;
 
     beforeEach(async function () {
       await fs.ensureDir(templateRoot);
@@ -102,8 +103,7 @@ describe("UT for Dispatcher class", function () {
     const targetFiles = ["file1.txt", "file2.txt"];
     const params = { key1: "value1", key2: "value2" };
     const bulkNumber = 42;
-    const reWireDispatcher = rewire("../../../app/core/dispatcher.js");
-    const writeParameterSetFile = reWireDispatcher.__get__("writeParameterSetFile");
+    const writeParameterSetFile = _internal.writeParameterSetFile;
     beforeEach(async function () {
       await fs.ensureDir(templateRoot);
 

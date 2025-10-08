@@ -7,7 +7,11 @@
 const SshClientWrapper = require("ssh-client-wrapper");
 const { emitAll } = require("../handlers/commUtils.js");
 
-const db = new Map();
+const _internal = {
+  SshClientWrapper,
+  emitAll,
+  db: new Map()
+};
 
 /**
  * check if db contains ssh object for the project
@@ -16,8 +20,8 @@ const db = new Map();
  * @returns {boolean} -
  */
 function hasEntry(projectRootDir, id) {
-  if (db.has(projectRootDir)) {
-    return db.get(projectRootDir).has(id);
+  if (_internal.db.has(projectRootDir)) {
+    return _internal.db.get(projectRootDir).has(id);
   }
   return false;
 }
@@ -32,10 +36,10 @@ function hasEntry(projectRootDir, id) {
  * @param {boolean} isStorage - whether this host is also used for remote storage component or not
  */
 function addSsh(projectRootDir, hostinfo, ssh, pw, ph, isStorage) {
-  if (!db.has(projectRootDir)) {
-    db.set(projectRootDir, new Map());
+  if (!_internal.db.has(projectRootDir)) {
+    _internal.db.set(projectRootDir, new Map());
   }
-  db.get(projectRootDir).set(hostinfo.id, { ssh, hostinfo, pw, ph, isStorage });
+  _internal.db.get(projectRootDir).set(hostinfo.id, { ssh, hostinfo, pw, ph, isStorage });
 }
 
 /**
@@ -51,7 +55,7 @@ function getSsh(projectRootDir, id) {
     err.id = id;
     throw err;
   }
-  return db.get(projectRootDir).get(id).ssh;
+  return _internal.db.get(projectRootDir).get(id).ssh;
 }
 
 /**
@@ -67,7 +71,7 @@ function getSshHostinfo(projectRootDir, id) {
     err.id = id;
     throw err;
   }
-  return db.get(projectRootDir).get(id).hostinfo;
+  return _internal.db.get(projectRootDir).get(id).hostinfo;
 }
 
 /**
@@ -83,7 +87,7 @@ function getSshPW(projectRootDir, id) {
     err.id = id;
     throw err;
   }
-  return db.get(projectRootDir).get(id).pw;
+  return _internal.db.get(projectRootDir).get(id).pw;
 }
 
 /**
@@ -99,7 +103,7 @@ function getSshPH(projectRootDir, id) {
     err.id = id;
     throw err;
   }
-  return db.get(projectRootDir).get(id).ph;
+  return _internal.db.get(projectRootDir).get(id).ph;
 }
 
 /**
@@ -107,7 +111,7 @@ function getSshPH(projectRootDir, id) {
  * @param {string} projectRootDir - project's root path
  */
 function removeSsh(projectRootDir) {
-  const target = db.get(projectRootDir);
+  const target = _internal.db.get(projectRootDir);
   if (!target) {
     return;
   }
@@ -120,7 +124,7 @@ function removeSsh(projectRootDir) {
     e.ssh.disconnect();
   }
   if (clearDB) {
-    db.get(projectRootDir).clear();
+    _internal.db.get(projectRootDir).clear();
   }
 }
 
@@ -132,9 +136,9 @@ function removeSsh(projectRootDir) {
  * @param {string | null} JWTServerURL - URL of JWT server if requesting JWT-server passphrase this arg must be specified
  * @returns {Promise} - resolve when get password from browser, rejected if user cancel password input
  */
-function askPassword(clientID, hostname, mode, JWTServerURL = null) {
+_internal.askPassword = (clientID, hostname, mode, JWTServerURL = null)=>{
   return new Promise((resolve, reject)=>{
-    emitAll(clientID, "askPassword", hostname, mode, JWTServerURL, (data)=>{
+    _internal.emitAll(clientID, "askPassword", hostname, mode, JWTServerURL, (data)=>{
       if (data === null) {
         const err = new Error("user canceled ssh password prompt");
         err.reason = "CANCELED";
@@ -143,7 +147,7 @@ function askPassword(clientID, hostname, mode, JWTServerURL = null) {
       resolve(data);
     });
   });
-}
+};
 
 /**
  * create necessary ssh instance
@@ -169,7 +173,7 @@ async function createSsh(projectRootDir, remoteHostName, hostinfo, clientID, isS
         }
       }
       //pw will be used after canConnect
-      pw = await askPassword(clientID, remoteHostName, "password", null);
+      pw = await _internal.askPassword(clientID, remoteHostName, "password", null);
       return pw;
     };
   } else {
@@ -184,7 +188,7 @@ async function createSsh(projectRootDir, remoteHostName, hostinfo, clientID, isS
         return ph;
       }
     }
-    ph = await askPassword(clientID, remoteHostName, "passphrase ", null);
+    ph = await _internal.askPassword(clientID, remoteHostName, "passphrase ", null);
     return ph;
   };
   if (hostinfo.renewInterval) {
@@ -206,7 +210,7 @@ async function createSsh(projectRootDir, remoteHostName, hostinfo, clientID, isS
     hostinfo.rcfile = "/etc/profile";
   }
 
-  const ssh = new SshClientWrapper(hostinfo);
+  const ssh = new _internal.SshClientWrapper(hostinfo);
   const timeout = hostinfo.ConnectTimeout > 120 ? hostinfo.ConnectTimeout : 120;
   try {
     const success = await ssh.canConnect(timeout);
@@ -233,6 +237,12 @@ module.exports = {
   getSsh,
   getSshHostinfo,
   removeSsh,
-  askPassword,
-  createSsh
+  createSsh,
+  hasEntry,
+  getSshPW,
+  getSshPH
 };
+
+if (process.env.NODE_ENV === "test") {
+  module.exports._internal = _internal;
+}

@@ -10,7 +10,6 @@ const chai = require("chai");
 const expect = chai.expect;
 chai.use(require("chai-fs"));
 chai.use(require("chai-as-promised"));
-const rewire = require("rewire");
 const sinon = require("sinon");
 
 const dummyRemoteHost = {
@@ -18,16 +17,16 @@ const dummyRemoteHost = {
     return [{ name: "a" }, { name: "b" }, { name: "c" }];
   }
 };
-const emitAll = sinon.stub();
-
 //testee
-const AHM = rewire("../../../app/core/askHostMap.js");
-AHM.__set__("emitAll", emitAll);
-AHM.__set__("remoteHost", dummyRemoteHost);
-const isValidHostMap = AHM.__get__("isValidHostMap");
-const askHostMap = AHM.__get__("askHostMap");
+const { isValidHostMap, askHostMap, _internal } = require("../../../app/core/askHostMap.js");
 
 describe("hostMapper UT", function () {
+  beforeEach(()=>{
+    sinon.stub(_internal, "emitAll");
+    sinon.replace(_internal, "remoteHost", dummyRemoteHost);
+    sinon.stub(_internal, "getLogger").returns({ error: sinon.stub() });
+  });
+  afterEach(()=>{ return sinon.restore(); });
   describe("#isValidHostMap", ()=>{
     it("should return false if one of hostMap's key is not string", ()=>{
       expect(isValidHostMap({ 0: 1 }, [])).to.be.false;
@@ -46,25 +45,22 @@ describe("hostMapper UT", function () {
     const clientID = "dummyClientID";
     const hostMap = { foo: "a", bar: "b", baz: "b" };
     const hosts = [{ hostname: "foo" }, { hostname: "bar" }];
-    beforeEach(()=>{
-      emitAll.reset();
-    });
     it("should resolve with hostMap", async ()=>{
-      emitAll.callsArgWith(3, hostMap);
+      _internal.emitAll.callsArgWith(3, hostMap);
       expect(await askHostMap(clientID, hosts)).to.equal(hostMap);
-      const firstCall = emitAll.getCall(0);
+      const firstCall = _internal.emitAll.getCall(0);
       expect(firstCall.args[0]).to.equal(clientID);
       expect(firstCall.args[1]).to.equal("askHostMap");
       expect(firstCall.args[2]).to.deep.equal(hosts);
     });
     it("should throw exception if cb called with null", ()=>{
-      emitAll.callsArgWith(3, null);
-      return expect(askHostMap(clientID, hosts)).to.rejectedWith("user canceled host map input");
+      _internal.emitAll.callsArgWith(3, null);
+      return expect(askHostMap(clientID, hosts)).to.be.rejectedWith("user canceled host map input");
     });
     it("should throw exception if cb called with invalid hostMap", ()=>{
       const invalidHostMap = { 0: 1 };
-      emitAll.callsArgWith(3, invalidHostMap);
-      return expect(askHostMap(clientID, hosts)).to.rejectedWith("invalid host map");
+      _internal.emitAll.callsArgWith(3, invalidHostMap);
+      return expect(askHostMap(clientID, hosts)).to.be.rejectedWith("invalid host map");
     });
   });
 });

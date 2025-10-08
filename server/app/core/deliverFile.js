@@ -11,6 +11,17 @@ const { rsyncExcludeOptionOfWheelSystemFiles } = require("../db/db");
 const { getSsh, getSshHostinfo } = require("./sshManager.js");
 const { gfpcopy, gfptarExtract } = require("./gfarmOperator.js");
 
+const _internal = {
+  fs,
+  path,
+  getLogger,
+  rsyncExcludeOptionOfWheelSystemFiles,
+  getSsh,
+  getSshHostinfo,
+  gfpcopy,
+  gfptarExtract
+};
+
 /**
  * deliver src to dst
  * @param {string} src - absolute path of src path
@@ -18,20 +29,20 @@ const { gfpcopy, gfptarExtract } = require("./gfarmOperator.js");
  * @param {boolean} forceCopy - use copy instead of symlink
  */
 async function deliverFile(src, dst, forceCopy = false) {
-  const stats = await fs.lstat(src);
+  const stats = await _internal.fs.lstat(src);
   const type = stats.isDirectory() ? "dir" : "file";
   try {
     if (forceCopy) {
-      await fs.copy(src, dst, { overwrite: true });
+      await _internal.fs.copy(src, dst, { overwrite: true });
       return { type: "copy", src, dst };
     }
-    await fs.remove(dst);
-    await fs.ensureSymlink(src, dst, type);
+    await _internal.fs.remove(dst);
+    await _internal.fs.ensureSymlink(src, dst, type);
 
     return { type: `link-${type}`, src, dst };
   } catch (e) {
     if (e.code === "EPERM") {
-      await fs.copy(src, dst, { overwrite: false });
+      await _internal.fs.copy(src, dst, { overwrite: false });
       return { type: "copy", src, dst };
     }
     return Promise.reject(e);
@@ -44,18 +55,18 @@ async function deliverFile(src, dst, forceCopy = false) {
  * @returns {object} - result object
  */
 async function deliverFilesOnRemote(recipe) {
-  const logger = getLogger(recipe.projectRootDir);
+  const logger = _internal.getLogger(recipe.projectRootDir);
   if (!recipe.onSameRemote) {
     logger.warn("deliverFilesOnRemote must be called with onSameRemote flag");
     return null;
   }
   if (recipe.dstName.endsWith("/")) {
-    recipe.dstRoot = path.join(recipe.dstRoot, recipe.dstName);
+    recipe.dstRoot = _internal.path.join(recipe.dstRoot, recipe.dstName);
     recipe.dstName = "./";
   }
-  const ssh = getSsh(recipe.projectRootDir, recipe.srcRemotehostID);
+  const ssh = _internal.getSsh(recipe.projectRootDir, recipe.srcRemotehostID);
   const cmd = recipe.forceCopy ? "cp -r " : "ln -sf";
-  const sshCmd = `bash -O failglob -c 'mkdir -p ${recipe.dstRoot} 2>/dev/null; (cd ${recipe.dstRoot} && for i in ${path.join(recipe.srcRoot, recipe.srcName)}; do ${cmd} \${i} ${recipe.dstName} ;done)'`;
+  const sshCmd = `bash -O failglob -c 'mkdir -p ${recipe.dstRoot} 2>/dev/null; (cd ${recipe.dstRoot} && for i in ${_internal.path.join(recipe.srcRoot, recipe.srcName)}; do ${cmd} \${i} ${recipe.dstName} ;done)'`;
   logger.debug("execute on remote", sshCmd);
   const rt = await ssh.exec(sshCmd, 0, logger.debug.bind(logger));
   if (rt !== 0) {
@@ -64,7 +75,7 @@ async function deliverFilesOnRemote(recipe) {
     err.rt = rt;
     return Promise.reject(err);
   }
-  return { type: "copy", src: path.join(recipe.srcRoot, recipe.srcName), dst: path.join(recipe.dstRoot, recipe.dstName) };
+  return { type: "copy", src: _internal.path.join(recipe.srcRoot, recipe.srcName), dst: _internal.path.join(recipe.dstRoot, recipe.dstName) };
 }
 
 /**
@@ -73,14 +84,14 @@ async function deliverFilesOnRemote(recipe) {
  * @returns {object} - result object
  */
 async function deliverFilesFromRemote(recipe) {
-  const logger = getLogger(recipe.projectRootDir);
+  const logger = _internal.getLogger(recipe.projectRootDir);
   if (!recipe.remoteToLocal) {
     logger.warn("deliverFilesFromRemote must be called with remoteToLocal flag");
     return null;
   }
-  const ssh = getSsh(recipe.projectRootDir, recipe.srcRemotehostID);
+  const ssh = _internal.getSsh(recipe.projectRootDir, recipe.srcRemotehostID);
 
-  await ssh.recv([`${recipe.srcRoot}/${recipe.srcName}`], `${recipe.dstRoot}/${recipe.dstName}`, ["-vv", ...rsyncExcludeOptionOfWheelSystemFiles]);
+  await ssh.recv([`${recipe.srcRoot}/${recipe.srcName}`], `${recipe.dstRoot}/${recipe.dstName}`, ["-vv", ..._internal.rsyncExcludeOptionOfWheelSystemFiles]);
   return { type: "copy", src: `${recipe.srcRoot}/${recipe.srcName}`, dst: `${recipe.dstRoot}/${recipe.dstName}` };
 }
 
@@ -91,8 +102,8 @@ async function deliverFilesFromRemote(recipe) {
  */
 async function deliverFilesFromHPCISS(recipe) {
   const withTar = recipe.fromHPCISStar;
-  const ssh = getSsh(recipe.projectRootDir, recipe.srcRemotehostID);
-  const hostinfo = getSshHostinfo(recipe.projectRootDir, recipe.srcRemotehostID);
+  const ssh = _internal.getSsh(recipe.projectRootDir, recipe.srcRemotehostID);
+  const hostinfo = _internal.getSshHostinfo(recipe.projectRootDir, recipe.srcRemotehostID);
 
   const prefix = hostinfo.path ? `-p ${hostinfo.path}` : "";
   const { output, rt } = await ssh.execAndGetOutput(`mktemp -d ${prefix} WHEEL_TMP_XXXXXXXX`);
@@ -103,22 +114,25 @@ async function deliverFilesFromHPCISS(recipe) {
 
   const orgSrcRoot = recipe.srcRoot;
   if (withTar) {
-    const extractTargetName = path.join(remoteTempDir, "WHEEL_EXTRACT_DIR");
+    const extractTargetName = _internal.path.join(remoteTempDir, "WHEEL_EXTRACT_DIR");
     const target = recipe.srcRoot;
-    await gfptarExtract(recipe.projectRootDir, recipe.srcRemotehostID, target, extractTargetName);
+    await _internal.gfptarExtract(recipe.projectRootDir, recipe.srcRemotehostID, target, extractTargetName);
     recipe.srcRoot = extractTargetName;
   } else {
-    await gfpcopy(recipe.projectRootDir, recipe.srcRemotehostID, recipe.srcRoot, remoteTempDir);
-    recipe.srcRoot = path.join(remoteTempDir, path.basename(orgSrcRoot));
+    await _internal.gfpcopy(recipe.projectRootDir, recipe.srcRemotehostID, recipe.srcRoot, remoteTempDir);
+    recipe.srcRoot = _internal.path.join(remoteTempDir, _internal.path.basename(orgSrcRoot));
   }
   recipe.remoteToLocal = !recipe.onSameRemote;
 
   const result = recipe.onSameRemote ? await deliverFilesOnRemote(recipe) : await deliverFilesFromRemote(recipe);
   result.src = `${orgSrcRoot}/${recipe.srcName}`;
-  getLogger(recipe.projectRootDir).debug(`remove remote temp dir ${remoteTempDir}`);
+  _internal.getLogger(recipe.projectRootDir).debug(`remove remote temp dir ${remoteTempDir}`);
   await ssh.exec(`rm -fr ${remoteTempDir}`);
   return result;
 }
+
+_internal.deliverFilesOnRemote = deliverFilesOnRemote;
+_internal.deliverFilesFromRemote = deliverFilesFromRemote;
 
 module.exports = {
   deliverFile,
@@ -126,3 +140,7 @@ module.exports = {
   deliverFilesFromRemote,
   deliverFilesFromHPCISS
 };
+
+if (process.env.NODE_ENV === "test") {
+  module.exports._internal = _internal;
+}

@@ -5,32 +5,23 @@
  */
 "use strict";
 
-const rewire = require("rewire");
 const chai = require("chai");
 const sinon = require("sinon");
 const { expect } = chai;
-const componentJsonIO = rewire("../../../app/core/componentJsonIO");
+const { readComponentJsonByID, writeComponentJsonByID, readComponentJson, writeComponentJson, getComponentDir, componentJsonReplacer, _internal } = require("../../../app/core/componentJsonIO");
 const path = require("path");
 const chaiAsPromised = require("chai-as-promised");
 chai.use(chaiAsPromised);
 
-//testee
-const readComponentJsonByID = componentJsonIO.__get__("readComponentJsonByID");
-const writeComponentJsonByID = componentJsonIO.__get__("writeComponentJsonByID");
-const readComponentJson = componentJsonIO.__get__("readComponentJson");
-const writeComponentJson = componentJsonIO.__get__("writeComponentJson");
-const getComponentDir = componentJsonIO.__get__("getComponentDir");
-const componentJsonReplacer = componentJsonIO.__get__("componentJsonReplacer");
-
 describe("UT for componentJsonIO class", ()=>{
   describe("#readComponentJsonByID", ()=>{
-    let getComponentDirStub, readComponentJsonStub;
+    let getComponentDirStub;
+    let readComponentJsonStub;
     beforeEach(()=>{
-      getComponentDirStub = sinon.stub();
-      readComponentJsonStub = sinon.stub();
-
-      componentJsonIO.__set__("getComponentDir", getComponentDirStub);
-      componentJsonIO.__set__("readComponentJson", readComponentJsonStub);
+      sinon.stub(_internal, "getComponentDir");
+      getComponentDirStub = _internal.getComponentDir;
+      sinon.stub(_internal, "readComponentJson");
+      readComponentJsonStub = _internal.readComponentJson;
     });
 
     afterEach(()=>{
@@ -77,11 +68,10 @@ describe("UT for componentJsonIO class", ()=>{
   describe("#writeComponentJsonByID", ()=>{
     let getComponentDirStub, writeComponentJsonStub;
     beforeEach(()=>{
-      getComponentDirStub = sinon.stub();
-      writeComponentJsonStub = sinon.stub();
-
-      componentJsonIO.__set__("getComponentDir", getComponentDirStub);
-      componentJsonIO.__set__("writeComponentJson", writeComponentJsonStub);
+      sinon.stub(_internal, "getComponentDir");
+      getComponentDirStub = _internal.getComponentDir;
+      sinon.stub(_internal, "writeComponentJson");
+      writeComponentJsonStub = _internal.writeComponentJson;
     });
 
     afterEach(()=>{
@@ -132,8 +122,8 @@ describe("UT for componentJsonIO class", ()=>{
     const mockComponentJson = { name: "testComponent" };
     const mockFilename = path.join(mockComponentDir, "cmp.wheel.json");
     beforeEach(()=>{
-      readJsonGreedyStub = sinon.stub();
-      componentJsonIO.__set__("readJsonGreedy", readJsonGreedyStub);
+      sinon.stub(_internal, "readJsonGreedy");
+      readJsonGreedyStub = _internal.readJsonGreedy;
     });
     afterEach(()=>{
       sinon.restore();
@@ -155,15 +145,17 @@ describe("UT for componentJsonIO class", ()=>{
     });
   });
   describe("#writeComponentJson", ()=>{
-    let fsStub, gitAddStub, mockComponent, mockComponentDir, mockFilename;
+    let fsWriteJsonStub, gitAddStub, mockComponent, mockComponentDir, mockFilename;
 
     beforeEach(()=>{
-      fsStub = {
-        writeJson: sinon.stub().resolves()
-      };
-      gitAddStub = sinon.stub().resolves();
-      componentJsonIO.__set__("fs", fsStub);
-      componentJsonIO.__set__("gitAdd", gitAddStub);
+      sinon.stub(_internal.fs, "writeJson");
+      fsWriteJsonStub = _internal.fs.writeJson;
+      fsWriteJsonStub.resolves();
+
+      sinon.stub(_internal, "gitAdd");
+      gitAddStub = _internal.gitAdd;
+      gitAddStub.resolves();
+
       mockComponent = { name: "TestComponent", type: "task" };
       mockComponentDir = "/mock/project/components";
       mockFilename = path.join(mockComponentDir, "cmp.wheel.json");
@@ -175,7 +167,7 @@ describe("UT for componentJsonIO class", ()=>{
 
     it("should write JSON data to the specified file", async ()=>{
       await writeComponentJson("/mock/project", mockComponentDir, mockComponent);
-      expect(fsStub.writeJson.calledOnceWithExactly(mockFilename, mockComponent, { spaces: 4, replacer: sinon.match.func })).to.be.true;
+      expect(fsWriteJsonStub.calledOnceWithExactly(mockFilename, mockComponent, { spaces: 4, replacer: sinon.match.func })).to.be.true;
     });
     it("should call gitAdd if doNotAdd is false or undefined", async ()=>{
       await writeComponentJson("/mock/project", mockComponentDir, mockComponent, false);
@@ -186,7 +178,7 @@ describe("UT for componentJsonIO class", ()=>{
       expect(gitAddStub.notCalled).to.be.true;
     });
     it("should throw an error if fs.writeJson fails", async ()=>{
-      fsStub.writeJson.rejects(new Error("Write error"));
+      fsWriteJsonStub.rejects(new Error("Write error"));
 
       try {
         await writeComponentJson("/mock/project", mockComponentDir, mockComponent);
@@ -210,8 +202,10 @@ describe("UT for componentJsonIO class", ()=>{
     const mockComponentID = "component123";
 
     beforeEach(()=>{
-      readJsonGreedyStub = sinon.stub();
-      componentJsonIO.__set__("readJsonGreedy", readJsonGreedyStub);
+      sinon.stub(_internal, "readJsonGreedy");
+      readJsonGreedyStub = _internal.readJsonGreedy;
+
+      _internal.projectJsonFilename = "prj.wheel.json";
     });
 
     afterEach(()=>{

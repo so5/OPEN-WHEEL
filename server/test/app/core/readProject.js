@@ -9,38 +9,17 @@ const path = require("path");
 const { promisify } = require("util");
 const { execFile } = require("child_process");
 const asyncExecFile = promisify(execFile);
-const rewire = require("rewire");
-
 //setup test framework
 const chai = require("chai");
 const expect = chai.expect;
 chai.use(require("chai-fs"));
 chai.use(require("chai-as-promised"));
+const sinon = require("sinon");
 
 //helper
-const { updateComponent, createNewComponent, createNewProject } = require("../../../app/core/projectFilesOperator.js");
+const { updateComponent, createNewComponent, createNewProject, readProject, _internal } = require("../../../app/core/projectFilesOperator.js");
 const { gitAdd, gitRm, gitStatus, gitCommit } = require("../../../app/core/gitOperator2.js");
 const { componentJsonFilename, projectJsonFilename } = require("../../../app/db/db.js");
-
-//testee
-const PFO = rewire("../../../app/core/projectFilesOperator.js");
-const readProject = PFO.__get__("readProject");
-
-let onList = false;
-const projectList = PFO.__get__("projectList");
-projectList.query = ()=>{
-  return onList;
-};
-projectList.write = ()=>{};
-PFO.__set__("projectList", projectList);
-////for debug
-//PFO.__set__("getLogger", ()=>{return {
-//trace: console.log.bind(console),
-//debug: console.log.bind(console),
-//info: console.log.bind(console),
-//warn: console.log.bind(console),
-//error: console.log.bind(console)
-//}})
 
 //test data
 const testDirRoot = path.resolve("./", "WHEEL_TEST_TMP");
@@ -49,13 +28,35 @@ const projectRootDir = path.resolve(testDirRoot, "test_project.wheel");
 describe("readProject UT", function () {
   this.timeout(10000);
   let task0;
+  const onList = false;
+
   beforeEach(async ()=>{
+    const globStub = sinon.stub(_internal, "glob");
+    sinon.stub(_internal.projectList, "query").returns(onList);
+    sinon.stub(_internal.projectList, "write");
     await fs.remove(testDirRoot);
     await createNewProject(projectRootDir, "test_project", null, "test", "test@example.com");
     task0 = await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
-    await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
-    await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
+    const task1 = await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
+    const task2 = await createNewComponent(projectRootDir, projectRootDir, "task", { x: 10, y: 10 });
     await gitCommit(projectRootDir);
+    const relativeComponentJsonFiles = [
+      path.join(task0.name, componentJsonFilename),
+      path.join(task1.name, componentJsonFilename),
+      path.join(task2.name, componentJsonFilename)
+    ];
+    const absoluteComponentJsonFiles = relativeComponentJsonFiles.map((e)=>{
+      return path.resolve(projectRootDir, e);
+    });
+    const relativePattern = `./**/${componentJsonFilename}`;
+    const absolutePattern = `${projectRootDir}/**/${componentJsonFilename}`;
+    globStub.withArgs(relativePattern, { cwd: projectRootDir }).resolves(relativeComponentJsonFiles);
+    globStub.withArgs(absolutePattern).resolves(absoluteComponentJsonFiles);
+
+    globStub.resolves([]);
+  });
+  afterEach(()=>{
+    sinon.restore();
   });
   after(async ()=>{
     if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {

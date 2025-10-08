@@ -15,7 +15,7 @@ chai.use(require("sinon-chai"));
 chai.use(require("chai-fs"));
 
 //testee
-const { runProject } = require("../../../app/core/projectController.js");
+const { runProject, stopProject } = require("../../../app/core/projectController.js");
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";
@@ -28,6 +28,9 @@ describe("restart UT", function () {
   beforeEach(async ()=>{
     await fs.remove(testDirRoot);
     await fs.ensureDir(projectRootDir);
+  });
+  afterEach(async ()=>{
+    await stopProject(projectRootDir);
   });
   after(async ()=>{
     if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {
