@@ -18,23 +18,16 @@ chai.use((_chai, _)=>{
     _.flag(this, "message", msg);
   });
 });
-const rewire = require("rewire");
-
 const { logFilename } = require("../../app/db/db.js");
 const projectRootDir = path.resolve("hoge");
+const commUtils = require("../../app/handlers/commUtils.js");
 
 //testee
-const LOG = rewire("../../app/logSettings.js");
-const getLogger = LOG.__get__("getLogger");
-
-//stubs
-const emitAll = sinon.stub();
-LOG.__set__("emitAll", emitAll);
+const { getLogger, log4js, logSettings } = require("../../app/logSettings.js");
 
 describe("Unit test for log4js's helper functions", ()=>{
   let logger;
-  const log4js = LOG.__get__("log4js");
-  const settings = LOG.__get__("logSettings");
+  const settings = logSettings;
   before(async ()=>{
     settings.appenders.log2client.level = "debug";
     settings.appenders.filterdFile.level = "trace";
@@ -56,12 +49,15 @@ describe("Unit test for log4js's helper functions", ()=>{
     });
   });
   describe("#log", ()=>{
+    let emitAll;
     beforeEach(async ()=>{
       await fs.remove(projectRootDir);
       await fs.mkdir(projectRootDir);
-      emitAll.resetHistory();
+      emitAll = sinon.stub();
+      sinon.stub(commUtils, "emitAll").callsFake(emitAll);
     });
     afterEach(async ()=>{
+      sinon.restore();
       if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {
         await fs.remove(path.resolve(__dirname, logFilename));
         await fs.remove(projectRootDir);

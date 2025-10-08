@@ -9,25 +9,33 @@ const { cancel } = require("./executerManager.js");
 const { jobScheduler } = require("../db/db");
 const { getLogger } = require("../logSettings.js");
 
+const _internal = {
+  getSsh,
+  getSshHostinfo,
+  cancel,
+  jobScheduler,
+  getLogger
+};
+
 /**
  * cancel job on remotehost
  * @param {object} task - task component
  */
 async function cancelRemoteJob(task) {
   if (!task.jobID) {
-    getLogger(task.projectRootDir).debug(`try to cancel ${task.name} but it have not been submitted.`);
+    _internal.getLogger(task.projectRootDir).debug(`try to cancel ${task.name} but it have not been submitted.`);
     return;
   }
-  const ssh = getSsh(task.projectRootDir, task.remotehostID);
-  const hostinfo = getSshHostinfo(task.projectRootDir, task.remotehostID);
-  const JS = jobScheduler[hostinfo.jobScheduler];
+  const ssh = _internal.getSsh(task.projectRootDir, task.remotehostID);
+  const hostinfo = _internal.getSshHostinfo(task.projectRootDir, task.remotehostID);
+  const JS = _internal.jobScheduler[hostinfo.jobScheduler];
   const cancelCmd = `${JS.del} ${task.jobID}`;
-  getLogger(task.projectRootDir).debug(`cancel job: ${cancelCmd}`);
+  _internal.getLogger(task.projectRootDir).debug(`cancel job: ${cancelCmd}`);
   const output = [];
   await ssh.exec(cancelCmd, 60, (data)=>{
     output.push(data);
   });
-  getLogger(task.projectRootDir).debug("cacnel done", output.join());
+  _internal.getLogger(task.projectRootDir).debug("cacnel done", output.join());
 }
 
 /**
@@ -54,16 +62,16 @@ async function killLocalProcess(task) {
 async function killTask(task) {
   if (task.remotehostID !== "localhost") {
     if (task.useJobScheduler) {
-      await cancelRemoteJob(task);
+      await _internal.cancelRemoteJob(task);
     } else {
 
       //do nothing for remoteExec at this time
     }
   } else {
     if (task.useJobScheduler) {
-      await cancelLocalJob(task);
+      await _internal.cancelLocalJob(task);
     } else {
-      await killLocalProcess(task);
+      await _internal.killLocalProcess(task);
     }
   }
 }
@@ -79,9 +87,9 @@ async function cancelDispatchedTasks(tasks) {
     if (task.state === "finished" || task.state === "failed") {
       continue;
     }
-    const canceled = cancel(task);
+    const canceled = _internal.cancel(task);
     if (!canceled) {
-      p.push(killTask(task));
+      p.push(_internal.killTask(task));
     }
     task.state = "not-started";
   }
@@ -114,7 +122,19 @@ function taskStateFilter(task) {
   };
 }
 
+_internal.cancelRemoteJob = cancelRemoteJob;
+_internal.cancelLocalJob = cancelLocalJob;
+_internal.killLocalProcess = killLocalProcess;
+_internal.killTask = killTask;
+
 module.exports = {
   cancelDispatchedTasks,
-  taskStateFilter
+  taskStateFilter,
+  killTask,
+  cancelRemoteJob,
+  killLocalProcess
 };
+
+if (process.env.NODE_ENV === "test") {
+  module.exports._internal = _internal;
+}

@@ -8,17 +8,7 @@
 //setup test framework
 const { expect } = require("chai");
 const sinon = require("sinon");
-const rewire = require("rewire");
-const rewWorkflowComponent = rewire("../../../app/core/workflowComponent.js");
-
-//testee
-const { isLocalComponent } = require("../../../app/core/workflowComponent");
-const { getComponentDefaultName } = require("../../../app/core/workflowComponent");
-const { removeDuplicatedComponent } = require("../../../app/core/workflowComponent");
-const isInitialComponent = rewWorkflowComponent.__get__("isInitialComponent");
-const isBehindIfComponent = rewWorkflowComponent.__get__("isBehindIfComponent");
-const { hasChild } = require("../../../app/core/workflowComponent");
-const { componentFactory } = require("../../../app/core/workflowComponent");
+const { isLocalComponent, getComponentDefaultName, removeDuplicatedComponent, isInitialComponent, isBehindIfComponent, hasChild, componentFactory, _internal } = require("../../../app/core/workflowComponent.js");
 
 describe("UT for workflowComponents class", ()=>{
   describe("#isLocalComponent", ()=>{
@@ -115,8 +105,7 @@ describe("UT for workflowComponents class", ()=>{
   describe("#isInitialComponent", ()=>{
     let isBehindIfComponentStub;
     beforeEach(()=>{
-      isBehindIfComponentStub = sinon.stub();
-      rewWorkflowComponent.__set__("isBehindIfComponent", isBehindIfComponentStub);
+      isBehindIfComponentStub = sinon.stub(_internal, "isBehindIfComponent");
     });
     afterEach(()=>{
       sinon.restore();
@@ -201,8 +190,7 @@ describe("UT for workflowComponents class", ()=>{
     let readComponentJsonByIDStub;
 
     beforeEach(()=>{
-      readComponentJsonByIDStub = sinon.stub();
-      rewWorkflowComponent.__set__("readComponentJsonByID", readComponentJsonByIDStub);
+      readComponentJsonByIDStub = sinon.stub(_internal, "readComponentJsonByID");
     });
 
     afterEach(()=>{
