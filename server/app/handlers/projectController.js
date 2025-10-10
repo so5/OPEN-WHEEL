@@ -4,10 +4,9 @@
  * See License in the project root for the license information.
  */
 import path from "path";
-import { promisify } from "util";
 import EventEmitter from "events";
 import axios from "axios";
-import globCallback from "glob";
+import { glob } from "glob";
 import fs from "fs-extra";
 import SBS from "simple-batch-system";
 import { getLogger } from "../logSettings.js";
@@ -29,7 +28,7 @@ import { writeJsonWrapper } from "../lib/utility.js";
 import { checkJWTAgent, startJWTAgent } from "../core/gfarmOperator.js";
 import allowedOperations from "../../../common/allowedOperations.js";
 
-const glob = promisify(globCallback);
+
 
 const _internal = {
   projectOperationQueues: new Map(),

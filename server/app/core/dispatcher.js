@@ -5,9 +5,8 @@
  */
 import fs from "fs-extra";
 import path from "path";
-import { promisify } from "util";
 import { EventEmitter } from "events";
-import { glob as globCallback, hasMagic } from "glob";
+import { glob, hasMagic } from "glob";
 import { debounce } from "perfect-debounce";
 import nunjucks from "nunjucks";
 nunjucks.configure({ autoescape: true });
@@ -50,12 +49,11 @@ import { makeCmd } from "./psUtils.js";
 import { overwriteByRsync } from "./rsync.js";
 import { gfcp, gfrm, gfpcopy, gfptarCreate } from "./gfarmOperator.js";
 
-const glob = promisify(globCallback);
+
 
 const _internal = {
   fs,
   path,
-  promisify,
   EventEmitter,
   glob,
   hasMagic,

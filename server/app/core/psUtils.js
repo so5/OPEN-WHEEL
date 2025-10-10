@@ -5,17 +5,13 @@
  */
 import fs from "fs-extra";
 import path from "path";
-import { promisify } from "util";
-import globCallback from "glob";
+import { glob } from "glob";
 import nunjucks from "nunjucks";
 import { getParamSpacev2 } from "./parameterParser.js";
 import { overwriteByRsync } from "./rsync.js";
 
-const glob = promisify(globCallback);
-
 const _internal = {
   fs,
-  promisify,
   glob,
   nunjucks,
   overwriteByRsync

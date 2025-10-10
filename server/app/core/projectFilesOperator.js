@@ -3,11 +3,10 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-import { promisify } from "util";
 import fs from "fs-extra";
 import path from "path";
 import isPathInside from "is-path-inside";
-import globCallback from "glob";
+import { glob } from "glob";
 import { diff } from "just-diff";
 import { diffApply } from "just-diff-apply";
 import { getComponentDir, writeComponentJson, writeComponentJsonByID, readComponentJson, readComponentJsonByID } from "./componentJsonIO.js";
@@ -21,7 +20,7 @@ import { getLogger as actualGetLogger } from "../logSettings.js";
 import { getSsh } from "./sshManager.js";
 import { getChildren as getChildrenFromUtil } from "./workflowUtil.js";
 
-const glob = promisify(globCallback);
+
 
 function isSurrounded(token) {
   return token.startsWith("{") && token.endsWith("}");
@@ -1206,7 +1205,6 @@ export async function getComponentTree(projectRootDir, rootDir) {
 export const getChildren = getChildrenFromUtil;
 
 const _internal = {
-  promisify,
   fs,
   path,
   isPathInside,

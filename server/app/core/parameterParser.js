@@ -3,10 +3,7 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-import { promisify } from "util";
-import globCallback from "glob";
-
-const glob = promisify(globCallback);
+import { glob } from "glob";
 
 /**
  * expand array of glob and return flat array of path

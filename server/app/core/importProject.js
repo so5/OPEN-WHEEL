@@ -3,7 +3,6 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-import { promisify } from "util";
 import path from "path";
 import fs from "fs-extra";
 import glob from "glob";
@@ -18,7 +17,6 @@ import { askRewindState } from "./askRewindState.js";
 import { rewriteHosts } from "./rewriteHosts.js";
 
 const _internal = {
-  promisify,
   path,
   fs,
   glob,
@@ -91,7 +89,7 @@ const _internal = {
     if (state !== "not-started") {
       result.push({ path: "project", state, ID: "projectState" });
     }
-    const componentJsonFiles = await _internal.promisify(_internal.glob)(_internal.path.join(dir, "**", _internal.componentJsonFilename));
+    const componentJsonFiles = await _internal.glob(_internal.path.join(dir, "**", _internal.componentJsonFilename));
     const componentsToBeFixed = await Promise.all(componentJsonFiles
       .map(async (componentJsonFile)=>{
         const { state, ID } = await _internal.readJsonGreedy(componentJsonFile);

@@ -4,14 +4,11 @@
  * See License in the project root for the license information.
  */
 import path from "path";
-import { promisify } from "util";
-import globCallback from "glob";
+import { glob } from "glob";
 import { readJsonGreedy } from "./fileUtils.js";
 import { componentJsonFilename } from "../db/db.js";
 import { getComponentDir, readComponentJson } from "./componentJsonIO.js";
 import { hasChild } from "./workflowComponent.js";
-
-const glob = promisify(globCallback);
 
 /**
  * get array of child components
@@ -71,7 +68,6 @@ export async function getThreeGenerationFamily(projectRootDir, rootComponentDir)
 
 const _internal = {
   path,
-  promisify,
   glob,
   readJsonGreedy,
   componentJsonFilename,
