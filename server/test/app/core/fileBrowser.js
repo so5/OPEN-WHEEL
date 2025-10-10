@@ -4,11 +4,11 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
-const { describe, it, before, after } = require("mocha");
-const { expect } = require("chai");
-const getContents = require("../../../../app/core/fileBrowser");
+import path from "path";
+import fs from "fs-extra";
+import { describe, it, before, after } from "mocha";
+import { expect } from "chai";
+import getContents from "../../../../app/core/fileBrowser.js";
 const testDirRoot = "WHEEL_TEST_TMP";
 describe("file Browser UT", ()=>{
   before(async ()=>{

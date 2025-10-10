@@ -3,32 +3,33 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const path = require("path");
-const { promisify } = require("util");
-const EventEmitter = require("events");
-const axios = require("axios");
-const glob = require("glob");
-const fs = require("fs-extra");
-const SBS = require("simple-batch-system");
-const { getLogger } = require("../logSettings");
-const { filesJsonFilename, remoteHost, componentJsonFilename, projectJsonFilename } = require("../db/db");
-const { deliverFile } = require("../core/fileUtils");
-const { gitAdd, gitCommit, gitResetHEAD, getUnsavedFiles } = require("../core/gitOperator2");
-const { getComponentDir } = require("../core/componentJsonIO.js");
-const { getHosts, checkRemoteStoragePathWritePermission, getSourceComponents, getProjectJson, getProjectState, setProjectState, updateProjectDescription, updateProjectROStatus, setComponentStateR } = require("../core/projectFilesOperator");
-const { createSsh, removeSsh, askPassword } = require("../core/sshManager");
-const { setJWTServerPassphrase, removeAllJWTServerPassphrase } = require("../core/jwtServerPassphraseManager.js");
-const { runProject, cleanProject, stopProject } = require("../core/projectController.js");
-const { isValidOutputFilename } = require("../lib/utility");
-const { checkWritePermissions, parentDirs, eventEmitters } = require("../core/global.js");
-const senders = require("./senders.js");
-const { emitAll, emitWithPromise } = require("./commUtils.js");
-const { removeTempd, getTempd } = require("../core/tempd.js");
-const { validateComponents } = require("../core/validateComponents.js");
-const { writeJsonWrapper } = require("../lib/utility");
-const { checkJWTAgent, startJWTAgent } = require("../core/gfarmOperator.js");
-const allowedOperations = require("../../../common/allowedOperations.cjs");
+import path from "path";
+import { promisify } from "util";
+import EventEmitter from "events";
+import axios from "axios";
+import globCallback from "glob";
+import fs from "fs-extra";
+import SBS from "simple-batch-system";
+import { getLogger } from "../logSettings.js";
+import { filesJsonFilename, remoteHost, componentJsonFilename, projectJsonFilename } from "../db/db.js";
+import { deliverFile } from "../core/fileUtils.js";
+import { gitAdd, gitCommit, gitResetHEAD, getUnsavedFiles } from "../core/gitOperator2.js";
+import { getComponentDir } from "../core/componentJsonIO.js";
+import { getHosts, checkRemoteStoragePathWritePermission, getSourceComponents, getProjectJson, getProjectState, setProjectState, updateProjectDescription, updateProjectROStatus, setComponentStateR } from "../core/projectFilesOperator.js";
+import { createSsh, removeSsh, askPassword } from "../core/sshManager.js";
+import { setJWTServerPassphrase, removeAllJWTServerPassphrase } from "../core/jwtServerPassphraseManager.js";
+import { runProject, cleanProject, stopProject } from "../core/projectController.js";
+import { isValidOutputFilename } from "../lib/utility.js";
+import { checkWritePermissions, parentDirs, eventEmitters } from "../core/global.js";
+import senders from "./senders.js";
+import { emitAll, emitWithPromise } from "./commUtils.js";
+import { removeTempd, getTempd } from "../core/tempd.js";
+import { validateComponents } from "../core/validateComponents.js";
+import { writeJsonWrapper } from "../lib/utility.js";
+import { checkJWTAgent, startJWTAgent } from "../core/gfarmOperator.js";
+import allowedOperations from "../../../common/allowedOperations.js";
+
+const glob = promisify(globCallback);
 
 const _internal = {
   projectOperationQueues: new Map(),
@@ -61,7 +62,7 @@ const _internal = {
   },
   getSourceCandidates: async (projectRootDir, ID)=>{
     const componentDir = await getComponentDir(projectRootDir, ID);
-    return promisify(glob)("*", { cwd: path.join(projectRootDir, componentDir), ignore: componentJsonFilename });
+    return glob("*", { cwd: path.join(projectRootDir, componentDir), ignore: componentJsonFilename });
   },
   askSourceFilename: async (clientID, ID, name, description, candidates)=>{
     return new Promise((resolve, reject)=>{
@@ -475,4 +476,4 @@ if (process.env.NODE_ENV === "test") {
   main._internal = _internal;
 }
 
-module.exports = main;
+export default main;

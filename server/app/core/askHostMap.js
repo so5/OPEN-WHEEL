@@ -4,15 +4,16 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { emitAll } = require("../handlers/commUtils.js");
-const { remoteHost } = require("../db/db.js");
-const { getLogger } = require("../logSettings");
+import { emitAll } from "../handlers/commUtils.js";
+import { remoteHost } from "../db/db.js";
+import { getLogger } from "../logSettings.js";
 
 const _internal = {
   emitAll,
   remoteHost,
   getLogger
 };
+
 
 /**
  * determine hostMap is valid
@@ -28,7 +29,7 @@ _internal.isValidHostMap = (hostMap, hosts)=>{
   const oldRemotehostLabels = hosts.map((host)=>{
     return host.hostname;
   });
-  return Object.entries(hostMap).some(([oldHost, newHost])=>{
+  return Object.entries(hostMap).every(([oldHost, newHost])=>{
     if (typeof newHost !== "string") {
       _internal.getLogger().error("newHost must be string", newHost);
       return false;
@@ -45,13 +46,15 @@ _internal.isValidHostMap = (hostMap, hosts)=>{
   });
 };
 
+export const isValidHostMap = _internal.isValidHostMap;
+
 /**
  * ask how to map host settings to user
  * @param {string} clientID - socket's ID
  * @param {string[]} hosts - array of remotehost label
  * @returns {Promise} - resolve with hostMap. reject if user cancelled
  */
-async function askHostMap(clientID, hosts) {
+export async function askHostMap(clientID, hosts) {
   return new Promise((resolve, reject)=>{
     _internal.emitAll(clientID, "askHostMap", hosts, (hostMap)=>{
       if (hostMap === null) {
@@ -72,11 +75,8 @@ async function askHostMap(clientID, hosts) {
   });
 }
 
-module.exports = {
-  askHostMap,
-  isValidHostMap: _internal.isValidHostMap
-};
-
+let _internalTest;
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
+  _internalTest = _internal;
 }
+export { _internalTest as _internal };

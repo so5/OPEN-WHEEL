@@ -4,25 +4,30 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
-const sinon = require("sinon");
+import path from "path";
+import fs from "fs-extra";
+import sinon from "sinon";
 
 //setup test framework
-const chai = require("chai");
-chai.use(require("sinon-chai"));
-chai.use(require("chai-fs"));
-chai.use(require("chai-json-schema"));
+import chai from "chai";
+import sinonChai from "sinon-chai";
+import chaiFs from "chai-fs";
+import chaiJsonSchema from "chai-json-schema";
 
-const { cleanProject, _internal } = require("../../../../app/core/projectController.js");
-const { _internal: gitOpe2Internal } = require("../../../../app/core/gitOperator2.js");
+import { cleanProject, _internal } from "../../../../app/core/projectController.js";
+import { _internal as gitOpe2Internal } from "../../../../app/core/gitOperator2.js";
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";
 const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 
 //helper functions
-const { createNewProject } = require("../../../../app/core/projectFilesOperator.js");
+import { createNewProject } from "../../../../app/core/projectFilesOperator.js";
+
+chai.use(sinonChai);
+chai.use(chaiFs);
+chai.use(chaiJsonSchema);
+
 
 describe("project Controller UT", function () {
   this.timeout(0);

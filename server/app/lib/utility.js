@@ -4,7 +4,7 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const fs = require("fs-extra");
+import fs from "fs-extra";
 
 //DO NOT require any other WHEEL modules in this file
 
@@ -151,7 +151,7 @@ function writeJsonWrapper(filename, data) {
   return fs.writeJson(filename, data, { spaces: 4 });
 }
 
-module.exports = {
+export {
   escapeRegExp,
   isValidName,
   isValidInputFilename,

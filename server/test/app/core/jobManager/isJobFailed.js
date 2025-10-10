@@ -4,9 +4,9 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { expect } = require("chai");
-const { describe, it } = require("mocha");
-const { isJobFailed } = require("../../../../app/core/jobManager.js");
+import { expect } from "chai";
+import { describe, it } from "mocha";
+import { isJobFailed } from "../../../../app/core/jobManager.js";
 
 describe("#isJobFailed", ()=>{
   it("should return true if acceptableJobStatus is undefined and code is '0'", ()=>{

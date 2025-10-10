@@ -4,11 +4,11 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { expect } = require("chai");
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const sinon = require("sinon");
-const { registerJob, _internal } = require("../../../../app/core/jobManager.js");
-const EventEmitter = require("events");
+import { expect } from "chai";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import sinon from "sinon";
+import { registerJob, _internal } from "../../../../app/core/jobManager.js";
+import { EventEmitter } from "events";
 
 describe("#registerJob", ()=>{
   let hostinfo;
@@ -352,7 +352,7 @@ describe("#registerJob", ()=>{
 
     try {
       await p;
-      expect.fail("Expected to reject, but resolved");
+      expect.fail("Expected to reject, but it resolved");
     } catch (err) {
       expect(err.message).to.equal("fatal error occurred during job status check");
       //実装上 err.request = request

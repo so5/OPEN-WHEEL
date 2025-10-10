@@ -6,13 +6,15 @@
 "use strict";
 
 // setup test framework
-const { expect } = require("chai");
+import { expect } from "chai";
 // testee
-const { isValidOutputFilename } = require("../../../../common/regexp.cjs");
-const { isValidInputFilename } = require("../../../../common/regexp.cjs");
-const { isValidName } = require("../../../../common/regexp.cjs");
-const { isSane } = require("../../../../common/regexp.cjs");
-const { escapeRegExp } = require("../../../../common/regexp.cjs");
+import {
+  isValidOutputFilename,
+  isValidInputFilename,
+  isValidName,
+  isSane,
+  escapeRegExp,
+} from "../../../../common/regexp.js";
 
 describe("UT for regexp class", () => {
   describe("#isValidOutputFilename", () => {

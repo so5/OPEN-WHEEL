@@ -4,10 +4,10 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("node:path");
-const fs = require("fs-extra");
-const { getLogger } = require("../logSettings");
-const { emitAll } = require("./commUtils.js");
+import path from "node:path";
+import fs from "fs-extra";
+import { getLogger } from "../logSettings.js";
+import { emitAll } from "./commUtils.js";
 
 /**
  * generalized version of onUploadFileSaved
@@ -18,7 +18,7 @@ const { emitAll } = require("./commUtils.js");
  * this handler is async function, so file move may not finished when client get "complete" event.
  * please listen "uploadDone" event instead
  */
-async function onUploadFileSaved2(event) {
+export async function onUploadFileSaved2(event) {
   if (!event.file.success) {
     getLogger().error("file upload failed", event.file.name);
     return;
@@ -40,7 +40,3 @@ async function onUploadFileSaved2(event) {
   const { writeStream, ...rt } = event.file; //eslint-disable-line no-unused-vars
   await emitAll(uploadClient, "uploadDone", rt);
 }
-
-module.exports = {
-  onUploadFileSaved2
-};

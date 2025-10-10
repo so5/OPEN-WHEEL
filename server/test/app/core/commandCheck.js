@@ -4,60 +4,25 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
-const { expect } = require("chai");
-const { describe, it, before, after, beforeEach, afterEach } = require("mocha");
-const tmp = require("tmp-promise");
+import path from "path";
+import fs from "fs-extra";
+import { expect } from "chai";
+import { describe, it, before, after, beforeEach, afterEach } from "mocha";
+import tmp from "tmp-promise";
+import checkAllCommands, { _internal } from "../../../app/core/commandCheck.js";
 
 describe("commandCheck", ()=>{
-  let checkAllCommands;
   let commands;
-  const serverConfigDir = path.resolve(process.cwd(), "config");
-  const appConfigDir = path.resolve(process.cwd(), "app/config");
   let originalNodeEnv;
 
-  before(async ()=>{
+  before(()=>{
     originalNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "test";
-
-    // for logSettings.js
-    await fs.mkdir(serverConfigDir, { recursive: true });
-    await fs.writeJson(path.resolve(serverConfigDir, "log.json"), {
-      appenders: {
-        stdout: {
-          type: "stdout"
-        }
-      },
-      categories: {
-        default: {
-          appenders: ["stdout"],
-          level: "off"
-        }
-      }
-    });
-
-    // for db.js
-    await fs.mkdir(appConfigDir, { recursive: true });
-    await fs.writeJson(path.resolve(appConfigDir, "remotehost.json"), []);
-    await fs.writeJson(path.resolve(appConfigDir, "server.json"), {});
-    await fs.writeJson(path.resolve(appConfigDir, "jobScheduler.json"), {});
-    await fs.writeJson(path.resolve(appConfigDir, "jobScriptTemplate.json"), []);
-    await fs.writeJson(path.resolve(appConfigDir, "projectList.json"), []);
-    await fs.writeJson(path.resolve(appConfigDir, "credentials.json"), {});
-    await fs.writeFile(path.resolve(appConfigDir, "server.key"), "dummy key");
-    await fs.writeFile(path.resolve(appConfigDir, "server.crt"), "dummy crt");
-
-    const checkAllCommandsModule = require("../../../app/core/commandCheck.js");
-    checkAllCommands = checkAllCommandsModule;
-    commands = checkAllCommandsModule._internal.commands;
+    commands = _internal.commands;
   });
 
-  after(async ()=>{
+  after(()=>{
     process.env.NODE_ENV = originalNodeEnv;
-    await fs.remove(serverConfigDir);
-    await fs.remove(appConfigDir);
-    delete require.cache[require.resolve("../../../app/core/commandCheck.js")];
   });
 
   describe("checkAllCommands", ()=>{

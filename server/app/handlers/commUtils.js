@@ -4,14 +4,14 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { getSio } = require("../core/global.js");
+import { getSio } from "../core/global.js";
 
 /**
  * promised version of socketIO.emit()
  * @param {Function} emit - socketIO's emit()
  * this function is resolved when ack is called on opposite side
  */
-async function emitWithPromise(emit, ...args) {
+export async function emitWithPromise(emit, ...args) {
   return new Promise((resolve)=>{
     emit(...args, resolve);
   });
@@ -23,7 +23,7 @@ async function emitWithPromise(emit, ...args) {
  *
  * memo room should be projectRootDir or individual client ID
  */
-async function emitAll(room, eventName, ...args) {
+export async function emitAll(room, eventName, ...args) {
   const sio = getSio();
   if (!sio) {
     return false;
@@ -33,8 +33,3 @@ async function emitAll(room, eventName, ...args) {
     socket.emit(eventName, ...args);
   }
 }
-
-module.exports = {
-  emitWithPromise,
-  emitAll
-};

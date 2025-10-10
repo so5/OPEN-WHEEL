@@ -4,12 +4,12 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { expect } = require("chai");
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const sinon = require("sinon");
-const { setTaskState, needDownload, formatSrcFilename, makeDownloadRecipe, createStatusFile, createBulkStatusFile, _internal } = require("../../../app/core/execUtils.js");
-const path = require("path");
-const fs = require("fs-extra");
+import { expect } from "chai";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import sinon from "sinon";
+import { setTaskState, needDownload, formatSrcFilename, makeDownloadRecipe, createStatusFile, createBulkStatusFile, _internal } from "../../../app/core/execUtils.js";
+import path from "path";
+import fs from "fs-extra";
 
 describe("#setTaskState", ()=>{
   let getLoggerStub;

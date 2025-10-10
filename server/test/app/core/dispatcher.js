@@ -4,38 +4,40 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
-const SshClientWrapper = require("ssh-client-wrapper");
+import path from "path";
+import fs from "fs-extra";
+import SshClientWrapper from "ssh-client-wrapper";
 
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-const sinon = require("sinon");
-chai.use(require("sinon-chai"));
-chai.use(require("chai-fs"));
-chai.use(require("chai-json-schema"));
+import chai, { expect } from "chai";
+import sinon from "sinon";
+import sinonChai from "sinon-chai";
+import chaiFs from "chai-fs";
+import chaiJsonSchema from "chai-json-schema";
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";
 const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 //testee
-const Dispatcher = require("../../../app/core/dispatcher");
-const { _internal } = require("../../../app/core/dispatcher");
-const { eventEmitters } = require("../../../app/core/global.js");
+import Dispatcher, { _internal } from "../../../app/core/dispatcher.js";
+import { eventEmitters } from "../../../app/core/global.js";
 //helper functions
-const { projectJsonFilename, componentJsonFilename } = require("../../../app/db/db.js");
-const { createNewProject, updateComponent, createNewComponent, addInputFile, addOutputFile, addLink, addFileLink, renameOutputFile } = require("../../../app/core/projectFilesOperator.js");
-const { scriptName, pwdCmd, scriptHeader } = require("../../testScript.js");
+import { projectJsonFilename, componentJsonFilename } from "../../../app/db/db.js";
+import { createNewProject, updateComponent, createNewComponent, addInputFile, addOutputFile, addLink, addFileLink, renameOutputFile } from "../../../app/core/projectFilesOperator.js";
+import { scriptName, pwdCmd, scriptHeader } from "../../testScript.js";
+import { remoteHost } from "../../../app/db/db.js";
+import { addSsh } from "../../../app/core/sshManager.js";
+
+chai.use(sinonChai);
+chai.use(chaiFs);
+chai.use(chaiJsonSchema);
+
 const scriptPwd = `${scriptHeader}\n${pwdCmd}`;
 const wait = ()=>{
   return new Promise((resolve)=>{
     setTimeout(resolve, 10);
   });
 };
-
-const { remoteHost } = require("../../../app/db/db.js");
-const { addSsh } = require("../../../app/core/sshManager.js");
 
 describe("UT for Dispatcher class", function () {
   this.timeout(0);

@@ -5,10 +5,10 @@
  */
 "use strict";
 
-const { expect } = require("chai");
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const sinon = require("sinon");
-const {
+import { expect } from "chai";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import sinon from "sinon";
+import {
   hasEntry,
   addSsh,
   getSsh,
@@ -18,7 +18,7 @@ const {
   removeSsh,
   createSsh,
   _internal
-} = require("../../../app/core/sshManager.js");
+} from "../../../app/core/sshManager.js";
 
 describe("#hasEntry", ()=>{
   let dbMock;

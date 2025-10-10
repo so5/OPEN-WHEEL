@@ -5,12 +5,11 @@
  */
 "use strict";
 
-const chai = require("chai");
-const sinon = require("sinon");
-const { expect } = chai;
-const { readComponentJsonByID, writeComponentJsonByID, readComponentJson, writeComponentJson, getComponentDir, componentJsonReplacer, _internal } = require("../../../app/core/componentJsonIO");
-const path = require("path");
-const chaiAsPromised = require("chai-as-promised");
+import chai, { expect } from "chai";
+import sinon from "sinon";
+import { readComponentJsonByID, writeComponentJsonByID, readComponentJson, writeComponentJson, getComponentDir, componentJsonReplacer, _internal } from "../../../app/core/componentJsonIO.js";
+import path from "path";
+import chaiAsPromised from "chai-as-promised";
 chai.use(chaiAsPromised);
 
 describe("UT for componentJsonIO class", ()=>{

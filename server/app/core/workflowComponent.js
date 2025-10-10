@@ -3,10 +3,9 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const uuid = require("uuid");
-const { defaultPSconfigFilename } = require("../db/db.js");
-const { readComponentJsonByID: actualReadComponentJsonByID } = require("./componentJsonIO.js");
+import { v1 as uuidv1 } from "uuid";
+import { defaultPSconfigFilename } from "../db/db.js";
+import { readComponentJsonByID as actualReadComponentJsonByID } from "./componentJsonIO.js";
 
 const _internal = {
   readComponentJsonByID: actualReadComponentJsonByID
@@ -22,7 +21,7 @@ class BaseWorkflowComponent {
      */
     this.pos = pos;
 
-    this.ID = uuid.v1();
+    this.ID = uuidv1();
     this.type = null;
     this.name = null;
     this.description = null;
@@ -350,7 +349,7 @@ class Continue extends GeneralComponent {
  * @param {...any} args - argument for constructor
  * @returns {*} - component object
  */
-function componentFactory(type, ...args) {
+export function componentFactory(type, ...args) {
   let component;
   switch (type) {
     case "task":
@@ -417,7 +416,7 @@ function componentFactory(type, ...args) {
  * @param {object} component - Component object
  * @returns  {boolean} -
  */
-function hasChild(component) {
+export function hasChild(component) {
   return component.type === "workflow" || component.type === "parameterStudy" || component.type === "for" || component.type === "while" || component.type === "foreach" || component.type === "stepjob";
 }
 
@@ -480,7 +479,7 @@ _internal.isBehindIfComponent = async function (projectRootDir, component, visit
  * @param {object} component - Component object
  * @returns  {boolean} -
  */
-function hasNeededOutputFiles(component) {
+export function hasNeededOutputFiles(component) {
   return component.outputFiles.some((outputFile)=>{
     return outputFile.dst.length > 0;
   });
@@ -509,7 +508,7 @@ async function hasConnecteddInputFiles(projectRootDir, component) {
  * @param {object} component - Component object
  * @returns  {boolean} -
  */
-async function isInitialComponent(projectRootDir, component) {
+export async function isInitialComponent(projectRootDir, component) {
   if (await _internal.isBehindIfComponent(projectRootDir, component)) {
     return false;
   }
@@ -538,7 +537,7 @@ async function isInitialComponent(projectRootDir, component) {
  * @param {object[]} components - array of component
  * @returns {object[]} - unique components
  */
-function removeDuplicatedComponent(components) {
+export function removeDuplicatedComponent(components) {
   const IDs = components.map((component)=>{
     return component.ID;
   });
@@ -555,7 +554,7 @@ function removeDuplicatedComponent(components) {
  * @param {string} type - component type
  * @returns {string} - component's basename
  */
-function getComponentDefaultName(type) {
+export function getComponentDefaultName(type) {
   if (type === "stepjobTask") {
     return "sjTask";
   }
@@ -576,7 +575,7 @@ function getComponentDefaultName(type) {
  * @param {object} component - component object
  * @returns {boolean} - local component or not
  */
-function isLocalComponent(component) {
+export function isLocalComponent(component) {
   return typeof component.host === "undefined" || component.host === "localhost";
 }
 
@@ -585,22 +584,13 @@ function isLocalComponent(component) {
  * @param {object} component - component object
  * @returns {boolean} - local component or not
  */
-function hasStoragePath(component) {
+export function hasStoragePath(component) {
   return ["storage", "hpciss", "hpcisstar"].includes(component.type);
 }
+export const isBehindIfComponent = _internal.isBehindIfComponent;
 
-module.exports = {
-  componentFactory,
-  hasChild,
-  isInitialComponent,
-  isLocalComponent,
-  removeDuplicatedComponent,
-  getComponentDefaultName,
-  hasNeededOutputFiles,
-  hasStoragePath,
-  isBehindIfComponent: _internal.isBehindIfComponent
-};
-
+let internal;
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
+  internal = _internal;
 }
+export { internal as _internal };

@@ -3,20 +3,19 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const path = require("path");
-const actualChildProcess = require("child_process");
-const axios = require("axios");
-const { getAccessToken } = require("./webAPI.js");
-const SBS = require("simple-batch-system");
-const { remoteHost: actualRemoteHost, jobScheduler: actualJobScheduler, numJobOnLocal: actualNumJobOnLocal, defaultTaskRetryCount } = require("../db/db");
-const { addX } = require("./fileUtils");
-const { evalCondition: actualEvalCondition } = require("./dispatchUtils");
-const { getDateString } = require("../lib/utility");
-const { getSsh, getSshHostinfo: actualGetSshHostinfo } = require("./sshManager.js");
-const { setTaskState, createStatusFile } = require("./execUtils");
-const { registerJob } = require("./jobManager");
-const { getLogger: actualGetLogger } = require("../logSettings.js");
+import path from "path";
+import actualChildProcess from "child_process";
+import axios from "axios";
+import { getAccessToken } from "./webAPI.js";
+import SBS from "simple-batch-system";
+import { remoteHost as actualRemoteHost, jobScheduler as actualJobScheduler, numJobOnLocal as actualNumJobOnLocal, defaultTaskRetryCount } from "../db/db.js";
+import { addX } from "./fileUtils.js";
+import { evalCondition as actualEvalCondition } from "./dispatchUtils.js";
+import { getDateString } from "../lib/utility.js";
+import { getSsh, getSshHostinfo as actualGetSshHostinfo } from "./sshManager.js";
+import { setTaskState, createStatusFile } from "./execUtils.js";
+import { registerJob } from "./jobManager.js";
+import { getLogger as actualGetLogger } from "../logSettings.js";
 
 const _internal = {
   executers: new Map(),
@@ -543,7 +542,7 @@ _internal.createExecuter = (task, hostinfo)=>{
  * @param {object} task - task component instance
  * @returns {Promise} -
  */
-async function register(task) {
+export async function register(task) {
   const onRemote = task.remotehostID !== "localhost";
   const hostinfo = onRemote ? _internal.getSshHostinfo(task.projectRootDir, task.remotehostID) : null;
 
@@ -580,7 +579,7 @@ async function register(task) {
  * @returns {Promise} - resolved when cancel task is done
  * task component is defined in workflowComponent.js
  */
-function cancel(task) {
+export function cancel(task) {
   if (!Object.prototype.hasOwnProperty.call(task, "sbsID")) {
     return false;
   }
@@ -597,7 +596,7 @@ function cancel(task) {
  * remove all executer class instance from DB
  * @param {string} projectRootDir - project's root path
  */
-function removeExecuters(projectRootDir) {
+export function removeExecuters(projectRootDir) {
   const keysToRemove = Array.from(_internal.executers.keys()).filter((key)=>{
     return key.startsWith(projectRootDir);
   });
@@ -606,12 +605,8 @@ function removeExecuters(projectRootDir) {
   });
 }
 
-module.exports = {
-  register,
-  cancel,
-  removeExecuters
-};
-
+let internal;
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
+  internal = _internal;
 }
+export { internal as _internal };

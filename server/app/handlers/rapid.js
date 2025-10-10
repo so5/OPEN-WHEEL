@@ -4,11 +4,12 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const { getLogger } = require("../logSettings");
-const { openFile, saveFile } = require("../core/fileUtils.js");
-const { emitAll } = require("./commUtils.js");
-const onOpenFile = async (clientID, projectRootDir, filename, forceNormal, cb)=>{
+import path from "path";
+import { getLogger } from "../logSettings.js";
+import { openFile, saveFile } from "../core/fileUtils.js";
+import { emitAll } from "./commUtils.js";
+
+export const onOpenFile = async (clientID, projectRootDir, filename, forceNormal, cb)=>{
   try {
     const files = await openFile(projectRootDir, filename, forceNormal);
     const promise = [];
@@ -26,7 +27,7 @@ const onOpenFile = async (clientID, projectRootDir, filename, forceNormal, cb)=>
   }
   return cb(true);
 };
-const onSaveFile = async (projectRootDir, filename, dirname, content, cb)=>{
+export const onSaveFile = async (projectRootDir, filename, dirname, content, cb)=>{
   try {
     await saveFile(path.resolve(dirname, filename), content);
   } catch (err) {
@@ -34,9 +35,4 @@ const onSaveFile = async (projectRootDir, filename, dirname, content, cb)=>{
     return cb(err);
   }
   return cb(true);
-};
-
-module.exports = {
-  onOpenFile,
-  onSaveFile
 };
