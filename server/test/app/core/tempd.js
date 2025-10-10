@@ -113,7 +113,7 @@ describe("UT for tempd class", function () {
     const projectRootDir = "/test/project";
     const prefix = "viewer";
     let tempDirPath, rootPath;
-    const tempdRoot = process.env.WHEEL_TEMPD || path.dirname("__dirname");
+    const tempdRoot = process.env.WHEEL_TEMPD || path.dirname(__dirname);
 
     beforeEach(()=>{
       //ハッシュを計算してディレクトリパスを決定
