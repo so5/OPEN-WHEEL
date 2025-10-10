@@ -4,9 +4,9 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const fs = require("fs-extra");
-const uuid = require("uuid");
-const { writeJsonWrapper } = require("../lib/utility");
+import fs from "fs-extra";
+import { v1 as uuidv1 } from "uuid";
+import { writeJsonWrapper } from "../lib/utility.js";
 
 class JsonArrayManager {
   constructor(filename) {
@@ -34,7 +34,7 @@ class JsonArrayManager {
    * @param {object} entry - data to be added
    */
   add(entry) {
-    entry.id = uuid.v1();
+    entry.id = uuidv1();
     this.data.push(entry);
     return this.write();
   }
@@ -44,7 +44,7 @@ class JsonArrayManager {
    * @param {object} entry - data to be added at the begining of array
    */
   async unshift(entry) {
-    entry.id = uuid.v1();
+    entry.id = uuidv1();
     this.data.unshift(entry);
     await this.write();
     return entry.id;
@@ -98,7 +98,7 @@ class JsonArrayManager {
       return e.id === id;
     });
     const duplicate = Object.assign({}, target);
-    duplicate.id = uuid.v1();
+    duplicate.id = uuidv1();
     this.data.unshift(duplicate);
     return this.write();
   }
@@ -119,7 +119,7 @@ class JsonArrayManager {
       return e.id === id;
     });
     const duplicate = Object.assign({}, target);
-    duplicate.id = uuid.v1();
+    duplicate.id = uuidv1();
     duplicate.templateName = newLabel;
     this.data.push(duplicate);
     return this.write();
@@ -186,4 +186,4 @@ class JsonArrayManager {
   }
 }
 
-module.exports = JsonArrayManager;
+export default JsonArrayManager;

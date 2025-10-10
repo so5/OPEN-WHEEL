@@ -4,24 +4,24 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
-const { readComponentJsonByID } = require("../core/componentJsonIO.js");
-const { remoteHost } = require("../db/db");
-const { getLogger } = require("../logSettings");
-const { createSsh, getSsh, askPassword } = require("../core/sshManager");
-const { createTempd } = require("../core/tempd.js");
-const { hasRemoteFileBrowser, hasGfarmTarBrowser } = require("../../../common/checkComponent.cjs");
-const { checkJWTAgent, startJWTAgent, gfls, gfmkdir, gfrm, gfmv, gfptarList } = require("../core/gfarmOperator.js");
-const {
-  createNewRemoteFile,
-  createNewRemoteDir,
+import path from "path";
+import fs from "fs-extra";
+import { readComponentJsonByID } from "../core/componentJsonIO.js";
+import { remoteHost } from "../db/db.js";
+import { getLogger } from "../logSettings.js";
+import { createSsh, getSsh, askPassword } from "../core/sshManager.js";
+import { createTempd } from "../core/tempd.js";
+import { hasRemoteFileBrowser, hasGfarmTarBrowser } from "../../../common/checkComponent.js";
+import { checkJWTAgent, startJWTAgent, gfls, gfmkdir, gfrm, gfmv, gfptarList } from "../core/gfarmOperator.js";
+import {
+  createNewRemoteFile as createNewRemoteFileCore,
+  createNewRemoteDir as createNewRemoteDirCore,
   removeRemoteFileOrDirectory,
   renameRemoteFileOrDirectory
-} = require("../core/remoteFileUtils.js");
-const { setJWTServerPassphrase } = require("../core/jwtServerPassphraseManager.js");
+} from "../core/remoteFileUtils.js";
+import { setJWTServerPassphrase } from "../core/jwtServerPassphraseManager.js";
 
-async function onRequestRemoteConnection(socket, projectRootDir, componentID, cb) {
+export async function onRequestRemoteConnection(socket, projectRootDir, componentID, cb) {
   const component = await readComponentJsonByID(projectRootDir, componentID);
   if (!hasRemoteFileBrowser(component) && !hasGfarmTarBrowser(component)) {
     getLogger(projectRootDir).warn(projectRootDir, `${component.name} does not have remote storage`);
@@ -80,7 +80,7 @@ function formatLsResults(lsResults, readlinkResults, target) {
   });
 }
 
-async function onGetRemoteGfarmFileList(projectRootDir, host, { path: target }, cb) {
+export async function onGetRemoteGfarmFileList(projectRootDir, host, { path: target }, cb) {
   try {
     const id = remoteHost.getID("name", host);
     const lsResults = await gfls(projectRootDir, id, target, "-F");
@@ -92,7 +92,7 @@ async function onGetRemoteGfarmFileList(projectRootDir, host, { path: target }, 
   }
 }
 
-async function onGetRemoteGfarmTarFileList(projectRootDir, host, target, cb) {
+export async function onGetRemoteGfarmTarFileList(projectRootDir, host, target, cb) {
   try {
     const id = remoteHost.getID("name", host);
     const filesInTar = await gfptarList(projectRootDir, id, target);
@@ -106,7 +106,7 @@ async function onGetRemoteGfarmTarFileList(projectRootDir, host, target, cb) {
   }
 }
 
-async function onGetRemoteFileList(projectRootDir, host, { path: target }, cb) {
+export async function onGetRemoteFileList(projectRootDir, host, { path: target }, cb) {
   try {
     const id = remoteHost.getID("name", host);
     const ssh = await getSsh(projectRootDir, id);
@@ -139,10 +139,10 @@ async function onGetRemoteFileList(projectRootDir, host, { path: target }, cb) {
   }
 }
 
-async function onGetRemoteSNDContents(projectRootDir) {
+export async function onGetRemoteSNDContents(projectRootDir) {
   getLogger(projectRootDir).error(projectRootDir, "onGetRemoteSNDContents should not be called any more");
 }
-async function onRemoteDownload(projectRootDir, target, host, cb) {
+export async function onRemoteDownload(projectRootDir, target, host, cb) {
   const { zip } = await import("zip-a-folder");
   try {
     const { dir, root: downloadRootDir } = await createTempd(projectRootDir, "download");
@@ -202,27 +202,11 @@ async function gfarmFileUtilWrapper(func, projectRootDir, ...args) {
   }
 }
 
-const onCreateNewRemoteFile = remoteFileUtilWrapper.bind(null, createNewRemoteFile);
-const onCreateNewRemoteDir = remoteFileUtilWrapper.bind(null, createNewRemoteDir);
-const onRemoveRemoteFile = remoteFileUtilWrapper.bind(null, removeRemoteFileOrDirectory);
-const onRenameRemoteFile = remoteFileUtilWrapper.bind(null, renameRemoteFileOrDirectory);
+export const onCreateNewRemoteFile = remoteFileUtilWrapper.bind(null, createNewRemoteFileCore);
+export const onCreateNewRemoteDir = remoteFileUtilWrapper.bind(null, createNewRemoteDirCore);
+export const onRemoveRemoteFile = remoteFileUtilWrapper.bind(null, removeRemoteFileOrDirectory);
+export const onRenameRemoteFile = remoteFileUtilWrapper.bind(null, renameRemoteFileOrDirectory);
 
-const onCreateNewGfarmDir = gfarmFileUtilWrapper.bind(null, gfmkdir);
-const onRemoveGfarmFile = gfarmFileUtilWrapper.bind(null, gfrm);
-const onRenameGfarmFile = gfarmFileUtilWrapper.bind(null, gfmv);
-
-module.exports = {
-  onRequestRemoteConnection,
-  onGetRemoteGfarmFileList,
-  onGetRemoteGfarmTarFileList,
-  onGetRemoteFileList,
-  onGetRemoteSNDContents,
-  onRemoteDownload,
-  onCreateNewRemoteFile,
-  onCreateNewRemoteDir,
-  onRemoveRemoteFile,
-  onRenameRemoteFile,
-  onCreateNewGfarmDir,
-  onRemoveGfarmFile,
-  onRenameGfarmFile
-};
+export const onCreateNewGfarmDir = gfarmFileUtilWrapper.bind(null, gfmkdir);
+export const onRemoveGfarmFile = gfarmFileUtilWrapper.bind(null, gfrm);
+export const onRenameGfarmFile = gfarmFileUtilWrapper.bind(null, gfmv);

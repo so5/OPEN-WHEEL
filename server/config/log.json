@@ -1,0 +1,1 @@
+{"appenders":{"stdout":{"type":"stdout"}},"categories":{"default":{"appenders":["stdout"],"level":"off"}}}

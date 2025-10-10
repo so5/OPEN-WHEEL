@@ -4,11 +4,12 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const SshClientWrapper = require("ssh-client-wrapper");
-const { getLogger } = require("../logSettings");
+import SshClientWrapper from "ssh-client-wrapper";
+import { getLogger } from "../logSettings.js";
+import { remoteHost } from "../db/db.js";
+import { askPassword } from "../core/sshManager.js";
+
 const logger = getLogger();
-const { remoteHost } = require("../db/db");
-const { askPassword } = require("../core/sshManager.js");
 
 /**
  * try to connect remote host via ssh
@@ -16,7 +17,7 @@ const { askPassword } = require("../core/sshManager.js");
  * @param {object} hostInfo - target host's information
  * @param {Function} cb - call back function called with string "success" or "error"
  */
-async function onTryToConnect(clientID, hostInfo, cb) {
+export async function onTryToConnect(clientID, hostInfo, cb) {
   hostInfo.password = askPassword.bind(null, clientID, hostInfo.name, "password", null);
   hostInfo.passphrase = askPassword.bind(null, clientID, hostInfo.name, "passphrase", null);
   if (process.env.WHEEL_VERBOSE_SSH) {
@@ -38,12 +39,7 @@ async function onTryToConnect(clientID, hostInfo, cb) {
   ssh.disconnect();
   return cb("success");
 }
-async function onTryToConnectById(clientID, id, cb) {
+export async function onTryToConnectById(clientID, id, cb) {
   const hostInfo = remoteHost.get(id);
   await onTryToConnect(clientID, hostInfo, cb);
 }
-
-module.exports = {
-  onTryToConnectById,
-  onTryToConnect
-};

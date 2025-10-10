@@ -4,9 +4,9 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { describe, it } = require("mocha");
-const { expect } = require("chai");
-const { bundleSNDFiles } = require("../../../../app/core/fileBrowser");
+import { describe, it } from "mocha";
+import { expect } from "chai";
+import { bundleSNDFiles } from "../../../../app/core/fileBrowser.js";
 const testDirRoot = "WHEEL_TEST_TMP";
 describe("#bundleSNDFiles", ()=>{
   const input = [

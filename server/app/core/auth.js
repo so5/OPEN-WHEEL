@@ -1,11 +1,13 @@
 "use strict";
-const path = require("path");
-const crypto = require("crypto");
-const { promisify } = require("util");
-const { Database } = require("sqlite3");
-const { open } = require("sqlite");
-const { userDBFilename, userDBDir } = require("../db/db.js");
-const { getLogger } = require("../logSettings");
+import path from "path";
+import crypto from "crypto";
+import { promisify } from "util";
+import sqlite3 from "sqlite3";
+import { open } from "sqlite";
+import { userDBFilename, userDBDir } from "../db/db.js";
+import { getLogger } from "../logSettings.js";
+
+const { Database } = sqlite3;
 
 const _internal = {
   crypto,
@@ -41,27 +43,23 @@ _internal.getUserData = async function (username) {
 /**
  * open database and create table if not exists
  */
-_internal.initialize = async function () {
+export async function initialize() {
   _internal.db = await _internal.open({
     filename: _internal.path.resolve(_internal.userDBDir, _internal.userDBFilename),
     driver: _internal.Database
   });
-  await _internal.db.exec("CREATE TABLE IF NOT EXISTS users ( \
-    id INT PRIMARY KEY, \
-    username TEXT UNIQUE, \
-    hashed_password BLOB, \
-    salt BLOB \
-  )");
+  await _internal.db.exec("CREATE TABLE IF NOT EXISTS users (     id INT PRIMARY KEY,     username TEXT UNIQUE,     hashed_password BLOB,     salt BLOB   )");
   _internal.initialized = true;
   return _internal.db;
-};
+}
+_internal.initialize = initialize;
 
 /**
  * add new user
  * @param {string} username - new user's name
  * @param {string} password - new user's password
  */
-_internal.addUser = async function (username, password) {
+export async function addUser(username, password) {
   if (!_internal.initialized) {
     await _internal.initialize();
   }
@@ -74,7 +72,8 @@ _internal.addUser = async function (username, password) {
   const salt = _internal.crypto.randomBytes(16);
   const hashedPassword = await _internal.getHashedPassword(password, salt);
   await _internal.db.run("INSERT OR IGNORE INTO users (id, username, hashed_password, salt) VALUES (?, ?, ?, ?)", id, username, hashedPassword, salt);
-};
+}
+_internal.addUser = addUser;
 
 /**
  * check if specified user and password pair is valid
@@ -82,7 +81,7 @@ _internal.addUser = async function (username, password) {
  * @param {string} password - user's password in plain text
  * @returns {boolean | object} - return user data if valid pair, or false if invalid
  */
-_internal.isValidUser = async function (username, password) {
+export async function isValidUser(username, password) {
   if (!_internal.initialized) {
     await _internal.initialize();
   }
@@ -98,9 +97,10 @@ _internal.isValidUser = async function (username, password) {
     return false;
   }
   return row;
-};
+}
+_internal.isValidUser = isValidUser;
 
-_internal.listUser = async function () {
+export async function listUser() {
   if (!_internal.initialized) {
     await _internal.initialize();
   }
@@ -108,22 +108,22 @@ _internal.listUser = async function () {
   return tmp.map((e)=>{
     return e.username;
   });
-};
+}
+_internal.listUser = listUser;
 
-_internal.delUser = async function (username) {
+export async function delUser(username) {
   if (!_internal.initialized) {
     await _internal.initialize();
   }
   return _internal.db.run(`DELETE FROM users WHERE username = '${username}'`);
-};
+}
+_internal.delUser = delUser;
 
-module.exports = {
-  initialize: _internal.initialize,
-  addUser: _internal.addUser,
-  isValidUser: _internal.isValidUser,
-  listUser: _internal.listUser,
-  delUser: _internal.delUser,
-  getHashedPassword: _internal.getHashedPassword,
-  getUserData: _internal.getUserData,
-  _internal
-};
+export const getHashedPassword = _internal.getHashedPassword;
+export const getUserData = _internal.getUserData;
+
+let _internalTest;
+if (process.env.NODE_ENV === "test") {
+  _internalTest = _internal;
+}
+export { _internalTest as _internal };

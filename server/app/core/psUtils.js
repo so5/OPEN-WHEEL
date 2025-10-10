@@ -3,19 +3,16 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const fs = require("fs-extra");
-const path = require("path");
-const { promisify } = require("util");
-const { glob } = require("glob");
-const nunjucks = require("nunjucks");
-const { getParamSpacev2 } = require("./parameterParser");
-const { overwriteByRsync } = require("./rsync.js");
+import fs from "fs-extra";
+import path from "path";
+import { glob } from "glob";
+import nunjucks from "nunjucks";
+import { getParamSpacev2 } from "./parameterParser.js";
+import { overwriteByRsync } from "./rsync.js";
 
 const _internal = {
   fs,
-  promisify,
-  glob: promisify(glob),
+  glob,
   nunjucks,
   overwriteByRsync
 };
@@ -26,7 +23,7 @@ const _internal = {
  * @param {object} paramSettings - parameter space definition
  * @returns {string []} - array of scatterd filenames
  */
-async function getScatterFilesV2(templateRoot, paramSettings) {
+export async function getScatterFilesV2(templateRoot, paramSettings) {
   if (!(Object.prototype.hasOwnProperty.call(paramSettings, "scatter") && Array.isArray(paramSettings.scatter))) {
     return [];
   }
@@ -48,7 +45,7 @@ async function getScatterFilesV2(templateRoot, paramSettings) {
  * @param {object} params - parameters for this instance directory
  * @returns {Promise} - resolved when all target files are rewirted
  */
-async function replaceByNunjucks(templateRoot, instanceRoot, targetFiles, params) {
+export async function replaceByNunjucks(templateRoot, instanceRoot, targetFiles, params) {
   return Promise.all(
     targetFiles.map(async (targetFile)=>{
       const template = (await _internal.fs.readFile(path.resolve(templateRoot, targetFile))).toString();
@@ -68,7 +65,7 @@ async function replaceByNunjucks(templateRoot, instanceRoot, targetFiles, params
  * @param {boolean} useRsync - use rsync or fs.copy
  * @returns {Promise} - resolved when all scattering process is done
  */
-async function scatterFilesV2(templateRoot, instanceRoot, scatterRecipe, params, logger, useRsync) {
+export async function scatterFilesV2(templateRoot, instanceRoot, scatterRecipe, params, logger, useRsync) {
   const p = [];
   for (const recipe of scatterRecipe) {
     const srcName = _internal.nunjucks.renderString(recipe.srcName, params);
@@ -103,7 +100,7 @@ async function scatterFilesV2(templateRoot, instanceRoot, scatterRecipe, params,
  * @param {object} logger - log4js object
  * @returns {Promise} - resolved when all gathering process is done
  */
-async function gatherFilesV2(templateRoot, instanceRoot, gatherRecipe, params, logger) {
+export async function gatherFilesV2(templateRoot, instanceRoot, gatherRecipe, params, logger) {
   const p = [];
   for (const recipe of gatherRecipe) {
     const srcDir = Object.prototype.hasOwnProperty.call(recipe, "srcNode") ? path.join(instanceRoot, recipe.srcNode) : instanceRoot;
@@ -130,7 +127,7 @@ async function gatherFilesV2(templateRoot, instanceRoot, gatherRecipe, params, l
  * @param {object} paramSettings - parameter space definition
  * @returns {Function[]} - functions for PS version 2
  */
-function makeCmd(paramSettings) {
+export function makeCmd(paramSettings) {
   const params = Object.prototype.hasOwnProperty.call(paramSettings, "params") ? paramSettings.params : paramSettings.target_param;
   if (paramSettings.version === 2) {
     return [getParamSpacev2.bind(null, params), getScatterFilesV2, scatterFilesV2, gatherFilesV2, replaceByNunjucks];
@@ -138,14 +135,8 @@ function makeCmd(paramSettings) {
   throw new Error ("PS version 1 is no longer supported");
 }
 
-module.exports = {
-  makeCmd,
-  getScatterFilesV2,
-  scatterFilesV2,
-  gatherFilesV2,
-  replaceByNunjucks
-};
-
+let internal;
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
+  internal = _internal;
 }
+export { internal as _internal };

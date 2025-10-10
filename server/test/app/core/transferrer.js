@@ -5,10 +5,10 @@
  */
 "use strict";
 
-const { expect } = require("chai");
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const sinon = require("sinon");
-const { stageIn, stageOut, _internal } = require("../../../app/core/transferrer.js");
+import { expect } from "chai";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import sinon from "sinon";
+import { stageIn, stageOut, _internal } from "../../../app/core/transferrer.js";
 
 describe("#stageIn", ()=>{
   let setTaskStateMock;
@@ -84,7 +84,7 @@ describe("#stageOut", ()=>{
     sshMock = {
       exec: sinon.stub()
     };
-    getSshMock = sinon.stub(_internal, "getSsh").returns(sshMock); ;
+    getSshMock = sinon.stub(_internal, "getSsh").returns(sshMock);
 
     const loggerStub = {
       debug: sinon.stub(),

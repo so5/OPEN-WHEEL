@@ -3,34 +3,32 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const fs = require("fs-extra");
-const path = require("path");
-const { promisify } = require("util");
-const { EventEmitter } = require("events");
-const { glob, hasMagic } = require("glob");
-const { debounce } = require("perfect-debounce");
-const nunjucks = require("nunjucks");
+import fs from "fs-extra";
+import path from "path";
+import { EventEmitter } from "events";
+import { glob, hasMagic } from "glob";
+import { debounce } from "perfect-debounce";
+import nunjucks from "nunjucks";
 nunjucks.configure({ autoescape: true });
-const { remoteHost, componentJsonFilename, filesJsonFilename, statusFilename, rsyncExcludeOptionOfWheelSystemFiles } = require("../db/db.js");
-const { getSsh, getSshHostinfo } = require("./sshManager.js");
-const { exec } = require("./executer");
-const { getDateString, writeJsonWrapper } = require("../lib/utility.js");
-const { sanitizePath, convertPathSep, replacePathsep } = require("./pathUtils");
-const { readJsonGreedy } = require("./fileUtils.js");
-const { deliverFile, deliverFilesOnRemote, deliverFilesFromRemote, deliverFilesFromHPCISS } = require("./deliverFile.js");
-const { paramVecGenerator, getParamSize, getFilenames, getParamSpacev2 } = require("./parameterParser.js");
-const { isLocal, isSameRemoteHost, setComponentStateR } = require("./projectFilesOperator.js");
-const { getChildren } = require("./workflowUtil.js");
-const { writeComponentJson, readComponentJson, readComponentJsonByID } = require("./componentJsonIO.js");
-const { isInitialComponent, removeDuplicatedComponent, hasStoragePath, isLocalComponent } = require("./workflowComponent.js");
-const { evalCondition, getRemoteWorkingDir, isFinishedState, isSubComponent } = require("./dispatchUtils.js");
-const { getLogger } = require("../logSettings.js");
-const { cancelDispatchedTasks } = require("./taskUtil.js");
-const { eventEmitters } = require("./global.js");
-const { createTempd } = require("./tempd.js");
-const { viewerSupportedTypes, getFiletype } = require("./viewerUtils.js");
-const {
+import { remoteHost, componentJsonFilename, filesJsonFilename, statusFilename, rsyncExcludeOptionOfWheelSystemFiles } from "../db/db.js";
+import { getSsh, getSshHostinfo } from "./sshManager.js";
+import { exec } from "./executer.js";
+import { getDateString, writeJsonWrapper } from "../lib/utility.js";
+import { sanitizePath, convertPathSep, replacePathsep } from "./pathUtils.js";
+import { readJsonGreedy } from "./fileUtils.js";
+import { deliverFile, deliverFilesOnRemote, deliverFilesFromRemote, deliverFilesFromHPCISS } from "./deliverFile.js";
+import { paramVecGenerator, getParamSize, getFilenames, getParamSpacev2 } from "./parameterParser.js";
+import { isLocal, isSameRemoteHost, setComponentStateR } from "./projectFilesOperator.js";
+import { getChildren } from "./workflowUtil.js";
+import { writeComponentJson, readComponentJson, readComponentJsonByID } from "./componentJsonIO.js";
+import { isInitialComponent, removeDuplicatedComponent, hasStoragePath, isLocalComponent } from "./workflowComponent.js";
+import { evalCondition, getRemoteWorkingDir, isFinishedState, isSubComponent } from "./dispatchUtils.js";
+import { getLogger } from "../logSettings.js";
+import { cancelDispatchedTasks } from "./taskUtil.js";
+import { eventEmitters } from "./global.js";
+import { createTempd } from "./tempd.js";
+import { viewerSupportedTypes, getFiletype } from "./viewerUtils.js";
+import {
   loopInitialize,
   forGetNextIndex,
   getPrevIndex,
@@ -46,17 +44,16 @@ const {
   foreachTripCount,
   foreachKeepLoopInstance,
   foreachSearchLatestFinishedIndex
-} = require("./loopUtils.js");
-const { makeCmd } = require("./psUtils.js");
-const { overwriteByRsync } = require("./rsync.js");
-const { gfcp, gfrm, gfpcopy, gfptarCreate } = require("./gfarmOperator.js");
+} from "./loopUtils.js";
+import { makeCmd } from "./psUtils.js";
+import { overwriteByRsync } from "./rsync.js";
+import { gfcp, gfrm, gfpcopy, gfptarCreate } from "./gfarmOperator.js";
 
 const _internal = {
   fs,
   path,
-  promisify,
   EventEmitter,
-  glob: promisify(glob),
+  glob,
   hasMagic,
   debounce,
   nunjucks,
@@ -1575,11 +1572,13 @@ class Dispatcher extends EventEmitter {
     return cmd;
   }
 }
-module.exports = Dispatcher;
+export default Dispatcher;
 
+let internal;
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
   _internal.replaceByNunjucksForBulkjob = replaceByNunjucksForBulkjob;
   _internal.writeParameterSetFile = writeParameterSetFile;
   _internal.taskDB = taskDB;
+  internal = _internal;
 }
+export { internal as _internal };

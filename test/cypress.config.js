@@ -1,10 +1,10 @@
-const { defineConfig } = require("cypress");
-const SSH = require("simple-ssh");
-const { removeDirectory } = require("cypress-delete-downloads-folder");
-const fs = require("fs-extra");
-const tar = require("tar");
+import { defineConfig } from "cypress";
+import SSH from "simple-ssh";
+import { removeDirectory } from "cypress-delete-downloads-folder";
+import fs from "fs-extra";
+import tar from "tar";
 
-module.exports = defineConfig({
+export default defineConfig({
   waitForAnimations: true,
   trashAssetsBeforeRuns: false,
   requestTimeout: 3000,
@@ -15,21 +15,21 @@ module.exports = defineConfig({
   component: {
     devServer: {
       framework: "vue",
-      bundler: "vite",
-    },
+      bundler: "vite"
+    }
   },
 
   e2e: {
     env: {
       browserPermissions: {
-        clipboard: "allow",
+        clipboard: "allow"
       },
       WHEEL_TEST_REMOTEHOST: "testServer",
       WHEEL_TEST_REMOTE_PASSWORD: "passw0rd",
       WHEEL_TEST_HOSTNAME: "localhost",
       WHEEL_TEST_PORT: 8000,
       WHEEL_TEST_USER: "testuser",
-      WHEEL_PATH: "/root",
+      WHEEL_PATH: "/root"
     },
     numTestsKeptInMemory: 1,
     experimentalMemoryManagement: true,
@@ -43,7 +43,7 @@ module.exports = defineConfig({
           return null;
         },
         sshExecuteCmd({ sshconn, command }) {
-          return new Promise((resolve) => {
+          return new Promise((resolve)=>{
             let ssh = new SSH(sshconn);
 
             ssh.exec(command, {
@@ -54,9 +54,9 @@ module.exports = defineConfig({
               err: function (stderr) {
                 console.log("stderr: " + stderr);
                 resolve(stderr);
-              },
-            }).on("ready", () => { console.log("READY"); })
-              .on("error", (err) => {
+              }
+            }).on("ready", ()=>{ console.log("READY"); })
+              .on("error", (err)=>{
                 console.log("ERROR");
                 console.log(err);
               })
@@ -69,8 +69,8 @@ module.exports = defineConfig({
         },
         async fileExists(filePath) {
           return fs.pathExists(filePath);
-        },
+        }
       });
-    },
-  },
+    }
+  }
 });

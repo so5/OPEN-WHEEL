@@ -4,11 +4,12 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { expect } = require("chai");
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const sinon = require("sinon");
-const { deliverFile, deliverFilesOnRemote, deliverFilesFromRemote, _internal } = require("../../../app/core/deliverFile.js");
-const { rsyncExcludeOptionOfWheelSystemFiles } = require("../../../app/db/db");
+import { expect } from "chai";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import sinon from "sinon";
+import { deliverFile, deliverFilesOnRemote, deliverFilesFromRemote, _internal } from "../../../app/core/deliverFile.js";
+import { rsyncExcludeOptionOfWheelSystemFiles } from "../../../app/db/db.js";
+import path from "path";
 
 describe("#deliverFile", ()=>{
   let lstatStub;
@@ -133,7 +134,7 @@ describe("#deliverFilesOnRemote", ()=>{
   beforeEach(()=>{
     sinon.stub(_internal, "getLogger").returns(loggerMock);
     sinon.stub(_internal, "getSsh").returns(sshMock);
-    sinon.stub(_internal, "path").value(require("path"));
+    sinon.stub(_internal, "path").value(path);
   });
 
   afterEach(()=>{

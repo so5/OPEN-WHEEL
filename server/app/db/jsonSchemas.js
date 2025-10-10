@@ -4,7 +4,7 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { defaultPSconfigFilename } = require("../db/db.js");
+import { defaultPSconfigFilename } from "../db/db.js";
 
 const emptyArraySchema = {
   type: "array",
@@ -412,4 +412,4 @@ function getSchema(type) {
   }
 }
 
-module.exports = getSchema;
+export default getSchema;

@@ -5,12 +5,16 @@
  */
 "use strict";
 
-const path = require("path");
-const { expect } = require("chai");
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const fs = require("fs-extra");
+import path from "path";
+import { expect } from "chai";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import fs from "fs-extra";
+import { fileURLToPath } from "url";
 
-const { getFiletype } = require("../../../app/core/viewerUtils.js");
+import { getFiletype } from "../../../app/core/viewerUtils.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 describe("#getFiletype (Integration Test)", ()=>{
   const testDir = path.join(__dirname, "tempfiletest_viewerUtils");

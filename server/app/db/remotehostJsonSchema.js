@@ -8,7 +8,7 @@
 //but its default value is owner of WHEEL process on localhost and it may be root in docker container
 //so, it is practically required value
 
-const remotehostJsonSchema = {
+export const remotehostJsonSchema = {
   type: "object",
   properties: {
     id: { type: "string" },
@@ -42,8 +42,4 @@ const remotehostJsonSchema = {
   },
   additionalProperties: false,
   required: ["name", "host", "user"]
-};
-
-module.exports = {
-  remotehostJsonSchema
 };

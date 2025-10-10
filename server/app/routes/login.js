@@ -4,13 +4,18 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const passport = require("passport");
-const LocalStrategy = require("passport-local");
-const { isValidUser } = require("../core/auth.js");
-const { baseURL } = require("../core/global.js");
+import path from "path";
+import { fileURLToPath } from "url";
+import passport from "passport";
+import passportLocal from "passport-local";
+import { isValidUser } from "../core/auth.js";
+import { baseURL } from "../core/global.js";
 
-passport.use(new LocalStrategy(
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const { Strategy } = passportLocal;
+
+passport.use(new Strategy(
   async function verify(username, password, cb) {
     const userData = await isValidUser(username, password);
     if (userData) {
@@ -32,13 +37,17 @@ passport.deserializeUser(function (user, cb) {
   });
 });
 
-module.exports = {
-  get: (req, res)=>{
-    return res.sendFile(path.resolve(__dirname, "../public/login.html"));
-  },
-  post: passport.authenticate("local", {
-    successReturnToOrRedirect: baseURL,
-    failureRedirect: `${baseURL}login`,
-    keepSessionInfo: true
-  })
+const get = (req, res)=>{
+  return res.sendFile(path.resolve(__dirname, "../public/login.html"));
+};
+
+const post = passport.authenticate("local", {
+  successReturnToOrRedirect: baseURL,
+  failureRedirect: `${baseURL}login`,
+  keepSessionInfo: true
+});
+
+export default {
+  get,
+  post
 };

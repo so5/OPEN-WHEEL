@@ -4,18 +4,24 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
-const tar = require("tar");
+import path from "path";
+import fs from "fs-extra";
+import tar from "tar";
 
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("sinon-chai"));
-chai.use(require("chai-fs"));
+import chai, { expect } from "chai";
+import sinonChai from "sinon-chai";
+import chaiFs from "chai-fs";
 
 //testee
-const { runProject, stopProject } = require("../../../app/core/projectController.js");
+import { runProject, stopProject } from "../../../app/core/projectController.js";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+chai.use(sinonChai);
+chai.use(chaiFs);
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";

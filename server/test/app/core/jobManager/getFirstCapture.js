@@ -4,9 +4,9 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { expect } = require("chai");
-const { describe, it } = require("mocha");
-const { getFirstCapture } = require("../../../../app/core/jobManager.js");
+import { expect } from "chai";
+import { describe, it } from "mocha";
+import { getFirstCapture } from "../../../../app/core/jobManager.js";
 
 describe("#getFirstCapture", ()=>{
   it("should return null if there is no match (result === null)", ()=>{

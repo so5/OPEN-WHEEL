@@ -3,15 +3,14 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const path = require("path");
-const fs = require("fs-extra");
-const { statusFilename } = require("../db/db");
-const { replacePathsep } = require("./pathUtils");
-const { isSameRemoteHost } = require("./projectFilesOperator.js");
-const { writeComponentJson } = require("./componentJsonIO.js");
-const { getLogger } = require("../logSettings");
-const { eventEmitters } = require("./global.js");
+import path from "path";
+import fs from "fs-extra";
+import { statusFilename } from "../db/db.js";
+import { replacePathsep } from "./pathUtils.js";
+import { isSameRemoteHost } from "./projectFilesOperator.js";
+import { writeComponentJson } from "./componentJsonIO.js";
+import { getLogger } from "../logSettings.js";
+import { eventEmitters } from "./global.js";
 
 const _internal = {
   fs,
@@ -28,7 +27,7 @@ const _internal = {
  * @param {object} task - task component
  * @param {string} state - component's state string
  */
-async function setTaskState(task, state) {
+export async function setTaskState(task, state) {
   task.state = state;
   _internal.getLogger(task.projectRootDir).trace(`TaskStateList: ${task.ID}'s state is changed to ${state}`);
   await _internal.writeComponentJson(task.projectRootDir, task.workingDir, task, true);
@@ -44,7 +43,7 @@ async function setTaskState(task, state) {
  * @param {object} outputFile - outputfile object to be checked
  * @returns {boolean} -
  */
-async function needDownload(projectRootDir, componentID, outputFile) {
+export async function needDownload(projectRootDir, componentID, outputFile) {
   const rt = await Promise.all(outputFile.dst.map(({ dstNode })=>{
     return _internal.isSameRemoteHost(projectRootDir, componentID, dstNode);
   }));
@@ -59,7 +58,7 @@ async function needDownload(projectRootDir, componentID, outputFile) {
  * @param {string} filename - user specified filename
  * @returns {string} - single filepath or glob ended with '/*'
  */
-function formatSrcFilename(remoteWorkingDir, filename) {
+export function formatSrcFilename(remoteWorkingDir, filename) {
   if (filename.endsWith("/") || filename.endsWith("\\")) {
     const dirname = _internal.replacePathsep(filename);
     return path.posix.join(remoteWorkingDir, `${dirname}/*`);
@@ -75,7 +74,7 @@ function formatSrcFilename(remoteWorkingDir, filename) {
  * @param {string} workingDir - working directory path on localhost
  * @returns {object} - download recipe object which must have src and dst path
  */
-function makeDownloadRecipe(projectRootDir, filename, remoteWorkingDir, workingDir) {
+export function makeDownloadRecipe(projectRootDir, filename, remoteWorkingDir, workingDir) {
   const reRemoteWorkingDir = new RegExp(remoteWorkingDir);
   const src = formatSrcFilename(remoteWorkingDir, filename);
   if (filename.slice(0, -1).includes("/")) {
@@ -91,7 +90,7 @@ function makeDownloadRecipe(projectRootDir, filename, remoteWorkingDir, workingD
  * create task result file it may contains, status string, return value, and job status code
  * @param {object} task - task component
  */
-async function createStatusFile(task) {
+export async function createStatusFile(task) {
   const filename = path.resolve(task.workingDir, _internal.statusFilename);
   const statusFile = `${task.state}\n${task.rt}\n${task.jobStatus}`;
   return _internal.fs.writeFile(filename, statusFile);
@@ -103,7 +102,7 @@ async function createStatusFile(task) {
  * @param {string[]} rtList - array of return values from bulk job
  * @param {string[]} jobStatusList - array of job status codes from bulk job
  */
-async function createBulkStatusFile(task, rtList, jobStatusList) {
+export async function createBulkStatusFile(task, rtList, jobStatusList) {
   const filename = path.resolve(task.workingDir, `subjob_${_internal.statusFilename}`);
   let statusFile = "";
   for (let bulkNum = task.startBulkNumber; bulkNum <= task.endBulkNumber; bulkNum++) {
@@ -112,15 +111,8 @@ async function createBulkStatusFile(task, rtList, jobStatusList) {
   return _internal.fs.writeFile(filename, statusFile);
 }
 
-module.exports = {
-  setTaskState,
-  needDownload,
-  makeDownloadRecipe,
-  createStatusFile,
-  createBulkStatusFile,
-  formatSrcFilename
-};
-
+let internal;
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
+  internal = _internal;
 }
+export { internal as _internal };

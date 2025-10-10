@@ -1,16 +1,13 @@
-/**
- * read component Json recursively and overwrite hosts
- * @param {string} projectRootDir - project's root path
- * @param {object} hostMap - old and new remotehost label map
- * @param {string | null} rootID - ID of the component to start travarsal. start from project root if rootID is null
+/*
+ * Copyright (c) Center for Computational Science, RIKEN All rights reserved.
+ * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
+ * See License in the project root for the license information.
  */
-"use strict";
-const path = require("path");
-const { promisify } = require("util");
-const glob = require("glob");
-const { readJsonGreedy } = require("./fileUtils.js");
-const { componentJsonFilename } = require("../db/db");
-const { writeComponentJson } = require("./componentJsonIO.js");
+import path from "path";
+import { glob } from "glob";
+import { readJsonGreedy } from "./fileUtils.js";
+import { componentJsonFilename } from "../db/db.js";
+import { writeComponentJson } from "./componentJsonIO.js";
 
 /**
  * rewrite all component's host property
@@ -19,7 +16,7 @@ const { writeComponentJson } = require("./componentJsonIO.js");
  * @returns {Promise} - resolved when all component metat data is rewritten
  */
 async function rewriteHosts(projectRootDir, hostMap) {
-  const componentJsonFiles = await promisify(glob)(`**/${componentJsonFilename}`, { cwd: projectRootDir });
+  const componentJsonFiles = await glob(`**/${componentJsonFilename}`, { cwd: projectRootDir });
   const oldRemotehostLabels = Object.keys(hostMap);
 
   return Promise.all(componentJsonFiles.map(async (filename)=>{
@@ -36,8 +33,8 @@ async function rewriteHosts(projectRootDir, hostMap) {
       return writeComponentJson(projectRootDir, path.dirname(targetName), componentJson);
     }
   }));
-};
+}
 
-module.exports = {
+export {
   rewriteHosts
 };

@@ -4,31 +4,32 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
+import path from "path";
+import fs from "fs-extra";
 
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-const sinon = require("sinon");
-chai.use(require("sinon-chai"));
-chai.use(require("chai-fs"));
-chai.use(require("chai-json-schema"));
+import chai, { expect } from "chai";
+import sinon from "sinon";
+import sinonChai from "sinon-chai";
+import chaiFs from "chai-fs";
+import chaiJsonSchema from "chai-json-schema";
 
 //testee
-const { runProject } = require("../../../app/core/projectController");
+import { runProject } from "../../../app/core/projectController.js";
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";
 const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
-const { eventEmitters } = require("../../../app/core/global.js");
+import { eventEmitters } from "../../../app/core/global.js";
 eventEmitters.set(projectRootDir, { emit: sinon.stub() });
 
 //helper functions
-const { readComponentJson } = require("../../../app/core/componentJsonIO.js");
-const { addLink, replaceEnv, updateComponent, createNewComponent, createNewProject } = require("../../../app/core/projectFilesOperator");
-const { componentJsonFilename, statusFilename } = require("../../../app/db/db");
-const { scriptName, scriptHeader } = require("../../testScript");
+import { readComponentJson } from "../../../app/core/componentJsonIO.js";
+import { addLink, replaceEnv, updateComponent, createNewComponent, createNewProject } from "../../../app/core/projectFilesOperator.js";
+import { componentJsonFilename, statusFilename } from "../../../app/db/db.js";
+import testScript from "../../testScript.js";
+
+const { scriptName, scriptHeader } = testScript;
 const logfilename = "env.log";
 const scriptEcho = `${scriptHeader}
 {
@@ -45,6 +46,9 @@ echo WHEEL_REMOTE_CWD=$WHEEL_REMOTE_CWD
 echo USER_DEFINED_VALUE=$USER_DEFINED_VALUE
 } > ${logfilename}
 `;
+chai.use(sinonChai);
+chai.use(chaiFs);
+chai.use(chaiJsonSchema);
 
 function checkTaskState(componentDir, expectedStatus, expectedRT, expectedJobCode) {
   expect(path.join(componentDir, statusFilename)).to.be.a.file().with.content(`${expectedStatus}\n${expectedRT}\n${expectedJobCode}`);
@@ -195,7 +199,9 @@ describe("UT for environment variables", function () {
     const logfile = path.join(projectRootDir, "for0_0", "task0", logfilename);
     expect(logfile).to.be.a.file();
     const log = await fs.readFile(logfile)
-      .then((e)=>{ return e.toString(); });
+      .then((e)=>{
+        return e.toString();
+      });
     expect(log).to.match(/^WHEEL_FOR_START=0$/m);
     expect(log).to.match(/^WHEEL_FOR_END=3$/m);
     expect(log).to.match(/^WHEEL_FOR_STEP=2$/m);
@@ -207,7 +213,9 @@ describe("UT for environment variables", function () {
     const logfile = path.join(projectRootDir, "for0_2", "task0", logfilename);
     expect(logfile).to.be.a.file();
     const log = await fs.readFile(logfile)
-      .then((e)=>{ return e.toString(); });
+      .then((e)=>{
+        return e.toString();
+      });
     expect(log).to.match(/^WHEEL_FOR_START=0$/m);
     expect(log).to.match(/^WHEEL_FOR_END=3$/m);
     expect(log).to.match(/^WHEEL_FOR_STEP=2$/m);

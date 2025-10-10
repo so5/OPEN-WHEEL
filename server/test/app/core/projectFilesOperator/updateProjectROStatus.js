@@ -3,13 +3,12 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const { expect } = require("chai");
-const { describe, it } = require("mocha");
-const sinon = require("sinon");
-const path = require("path");
-const { promisify } = require("util");
-const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
+import { expect } from "chai";
+import { describe, it } from "mocha";
+import sinon from "sinon";
+import path from "path";
+import { promisify } from "util";
+import * as projectFilesOperator from "../../../../app/core/projectFilesOperator.js";
 
 describe("#updateProjectROStatus", ()=>{
   let updateProjectROStatus;

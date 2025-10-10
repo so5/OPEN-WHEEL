@@ -4,12 +4,14 @@
  * See Licensethe project root for the license information.
  */
 "use strict";
-const path = require("path");
-const { promisify } = require("util");
-const log4js = require("log4js");
+import path from "path";
+import { promisify } from "util";
+import log4js from "log4js";
+import { logFilename, numLogFiles, maxLogSize, compressLogFile } from "./db/db.js";
+import * as commUtils from "./handlers/commUtils.js";
+
 const logger = log4js.getLogger();
-const { logFilename, numLogFiles, maxLogSize, compressLogFile } = require("./db/db");
-const commUtils = require("./handlers/commUtils.js");
+
 function getLoglevel(ignoreEnv = false) {
   const wheelLoglevel = process.env.WHEEL_LOGLEVEL;
   const defaultLevel = "debug";
@@ -51,7 +53,7 @@ const socketIO = {
   }
 };
 
-const logSettings = {
+export const logSettings = {
   appenders: {
     console: {
       type: "console"
@@ -116,7 +118,7 @@ const logSettings = {
 //configure with default setting
 log4js.configure(logSettings);
 
-function getLogger(projectRootDir) {
+export function getLogger(projectRootDir) {
   const contextProjectRootDir = typeof projectRootDir === "string" ? projectRootDir : path.dirname(logFilename);
   if (logger.context.projectRootDir === contextProjectRootDir) {
     return logger;
@@ -128,8 +130,4 @@ function getLogger(projectRootDir) {
   return logger;
 }
 
-module.exports = {
-  getLogger,
-  log4js,
-  logSettings
-};
+export { log4js };

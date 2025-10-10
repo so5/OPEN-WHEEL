@@ -6,20 +6,24 @@
 "use strict";
 
 //setup test framework
-const { expect } = require("chai");
-const path = require("path");
-const fs = require("fs-extra");
-const sinon = require("sinon");
-const { createHash } = require("crypto");
+import { expect } from "chai";
+import path from "path";
+import fs from "fs-extra";
+import sinon from "sinon";
+import { createHash } from "crypto";
+import { fileURLToPath } from "url";
 
 //testee
-const { getTempd, removeTempd, createTempd, _internal } = require("../../../app/core/tempd.js");
+import { getTempd, removeTempd, createTempd, _internal } from "../../../app/core/tempd.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 describe("UT for tempd class", function () {
   describe("#getTempd", ()=>{
     const projectRootDir = "/test/project";
     const prefix = "viewer";
-    const tempdRoot = process.env.WHEEL_TEMPD || path.dirname("__dirname");
+    const tempdRoot = process.env.WHEEL_TEMPD || path.dirname(__dirname);
     beforeEach(()=>{
       sinon.replace(_internal, "tempdRoot", tempdRoot);
     });
@@ -31,7 +35,7 @@ describe("UT for tempd class", function () {
       const hash = createHash("sha256");
       const ID = hash.update(projectRootDir).digest("hex");
       const expectedPath = path.resolve(tempdRoot, prefix, ID);
-      const result = await _internal.getTempd(projectRootDir, prefix);
+      const result = await getTempd(projectRootDir, prefix);
       expect(result).to.equal(expectedPath);
     });
     it("should generate different paths for different project directories", async ()=>{
@@ -42,8 +46,8 @@ describe("UT for tempd class", function () {
         .digest("hex");
       const expectedPath1 = path.resolve(tempdRoot, prefix, hash1);
       const expectedPath2 = path.resolve(tempdRoot, prefix, hash2);
-      const result1 = await _internal.getTempd(projectRootDir, prefix);
-      const result2 = await _internal.getTempd(anotherProjectRoot, prefix);
+      const result1 = await getTempd(projectRootDir, prefix);
+      const result2 = await getTempd(anotherProjectRoot, prefix);
       expect(result1).to.equal(expectedPath1);
       expect(result2).to.equal(expectedPath2);
       expect(result1).to.not.equal(result2);
@@ -54,8 +58,8 @@ describe("UT for tempd class", function () {
         .digest("hex");
       const expectedPath1 = path.resolve(tempdRoot, prefix, hash);
       const expectedPath2 = path.resolve(tempdRoot, anotherPrefix, hash);
-      const result1 = await _internal.getTempd(projectRootDir, prefix);
-      const result2 = await _internal.getTempd(projectRootDir, anotherPrefix);
+      const result1 = await getTempd(projectRootDir, prefix);
+      const result2 = await getTempd(projectRootDir, anotherPrefix);
       expect(result1).to.equal(expectedPath1);
       expect(result2).to.equal(expectedPath2);
       expect(result1).to.not.equal(result2);
@@ -69,7 +73,7 @@ describe("UT for tempd class", function () {
     beforeEach(()=>{
       sinon.replace(_internal, "tempdRoot", tempdRoot);
       //ハッシュを計算して削除対象のディレクトリを決定
-      const hash = require("crypto").createHash("sha256")
+      const hash = createHash("sha256")
         .update(projectRootDir)
         .digest("hex");
       tempDirPath = path.resolve(tempdRoot, prefix, hash);
@@ -80,7 +84,7 @@ describe("UT for tempd class", function () {
     it("should remove the temporary directory", async ()=>{
       const removeStub = sinon.stub(_internal.fs, "remove").resolves();
       sinon.stub(_internal, "getLogger").returns({ debug: sinon.stub() });
-      await _internal.removeTempd(projectRootDir, prefix);
+      await removeTempd(projectRootDir, prefix);
       expect(removeStub.calledOnceWithExactly(tempDirPath)).to.be.true;
     });
     it("should log the removal of the temporary directory", async ()=>{
@@ -89,7 +93,7 @@ describe("UT for tempd class", function () {
       };
       sinon.stub(_internal, "getLogger").returns(logStub);
       sinon.stub(_internal.fs, "remove").resolves();
-      await _internal.removeTempd(projectRootDir, prefix);
+      await removeTempd(projectRootDir, prefix);
       expect(logStub.debug.calledOnceWithExactly(`remove temporary directory ${tempDirPath}`)).to.be.true;
     });
     it("should handle errors gracefully", async ()=>{
@@ -98,7 +102,7 @@ describe("UT for tempd class", function () {
       sinon.stub(_internal, "getLogger").returns({ debug: sinon.stub() });
 
       try {
-        await _internal.removeTempd(projectRootDir, prefix);
+        await removeTempd(projectRootDir, prefix);
       } catch (err) {
         expect(err).to.equal(error);
       }
@@ -109,11 +113,11 @@ describe("UT for tempd class", function () {
     const projectRootDir = "/test/project";
     const prefix = "viewer";
     let tempDirPath, rootPath;
-    const tempdRoot = process.env.WHEEL_TEMPD || path.dirname("__dirname");
+    const tempdRoot = process.env.WHEEL_TEMPD || path.dirname(__dirname);
 
     beforeEach(()=>{
       //ハッシュを計算してディレクトリパスを決定
-      const hash = require("crypto").createHash("sha256")
+      const hash = createHash("sha256")
         .update(projectRootDir)
         .digest("hex");
       sinon.replace(_internal, "tempdRoot", tempdRoot);
@@ -128,7 +132,7 @@ describe("UT for tempd class", function () {
     it("should create the temporary directory and return its path", async ()=>{
       sinon.stub(_internal.fs, "emptyDir").resolves();
       sinon.stub(_internal, "getLogger").returns({ debug: sinon.stub() });
-      const result = await _internal.createTempd(projectRootDir, prefix);
+      const result = await createTempd(projectRootDir, prefix);
       expect(result).to.deep.equal({ dir: tempDirPath, root: rootPath });
     });
 
@@ -138,7 +142,7 @@ describe("UT for tempd class", function () {
       sinon.stub(_internal, "getLogger").returns({ debug: sinon.stub() });
 
       try {
-        await _internal.createTempd(projectRootDir, prefix);
+        await createTempd(projectRootDir, prefix);
       } catch (err) {
         expect(err).to.equal(error);
       }

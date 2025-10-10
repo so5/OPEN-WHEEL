@@ -3,11 +3,10 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See Licensethe project root for the license information.
  */
-"use strict";
-const axios = require("axios");
-const querystring = require("querystring");
-const crypto = require("crypto");
-const { credentialFilename } = require("../db/db.js");
+import axios from "axios";
+import querystring from "querystring";
+import crypto from "crypto";
+import { credentialFilename } from "../db/db.js";
 
 const authDB = new Map();
 
@@ -20,18 +19,18 @@ let credentials;
 //TODO remotehost.jsonから読むようにする
 const tokenURL = "https://idp.fugaku.r-ccs.riken.jp/auth/realms/op/protocol/openid-connect/token";
 const authURL = "https://idp.fugaku.r-ccs.riken.jp/auth/realms/op/protocol/openid-connect/auth";
-function hasEntry(remotehostID) {
+export function hasEntry(remotehostID) {
   return authDB.has(remotehostID);
 }
-function hasCode(remotehostID) {
+export function hasCode(remotehostID) {
   const auth = authDB.get(remotehostID);
   return auth && typeof auth.code === "string";
 }
-function hasRefreshToken(remotehostID) {
+export function hasRefreshToken(remotehostID) {
   const auth = authDB.get(remotehostID);
   return auth && typeof auth.refresh_token === "string";
 }
-function storeCode(remotehostID, code) {
+export function storeCode(remotehostID, code) {
   if (typeof code !== "string") {
     return false;
   }
@@ -42,11 +41,11 @@ function storeCode(remotehostID, code) {
   }
   return false;
 }
-function getAccessToken(remotehostID) {
+export function getAccessToken(remotehostID) {
   const auth = authDB.get(remotehostID);
   return typeof auth.access_token === "string" ? auth.access_token : null;
 }
-function getRemotehostIDFromState(state) {
+export function getRemotehostIDFromState(state) {
   for (const [k, v] of authDB) {
     if (v.state === state) {
       return k;
@@ -58,7 +57,7 @@ function getRemotehostIDFromState(state) {
  * get access token and refresh token from token endpoint
  * @param {string} remotehostID - ID string for remotehost "fugaku" is the only allowed value for now
  */
-async function acquireAccessToken(remotehostID) {
+export async function acquireAccessToken(remotehostID) {
   const auth = authDB.get(remotehostID);
   const { client_id: clientID, client_secret: clientSecret } = credentials.data[remotehostID];
   console.log("DEBUG: client_id", clientID);
@@ -103,7 +102,7 @@ async function acquireAccessTokenFromRefreshToken(remotehostID){
 }
 */
 
-async function getURLtoAcquireCode(remotehostID, redirectURI) {
+export async function getURLtoAcquireCode(remotehostID, redirectURI) {
   const state = crypto.randomUUID();
   const { client_id: clientID } = credentials.data[remotehostID];
   const params = {
@@ -121,14 +120,3 @@ async function getURLtoAcquireCode(remotehostID, redirectURI) {
   });
   return url;
 }
-
-module.exports = {
-  hasEntry,
-  hasCode,
-  hasRefreshToken,
-  storeCode,
-  acquireAccessToken,
-  getURLtoAcquireCode,
-  getAccessToken,
-  getRemotehostIDFromState
-};

@@ -4,15 +4,22 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("sinon-chai"));
-chai.use(require("chai-fs"));
-chai.use(require("chai-json-schema"));
-chai.use(require("deep-equal-in-any-order"));
-chai.use(require("chai-as-promised"));
-const sinon = require("sinon");
-const { _internal } = require("../../../../app/core/updateComponent.js");
+import chai, { expect } from "chai";
+import sinon from "sinon";
+import sinonChai from "sinon-chai";
+import chaiFs from "chai-fs";
+import chaiJsonSchema from "chai-json-schema";
+import deepEqualInAnyOrder from "deep-equal-in-any-order";
+import chaiAsPromised from "chai-as-promised";
+
+import { _internal } from "../../../app/core/updateComponent.js";
+
+chai.use(sinonChai);
+chai.use(chaiFs);
+chai.use(chaiJsonSchema);
+chai.use(deepEqualInAnyOrder);
+chai.use(chaiAsPromised);
+
 describe("updateComponent", ()=>{
   describe("#removeInputFileLinkFromParent", ()=>{
     let removeInputFileLinkFromParent;

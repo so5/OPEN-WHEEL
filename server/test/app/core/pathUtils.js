@@ -6,15 +6,14 @@
 "use strict";
 
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("chai-fs"));
-const path = require("path");
+import chai, { expect } from "chai";
+import chaiFs from "chai-fs";
+import path from "path";
 
 //testee
-const { sanitizePath } = require("../../../app/core/pathUtils.js");
-const { replacePathsep } = require("../../../app/core/pathUtils.js");
-const { convertPathSep } = require("../../../app/core/pathUtils.js");
+import { sanitizePath, replacePathsep, convertPathSep } from "../../../app/core/pathUtils.js";
+
+chai.use(chaiFs);
 
 describe("UT for pathUtils class", function () {
   describe("#sanitizePath", ()=>{

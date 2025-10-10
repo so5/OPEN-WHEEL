@@ -3,16 +3,15 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const path = require("path");
-const { pathseps, reWin32ReservedNames, metaCharactors, escapeRegExp } = require("../lib/utility");
+import path from "path";
+import { pathseps, reWin32ReservedNames, metaCharactors, escapeRegExp } from "../lib/utility.js";
 
 /**
  * replace path separator by native path separator
  * @param {string} pathString - kind of path string
  * @returns {string} - path string which have native path separator
  */
-function convertPathSep(pathString) {
+export function convertPathSep(pathString) {
   if (path.sep === path.posix.sep) {
     return pathString.replace(new RegExp(`\\${path.win32.sep}`, "g"), path.sep);
   }
@@ -24,7 +23,7 @@ function convertPathSep(pathString) {
  * @param {string} pathString - kind of path string
  * @returns {string} - posix form path string
  */
-function replacePathsep(pathString) {
+export function replacePathsep(pathString) {
   return pathString.replace(new RegExp(`\\${path.win32.sep}`, "g"), path.posix.sep);
 }
 
@@ -34,7 +33,7 @@ function replacePathsep(pathString) {
  * @param {string} replacer - replacer for meta charactors (ex. '/')
  * @returns {string} - sanitized path
  */
-function sanitizePath(target, replacer = "_") {
+export function sanitizePath(target, replacer = "_") {
   //replace danger chars
   let sanitized = target.toString().replace(new RegExp(`[${escapeRegExp(`${pathseps + metaCharactors}~.=`)}]`, "g"), replacer);
 
@@ -46,9 +45,3 @@ function sanitizePath(target, replacer = "_") {
 
   return sanitized;
 }
-
-module.exports = {
-  convertPathSep,
-  replacePathsep,
-  sanitizePath
-};

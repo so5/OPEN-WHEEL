@@ -4,26 +4,32 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const fs = require("fs-extra");
-const path = require("path");
+import fs from "fs-extra";
+import path from "path";
+import { fileURLToPath } from "url";
 
 //setup test framework
-const chai = require("chai");
-const { expect } = require("chai");
-chai.use(require("chai-fs"));
-const sinon = require("sinon");
-chai.use(require("sinon-chai"));
+import chai, { expect } from "chai";
+import chaiFs from "chai-fs";
+import sinon from "sinon";
+import sinonChai from "sinon-chai";
+import { logFilename } from "../../app/db/db.js";
+import * as commUtils from "../../app/handlers/commUtils.js";
+
+//testee
+import { getLogger, log4js, logSettings } from "../../app/logSettings.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+chai.use(chaiFs);
+chai.use(sinonChai);
 chai.use((_chai, _)=>{
   _chai.Assertion.addMethod("withMessage", function (msg) {
     _.flag(this, "message", msg);
   });
 });
-const { logFilename } = require("../../app/db/db.js");
 const projectRootDir = path.resolve("hoge");
-const commUtils = require("../../app/handlers/commUtils.js");
-
-//testee
-const { getLogger, log4js, logSettings } = require("../../app/logSettings.js");
 
 describe("Unit test for log4js's helper functions", ()=>{
   let logger;
@@ -59,7 +65,7 @@ describe("Unit test for log4js's helper functions", ()=>{
     afterEach(async ()=>{
       sinon.restore();
       if (!process.env.WHEEL_KEEP_FILES_AFTER_LAST_TEST) {
-        await fs.remove(path.resolve(__dirname, logFilename));
+        await fs.remove(path.resolve(__dirname, path.basename(logFilename)));
         await fs.remove(projectRootDir);
       }
       log4js.configure(settings);

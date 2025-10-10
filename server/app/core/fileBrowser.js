@@ -3,10 +3,9 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const fs = require("fs-extra");
-const path = require("path");
-const { isComponentDir } = require("./projectFilesOperator");
+import fs from "fs-extra";
+import path from "path";
+import { isComponentDir } from "./projectFilesOperator.js";
 
 const _internal = {
   fs,
@@ -19,7 +18,7 @@ const _internal = {
  * @param {boolean} isDir - If true, fileList contains directory names
  * @returns {object[]} -
  */
-function getSNDs(fileList, isDir) {
+export function getSNDs(fileList, isDir) {
   const reNumber = /\d+/g;
   const snds = [];
   const candidates = new Set();
@@ -58,7 +57,7 @@ function getSNDs(fileList, isDir) {
  * @param {boolean} isDir - If true, fileList contains directory names
  * @returns {string[]} files and bundled SND globs these are not sorted
  */
-function bundleSNDFiles(fileList, isDir) {
+export function bundleSNDFiles(fileList, isDir) {
   if (fileList.length <= 0) {
     return [];
   }
@@ -187,9 +186,11 @@ async function ls(targetDir, options = {}) {
   }
   return dirList.sort(compare).concat(fileList.sort(compare));
 }
-module.exports = ls;
-Object.assign(module.exports, { getSNDs, bundleSNDFiles, ls });
+export { ls };
+export default ls;
 
+let internal;
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
+  internal = _internal;
 }
+export { internal as _internal };

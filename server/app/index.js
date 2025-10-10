@@ -4,28 +4,47 @@
  * See Licensethe project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
-const cors = require("cors");
-const express = require("express");
-const ipfilter = require("express-ipfilter").IpFilter;
-const passport = require("passport");
-const session = require("express-session");
-const SQLiteStore = require("connect-sqlite3")(session);
-const { ensureLoggedIn } = require("connect-ensure-login");
-const asyncHandler = require("express-async-handler");
-const cookieParser = require("cookie-parser");
-const bodyParser = require("body-parser");
-const Siofu = require("socketio-file-upload");
-const { port, projectList } = require("./db/db.js");
-const { setProjectState, checkRunningJobs } = require("./core/projectFilesOperator");
-const { getLogger } = require("./logSettings");
-const { registerHandlers } = require("./handlers/registerHandlers");
-const { baseURL, setSio } = require("./core/global.js");
-const { tempdRoot } = require("./core/tempd.js");
-const { aboutWheel } = require("./core/versionInfo.js");
-const { hasEntry, hasCode, hasRefreshToken, storeCode, acquireAccessToken, getURLtoAcquireCode, getRemotehostIDFromState } = require("./core/webAPI.js");
-const checkAllCommands = require("./core/commandCheck.js");
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs-extra";
+import cors from "cors";
+import express from "express";
+import ipfilter from "express-ipfilter";
+import passport from "passport";
+import session from "express-session";
+import connectSqlite3 from "connect-sqlite3";
+import connectEnsureLogin from "connect-ensure-login";
+import asyncHandler from "express-async-handler";
+import cookieParser from "cookie-parser";
+import bodyParser from "body-parser";
+import Siofu from "socketio-file-upload";
+import http from "http";
+import https from "https";
+import { Server } from "socket.io";
+
+import { port, projectList, keyFilename, certFilename } from "./db/db.js";
+import { setProjectState, checkRunningJobs } from "./core/projectFilesOperator.js";
+import { getLogger } from "./logSettings.js";
+import { registerHandlers } from "./handlers/registerHandlers.js";
+import { baseURL, setSio } from "./core/global.js";
+import { tempdRoot } from "./core/tempd.js";
+import { aboutWheel } from "./core/versionInfo.js";
+import { hasEntry, hasCode, hasRefreshToken, storeCode, acquireAccessToken, getURLtoAcquireCode, getRemotehostIDFromState } from "./core/webAPI.js";
+import checkAllCommands from "./core/commandCheck.js";
+
+//routes
+import home from "./routes/home.js";
+import workflow from "./routes/workflow.js";
+import remotehost from "./routes/remotehost.js";
+import login from "./routes/login.js";
+import viewer from "./routes/viewer.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const { IpFilter } = ipfilter;
+const SQLiteStore = connectSqlite3(session);
+const { ensureLoggedIn } = connectEnsureLogin;
+
 const secret = "wheel";
 const sessionDBFilename = "session.db";
 const sessionDBDir = process.env.WHEEL_SESSION_DB_DIR || path.resolve(__dirname, "db");
@@ -35,7 +54,7 @@ const logger = getLogger();
 process.on("unhandledRejection", logger.debug.bind(logger));
 process.on("uncaughtException", logger.debug.bind(logger));
 
-// check for essential commands
+//check for essential commands
 (async ()=>{
   if (!await checkAllCommands()) {
     process.exit(1);
@@ -58,19 +77,18 @@ const app = express();
 const address = process.env.WHEEL_ACCEPT_ADDRESS;
 
 function createHTTPSServer(argApp) {
-  const { keyFilename, certFilename } = require("./db/db");
   //read SSL related files
   const key = fs.readFileSync(keyFilename);
   const cert = fs.readFileSync(certFilename);
   const opt = { key, cert };
-  return require("https").createServer(opt, argApp);
+  return https.createServer(opt, argApp);
 }
 function createHTTPServer(argApp) {
-  return require("http").createServer(argApp);
+  return http.createServer(argApp);
 }
 
 const server = process.env.WHEEL_USE_HTTP ? createHTTPServer(app) : createHTTPSServer(app);
-const sio = require("socket.io")(server, { path: path.normalize(`${baseURL}/socket.io/`) });
+const sio = new Server(server, { path: path.normalize(`${baseURL}/socket.io/`) });
 setSio(sio);
 
 //
@@ -85,7 +103,7 @@ portNumber = portNumber > 0 ? portNumber : defaultPort;
 //middlewares
 if (address) {
   const ips = [address];
-  app.use(ipfilter(ips, { mode: "allow", logF: logger.debug.bind(logger) }));
+  app.use(IpFilter(ips, { mode: "allow", logF: logger.debug.bind(logger) }));
 }
 
 app.use(cors());
@@ -174,11 +192,11 @@ if (process.env.WHEEL_ENABLE_WEB_API) {
 }
 
 const routes = {
-  home: require("./routes/home"),
-  workflow: require("./routes/workflow"),
-  remotehost: require("./routes/remotehost"),
-  login: require("./routes/login"),
-  viewer: require("./routes/viewer")
+  home,
+  workflow,
+  remotehost,
+  login,
+  viewer
 };
 
 let checkLoggedIn = (req, res, next)=>{
@@ -186,7 +204,7 @@ let checkLoggedIn = (req, res, next)=>{
 };
 
 if (process.env.WHEEL_ENABLE_AUTH) {
-  checkLoggedIn = ensureLoggedIn ("/login");
+  checkLoggedIn = ensureLoggedIn("/login");
   router.route("/login").get(routes.login.get)
     .post(routes.login.post);
 }

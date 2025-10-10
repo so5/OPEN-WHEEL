@@ -5,24 +5,22 @@
  */
 "use strict";
 
-const chai = require("chai");
-chai.use(require("sinon-chai"));
-chai.use(require("chai-as-promised"));
-const path = require("path");
-const sinon = require("sinon");
-const fs = require("fs-extra");
-const { expect } = require("chai");
-const { EventEmitter } = require("events");
+import chai, { expect } from "chai";
+import chaiAsPromised from "chai-as-promised";
+import sinonChai from "sinon-chai";
+import path from "path";
+import sinon from "sinon";
+import fs from "fs-extra";
+import { EventEmitter } from "events";
 
-const executerManager = require("../../../app/core/executerManager");
-const {
-  removeExecuters,
-  register
-} = executerManager;
-const { _internal } = executerManager;
+import { removeExecuters, register, cancel, _internal } from "../../../app/core/executerManager.js";
+
 const { executers } = _internal;
 const testDirRoot = "WHEEL_TEST_TMP";
 let loggerMock;
+
+chai.use(sinonChai);
+chai.use(chaiAsPromised);
 
 describe("UT for executerManager class", function () {
   afterEach(function () {
@@ -127,7 +125,9 @@ describe("UT for executerManager class", function () {
       const task = { env: { KEY1: "value1", KEY2: "value2" } };
       const result = _internal.makeEnv(task);
       //`result` 内の変数順序が一定でない可能性があるため、複数のパターンを考慮
-      expect(result).to.satisfy((str)=>{ return str === "env KEY1=value1 KEY2=value2" || str === "env KEY2=value2 KEY1=value1"; }
+      expect(result).to.satisfy((str)=>{
+        return str === "env KEY1=value1 KEY2=value2" || str === "env KEY2=value2 KEY1=value1";
+      }
       );
     });
     it("should handle environment variables with special characters", function () {

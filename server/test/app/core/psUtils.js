@@ -4,18 +4,19 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { expect } = require("chai");
-const sinon = require("sinon");
-const path = require("path");
-const { getParamSpacev2 } = require("../../../app/core/parameterParser");
-const {
+import { expect } from "chai";
+import sinon from "sinon";
+import path from "path";
+import { getParamSpacev2 } from "../../../app/core/parameterParser.js";
+import {
   makeCmd,
   getScatterFilesV2,
   scatterFilesV2,
   gatherFilesV2,
   replaceByNunjucks,
   _internal
-} = require("../../../app/core/psUtils.js");
+} from "../../../app/core/psUtils.js";
+
 describe("UT for psUtils class", function () {
   describe("#makeCmd", ()=>{
     it("should return functions for PS version 2", ()=>{
@@ -33,7 +34,9 @@ describe("UT for psUtils class", function () {
     });
     it("should throw an error for unsupported PS version", ()=>{
       const paramSettings = { version: 1 };
-      expect(()=>{ return makeCmd(paramSettings); }).to.throw("PS version 1 is no longer supported");
+      expect(()=>{
+        return makeCmd(paramSettings);
+      }).to.throw("PS version 1 is no longer supported");
     });
     it("should use 'target_param' if 'params' is not provided", ()=>{
       const paramSettings = {

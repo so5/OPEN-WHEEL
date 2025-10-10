@@ -3,37 +3,34 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const path = require("path");
-const { promisify } = require("util");
-const EventEmitter = require("events");
-const axios = require("axios");
-const glob = require("glob");
-const fs = require("fs-extra");
-const SBS = require("simple-batch-system");
-const { getLogger } = require("../logSettings");
-const { filesJsonFilename, remoteHost, componentJsonFilename, projectJsonFilename } = require("../db/db");
-const { deliverFile } = require("../core/fileUtils");
-const { gitAdd, gitCommit, gitResetHEAD, getUnsavedFiles } = require("../core/gitOperator2");
-const { getComponentDir } = require("../core/componentJsonIO.js");
-const { getHosts, checkRemoteStoragePathWritePermission, getSourceComponents, getProjectJson, getProjectState, setProjectState, updateProjectDescription, updateProjectROStatus, setComponentStateR } = require("../core/projectFilesOperator");
-const { createSsh, removeSsh, askPassword } = require("../core/sshManager");
-const { setJWTServerPassphrase, removeAllJWTServerPassphrase } = require("../core/jwtServerPassphraseManager.js");
-const { runProject, cleanProject, stopProject } = require("../core/projectController.js");
-const { isValidOutputFilename } = require("../lib/utility");
-const { checkWritePermissions, parentDirs, eventEmitters } = require("../core/global.js");
-const senders = require("./senders.js");
-const { emitAll, emitWithPromise } = require("./commUtils.js");
-const { removeTempd, getTempd } = require("../core/tempd.js");
-const { validateComponents } = require("../core/validateComponents.js");
-const { writeJsonWrapper } = require("../lib/utility");
-const { checkJWTAgent, startJWTAgent } = require("../core/gfarmOperator.js");
-const allowedOperations = require("../../../common/allowedOperations.cjs");
+import path from "path";
+import EventEmitter from "events";
+import axios from "axios";
+import { glob } from "glob";
+import fs from "fs-extra";
+import SBS from "simple-batch-system";
+import { getLogger } from "../logSettings.js";
+import { filesJsonFilename, remoteHost, componentJsonFilename, projectJsonFilename } from "../db/db.js";
+import { gitAdd, gitCommit, gitResetHEAD, getUnsavedFiles } from "../core/gitOperator2.js";
+import { getComponentDir } from "../core/componentJsonIO.js";
+import * as projectFilesOperator from "../core/projectFilesOperator.js";
+import { createSsh, removeSsh, askPassword } from "../core/sshManager.js";
+import { clearPassphrase as removeAllJWTServerPassphrase } from "../core/jwtServerPassphraseManager.js";
+import { runProject, cleanProject, stopProject } from "../core/projectController.js";
+import { isValidOutputFilename } from "../lib/utility.js";
+import { checkWritePermissions, parentDirs, eventEmitters } from "../core/global.js";
+import * as senders from "./senders.js";
+import { emitAll, emitWithPromise } from "./commUtils.js";
+import { removeTempd, getTempd } from "../core/tempd.js";
+import { validateComponents } from "../core/validateComponents.js";
+import { writeJsonWrapper } from "../lib/utility.js";
+import { checkJWTAgent, startJWTAgent } from "../core/gfarmOperator.js";
+import allowedOperations from "../../../common/allowedOperations.js";
 
 const _internal = {
   projectOperationQueues: new Map(),
   updateProjectState: async (projectRootDir, state)=>{
-    const projectJson = await setProjectState(projectRootDir, state);
+    const projectJson = await projectFilesOperator.setProjectState(projectRootDir, state);
     if (projectJson) {
       await emitAll(projectRootDir, "projectState", projectJson.state);
     }
@@ -61,7 +58,7 @@ const _internal = {
   },
   getSourceCandidates: async (projectRootDir, ID)=>{
     const componentDir = await getComponentDir(projectRootDir, ID);
-    return promisify(glob)("*", { cwd: path.join(projectRootDir, componentDir), ignore: componentJsonFilename });
+    return glob("*", { cwd: path.join(projectRootDir, componentDir), ignore: componentJsonFilename });
   },
   askSourceFilename: async (clientID, ID, name, description, candidates)=>{
     return new Promise((resolve, reject)=>{
@@ -125,7 +122,7 @@ const _internal = {
   },
   onRunProject: async (clientID, projectRootDir, ack)=>{
     const logger = getLogger(projectRootDir);
-    const projectState = await getProjectState(projectRootDir);
+    const projectState = await projectFilesOperator.getProjectState(projectRootDir);
     if (projectState !== "paused") {
       //validation check
       try {
@@ -147,7 +144,7 @@ const _internal = {
         await _internal.updateProjectState(projectRootDir, "preparing");
 
         //resolve source files
-        const sourceComponents = await getSourceComponents(projectRootDir);
+        const sourceComponents = await projectFilesOperator.getSourceComponents(projectRootDir);
         for (const component of sourceComponents) {
           if (component.disable) {
             getLogger(projectRootDir).debug(`disabled component: ${component.name}(${component.ID})`);
@@ -164,7 +161,7 @@ const _internal = {
           await Promise.all(
             outputFilenames.map((outputFile)=>{
               if (filename !== outputFile) {
-                return deliverFile(path.resolve(projectRootDir, componentDir, filename), path.resolve(projectRootDir, componentDir, outputFile));
+                return projectFilesOperator.deliverFile(path.resolve(projectRootDir, componentDir, filename), path.resolve(projectRootDir, componentDir, outputFile));
               }
               return Promise.resolve(true);
             })
@@ -172,7 +169,7 @@ const _internal = {
         }
 
         //create remotehost connection
-        const hosts = await getHosts(projectRootDir, null);
+        const hosts = await projectFilesOperator.getHosts(projectRootDir, null);
 
         for (const host of hosts) {
           const id = remoteHost.getID("name", host.hostname);
@@ -204,7 +201,6 @@ const _internal = {
                 throw err;
               }
               getLogger(projectRootDir).debug(`store jwt-server's passphrase ${hostinfo.name}`);
-              setJWTServerPassphrase(projectRootDir, hostinfo.id, phGfarm);
             }
           }
           if (!checkWritePermissions.has(projectRootDir)) {
@@ -214,7 +210,7 @@ const _internal = {
 
           if (checkWritePermission.length > 0) {
             await Promise.all(checkWritePermission.map((e)=>{
-              return checkRemoteStoragePathWritePermission(projectRootDir, e);
+              return projectFilesOperator.checkRemoteStoragePathWritePermission(projectRootDir, e);
             }));
             checkWritePermission.splice(0);
           }
@@ -255,7 +251,7 @@ const _internal = {
       });
       ee.on("resultFilesReady", senders.sendResultsFileDir.bind(null, projectRootDir));
 
-      const { webhook } = await getProjectJson(projectRootDir);
+      const { webhook } = await projectFilesOperator.getProjectJson(projectRootDir);
       logger.trace(`webhook setting for ${projectRootDir} \n`, webhook);
       if (typeof webhook !== "undefined" && typeof webhook.URL === "string") {
         if (webhook.project) {
@@ -274,15 +270,15 @@ const _internal = {
         }
       }
 
-      await updateProjectROStatus(projectRootDir, true);
+      await projectFilesOperator.updateProjectROStatus(projectRootDir, true);
       await runProject(projectRootDir);
-      await updateProjectROStatus(projectRootDir, false);
+      await projectFilesOperator.updateProjectROStatus(projectRootDir, false);
     } catch (err) {
       getLogger(projectRootDir).error("fatal error occurred while parsing workflow:", err);
       await _internal.updateProjectState(projectRootDir, "failed");
       ack(err);
     } finally {
-      emitAll(projectRootDir, "projectJson", await getProjectJson(projectRootDir));
+      emitAll(projectRootDir, "projectJson", await projectFilesOperator.getProjectJson(projectRootDir));
       await senders.sendWorkflow(ack, projectRootDir);
       eventEmitters.delete(projectRootDir);
       removeSsh(projectRootDir);
@@ -343,14 +339,14 @@ const _internal = {
     const filename = path.resolve(projectRootDir, projectJsonFilename);
     await writeJsonWrapper(filename, projectJson);
     await gitAdd(projectRootDir, filename);
-    await setComponentStateR(projectRootDir, projectRootDir, "not-started", false, []);
+    await projectFilesOperator.setComponentStateR(projectRootDir, projectRootDir, "not-started", false, []);
     await gitCommit(projectRootDir);
   }
 };
 
 async function onGetProjectJson(projectRootDir, ack) {
   try {
-    const projectJson = await getProjectJson(projectRootDir);
+    const projectJson = await projectFilesOperator.getProjectJson(projectRootDir);
     emitAll(projectRootDir, "projectJson", projectJson);
     const resultDir = await getTempd(projectRootDir, "viewer");
     const filename = path.resolve(resultDir, filesJsonFilename);
@@ -368,11 +364,11 @@ async function onGetWorkflow(clientID, projectRootDir, componentID, ack) {
   return senders.sendWorkflow(ack, projectRootDir, requestedComponentDir, clientID);
 }
 async function onUpdateProjectDescription(projectRootDir, description, ack) {
-  await updateProjectDescription(projectRootDir, description);
+  await projectFilesOperator.updateProjectDescription(projectRootDir, description);
   onGetProjectJson(projectRootDir, ack);
 }
 async function onUpdateProjectROStatus(projectRootDir, isRO, ack) {
-  await updateProjectROStatus(projectRootDir, isRO);
+  await projectFilesOperator.updateProjectROStatus(projectRootDir, isRO);
   onGetProjectJson(projectRootDir, ack);
 }
 async function onCleanComponent(clientID, projectRootDir, targetComponentID) {
@@ -475,4 +471,4 @@ if (process.env.NODE_ENV === "test") {
   main._internal = _internal;
 }
 
-module.exports = main;
+export default main;

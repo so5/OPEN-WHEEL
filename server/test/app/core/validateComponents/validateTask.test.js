@@ -3,23 +3,27 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const path = require("path");
-const fs = require("fs-extra");
-const sinon = require("sinon");
+import path from "path";
+import fs from "fs-extra";
+import sinon from "sinon";
 
 //setup test framework
-const chai = require("chai");
+import chai from "chai";
+import sinonChai from "sinon-chai";
+import chaiFs from "chai-fs";
+import chaiJsonSchema from "chai-json-schema";
+import deepEqualInAnyOrder from "deep-equal-in-any-order";
+import chaiAsPromised from "chai-as-promised";
 const expect = chai.expect;
-chai.use(require("sinon-chai"));
-chai.use(require("chai-fs"));
-chai.use(require("chai-json-schema"));
-chai.use(require("deep-equal-in-any-order"));
-chai.use(require("chai-as-promised"));
-const { createNewProject, createNewComponent } = require("../../../../app/core/projectFilesOperator");
+chai.use(sinonChai);
+chai.use(chaiFs);
+chai.use(chaiJsonSchema);
+chai.use(deepEqualInAnyOrder);
+chai.use(chaiAsPromised);
+import { createNewProject, createNewComponent } from "../../../../app/core/projectFilesOperator.js";
 
 //testee
-const { validateTask, _internal } = require("../../../../app/core/validateComponents.js");
+import { validateTask, _internal } from "../../../../app/core/validateComponents.js";
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";

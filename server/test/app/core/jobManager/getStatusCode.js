@@ -4,10 +4,10 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { expect } = require("chai");
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const sinon = require("sinon");
-const { getStatusCode, _internal } = require("../../../../app/core/jobManager.js");
+import { expect } from "chai";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import sinon from "sinon";
+import { getStatusCode, _internal } from "../../../../app/core/jobManager.js";
 
 describe("#getStatusCode", ()=>{
   let loggerMock;

@@ -1,27 +1,20 @@
 /*
  * Copyright (c) Center for Computational Science, RIKEN All rights reserved.
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
- * See License.txt the project root for the license information.
+ * See License.txt in the project root for the license information.
  */
 "use strict";
-const { exec } = require("child_process");
-const { getLogger } = require("../logSettings");
+import { exec } from "child_process";
+import { getLogger } from "../logSettings.js";
 
-const commands = [
-  "ssh",
-  "rsync",
-  "git",
-  "git-lfs",
-  "tar",
-  "gzip"
-];
+const commands = ["ssh", "rsync", "git", "git-lfs", "tar", "gzip"];
 
 /**
  * check if specified command is executable
  * @param {string} command - command name which will be checked
  * @returns {Promise} -
  */
-function execCheck(command) {
+function checkCommand(command) {
   return new Promise((resolve)=>{
     exec(`command -v ${command}`, (err)=>{
       if (err) {
@@ -39,7 +32,7 @@ function execCheck(command) {
 async function checkAllCommands() {
   const logger = getLogger();
   const results = await Promise.all(commands.map((cmd)=>{
-    return execCheck(cmd);
+    return checkCommand(cmd);
   }));
   const failedCommands = commands.filter((cmd, i)=>{
     return !results[i];
@@ -54,10 +47,15 @@ async function checkAllCommands() {
   return true;
 }
 
-module.exports = checkAllCommands;
+export default checkAllCommands;
+
+let _internal;
 
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = {
-    commands
+  _internal = {
+    commands,
+    checkAllCommands
   };
 }
+
+export { _internal };

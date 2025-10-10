@@ -4,11 +4,11 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
-const { componentJsonFilename, projectJsonFilename } = require("../db/db");
-const { gitAdd } = require("./gitOperator2");
-const { readJsonGreedy } = require("./fileUtils");
+import path from "path";
+import fs from "fs-extra";
+import { componentJsonFilename, projectJsonFilename } from "../db/db.js";
+import { gitAdd } from "./gitOperator2.js";
+import { readJsonGreedy } from "./fileUtils.js";
 
 const _internal = {
   path,
@@ -26,7 +26,7 @@ const _internal = {
  * @param {string} value -
  * @returns {string | undefined} -
  */
-function componentJsonReplacer(key, value) {
+export function componentJsonReplacer(key, value) {
   if (["handler", "doCleanup", "sbsID", "childLoopRunning"].includes(key)) {
     return undefined;
   }
@@ -48,6 +48,7 @@ _internal.getComponentDir = async function (projectRootDir, ID, isAbsolute) {
   }
   return null;
 };
+export const getComponentDir = _internal.getComponentDir;
 
 /**
  * get relative path from srcComponent to targetComponent
@@ -56,7 +57,7 @@ _internal.getComponentDir = async function (projectRootDir, ID, isAbsolute) {
  * @param {string} targetComponentID - id string of target component
  * @returns { string} - relative path from srcComponent to targetComponent
  */
-async function getComponentRelativePathFromAnotherComponent(projectRootDir, srcComponentID, targetComponentID) {
+export async function getComponentRelativePathFromAnotherComponent(projectRootDir, srcComponentID, targetComponentID) {
   const projectJson = await _internal.readJsonGreedy(_internal.path.resolve(projectRootDir, _internal.projectJsonFilename));
   const srcRelativePath = projectJson.componentPath[srcComponentID];
   const targetRelativePath = projectJson.componentPath[targetComponentID];
@@ -79,6 +80,7 @@ _internal.writeComponentJson = async function (projectRootDir, componentDir, com
   }
   return _internal.gitAdd(projectRootDir, filename);
 };
+export const writeComponentJson = _internal.writeComponentJson;
 
 /**
  * read component Json by directory
@@ -90,6 +92,7 @@ _internal.readComponentJson = async function (componentDir) {
   const componentJson = await _internal.readJsonGreedy(filename);
   return componentJson;
 };
+export const readComponentJson = _internal.readComponentJson;
 
 /**
  * write componentJson by ID
@@ -98,7 +101,7 @@ _internal.readComponentJson = async function (componentDir) {
  * @param {object} component - component JSON data
  * @param {boolean} doNotAdd - call gitAdd if false
  */
-async function writeComponentJsonByID(projectRootDir, ID, component, doNotAdd) {
+export async function writeComponentJsonByID(projectRootDir, ID, component, doNotAdd) {
   const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
   return _internal.writeComponentJson(projectRootDir, componentDir, component, doNotAdd);
 }
@@ -109,21 +112,13 @@ async function writeComponentJsonByID(projectRootDir, ID, component, doNotAdd) {
  * @param {string} ID - component's ID string
  * @returns {object} - component JSON data
  */
-async function readComponentJsonByID(projectRootDir, ID) {
+export async function readComponentJsonByID(projectRootDir, ID) {
   const componentDir = await _internal.getComponentDir(projectRootDir, ID, true);
   return _internal.readComponentJson(componentDir);
 }
 
-module.exports = {
-  getComponentDir: _internal.getComponentDir,
-  getComponentRelativePathFromAnotherComponent,
-  writeComponentJson: _internal.writeComponentJson,
-  writeComponentJsonByID,
-  readComponentJson: _internal.readComponentJson,
-  readComponentJsonByID,
-  componentJsonReplacer
-};
-
+let _internalTest;
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
+  _internalTest = _internal;
 }
+export { _internalTest as _internal };

@@ -5,11 +5,10 @@
  */
 "use strict";
 
-const { expect } = require("chai");
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const sinon = require("sinon");
-const fileUtils = require("../../../app/core/fileUtils.js");
-const { readJsonGreedy, addX, openFile, saveFile, getUnusedPath, replaceCRLF, _internal } = fileUtils;
+import { expect } from "chai";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import sinon from "sinon";
+import { readJsonGreedy, addX, openFile, saveFile, getUnusedPath, replaceCRLF, _internal } from "../../../app/core/fileUtils.js";
 
 describe("#readJsonGreedy", ()=>{
   let fsMock; //fsをスタブ化したオブジェクト

@@ -4,33 +4,36 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
-const os = require("os");
-const sinon = require("sinon");
-const EventEmitter = require("events");
+import path from "path";
+import fs from "fs-extra";
+import os from "os";
+import sinon from "sinon";
+import { EventEmitter } from "events";
 
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("sinon-chai"));
-chai.use(require("chai-fs"));
-chai.use(require("chai-json-schema"));
+import chai, { expect } from "chai";
+import sinonChai from "sinon-chai";
+import chaiFs from "chai-fs";
+import chaiJsonSchema from "chai-json-schema";
+chai.use(sinonChai);
+chai.use(chaiFs);
+chai.use(chaiJsonSchema);
 
-const { runProject, cleanProject, _internal } = require("../../../../../app/core/projectController.js");
-const { eventEmitters } = require("../../../../../app/core/global.js");
-const { _internal: gitOpe2Internal } = require("../../../../../app/core/gitOperator2.js");
+import { runProject, cleanProject, _internal } from "../../../../../app/core/projectController.js";
+import { eventEmitters } from "../../../../../app/core/global.js";
+import { _internal as gitOpe2Internal } from "../../../../../app/core/gitOperator2.js";
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";
 const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 
 //helper functions
-const { projectJsonFilename, componentJsonFilename } = require("../../../../../app/db/db.js");
-const { renameOutputFile, updateComponent, createNewComponent, addInputFile, addFileLink, createNewProject } = require("../../../../../app/core/projectFilesOperator.js");
-const { gitAdd, gitCommit } = require("../../../../../app/core/gitOperator2.js");
+import { projectJsonFilename, componentJsonFilename } from "../../../../../app/db/db.js";
+import { renameOutputFile, updateComponent, createNewComponent, addInputFile, addFileLink, createNewProject } from "../../../../../app/core/projectFilesOperator.js";
+import { gitAdd, gitCommit } from "../../../../../app/core/gitOperator2.js";
 
-const { scriptName, pwdCmd, scriptHeader } = require("../../../../testScript.js");
+import testScript from "../../../../testScript.js";
+const { scriptName, pwdCmd, scriptHeader } = testScript;
 const scriptPwd = `${scriptHeader}\n${pwdCmd}`;
 
 describe("#runProject with miscellaneous features", function () {

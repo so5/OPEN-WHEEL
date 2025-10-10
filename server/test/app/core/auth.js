@@ -4,12 +4,12 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { expect } = require("chai");
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const sinon = require("sinon");
+import { expect } from "chai";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import sinon from "sinon";
 
 //testee
-const {
+import {
   initialize,
   getHashedPassword,
   addUser,
@@ -18,7 +18,7 @@ const {
   listUser,
   delUser,
   _internal
-} = require("../../../app/core/auth.js");
+} from "../../../app/core/auth.js";
 
 describe("#initialize", ()=>{
   let dbMock;
@@ -39,12 +39,7 @@ describe("#initialize", ()=>{
     const result = await initialize();
     expect(openStub.calledOnce).to.be.true;
     expect(dbMock.exec.calledWith(
-      "CREATE TABLE IF NOT EXISTS users ( \
-    id INT PRIMARY KEY, \
-    username TEXT UNIQUE, \
-    hashed_password BLOB, \
-    salt BLOB \
-  )"
+      "CREATE TABLE IF NOT EXISTS users (     id INT PRIMARY KEY,     username TEXT UNIQUE,     hashed_password BLOB,     salt BLOB   )"
     )).to.be.true;
     expect(_internal.initialized).to.be.true;
     expect(result).to.equal(dbMock);

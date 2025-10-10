@@ -4,12 +4,13 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("chai-as-promised"));
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const sinon = require("sinon");
-const { isFinishedState, evalCondition, getRemoteRootWorkingDir, getRemoteWorkingDir, isSubComponent, _internal } = require("../../../app/core/dispatchUtils");
+import chai, { expect } from "chai";
+import chaiAsPromised from "chai-as-promised";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import sinon from "sinon";
+import { isFinishedState, evalCondition, getRemoteRootWorkingDir, getRemoteWorkingDir, isSubComponent, _internal } from "../../../app/core/dispatchUtils.js";
+
+chai.use(chaiAsPromised);
 
 describe("#pspawn", ()=>{
   let spawnStub;
@@ -160,18 +161,18 @@ describe("#evalCondition", ()=>{
   });
 
   it("should return condition if the condition is boolean", async ()=>{
-    const result = await _internal.evalCondition("/projectRootDir", true, "/cwd", {});
+    const result = await evalCondition("/projectRootDir", true, "/cwd", {});
     expect(result).to.be.true;
   });
 
   it("should return error if the condition is not string or boolean", async ()=>{
-    const result = await _internal.evalCondition("/projectRootDir", 123, "/cwd", {});
+    const result = await evalCondition("/projectRootDir", 123, "/cwd", {});
     expect(result).to.be.an.instanceOf(Error);
     expect(result.message).to.equal("illegal condition specified number \n123");
   });
 
   it("should log warning if the condition is not string or boolean", async ()=>{
-    await _internal.evalCondition("/projectRootDir", 123, "/cwd", {});
+    await evalCondition("/projectRootDir", 123, "/cwd", {});
     expect(warnStub.calledWith("condition must be string or boolean")).to.be
       .true;
   });
@@ -190,7 +191,7 @@ describe("#evalCondition", ()=>{
         })
       )
       .resolves(true);
-    const result = await _internal.evalCondition("/projectRootDir", "condition", "/cwd", {
+    const result = await evalCondition("/projectRootDir", "condition", "/cwd", {
       key: "value"
     });
     expect(result).to.be.true;
@@ -210,7 +211,7 @@ describe("#evalCondition", ()=>{
         })
       )
       .resolves(true);
-    await _internal.evalCondition("/projectRootDir", "condition", "/cwd", {
+    await evalCondition("/projectRootDir", "condition", "/cwd", {
       key: "value"
     });
     expect(debugStub.calledWith("execute ", "/cwd/condition")).to.be.true;
@@ -218,7 +219,7 @@ describe("#evalCondition", ()=>{
 
   it("should log evaluation of the condition", async ()=>{
     pathExistsStub.resolves(false);
-    await _internal.evalCondition("/projectRootDir", "true", "/cwd", {});
+    await evalCondition("/projectRootDir", "true", "/cwd", {});
     expect(debugStub.calledWith("evalute ", "true")).to.be.true;
   });
 });
@@ -247,7 +248,7 @@ describe("#getRemoteRootWorkingDir", ()=>{
     replacePathsepStub
       .withArgs("/remote/root/20230101-1231")
       .returns("/remote/root/20230101-1231");
-    const result = _internal.getRemoteRootWorkingDir(
+    const result = getRemoteRootWorkingDir(
       "projectRootDir",
       "20230101-1231",
       {
@@ -267,7 +268,7 @@ describe("#getRemoteRootWorkingDir", ()=>{
     replacePathsepStub
       .withArgs("/remote/root/20230101-1231")
       .returns("/remote/root/20230101-1231");
-    const result = _internal.getRemoteRootWorkingDir(
+    const result = getRemoteRootWorkingDir(
       "projectRootDir",
       "20230101-1231",
       {
@@ -287,7 +288,7 @@ describe("#getRemoteRootWorkingDir", ()=>{
     replacePathsepStub
       .withArgs("/remote/shared/20230101-1231")
       .returns("/remote/shared/20230101-1231");
-    const result = _internal.getRemoteRootWorkingDir(
+    const result = getRemoteRootWorkingDir(
       "projectRootDir",
       "20230101-1231",
       {
@@ -305,7 +306,7 @@ describe("#getRemoteRootWorkingDir", ()=>{
       path: 456
     });
     replacePathsepStub.withArgs("20230101-1231").returns("20230101-1231");
-    const result = _internal.getRemoteRootWorkingDir(
+    const result = getRemoteRootWorkingDir(
       "projectRootDir",
       "20230101-1231",
       {
@@ -339,7 +340,7 @@ describe("#getRemoteWorkingDir", ()=>{
       .withArgs("/remote/root/20230101-1231/workingDir")
       .returns("/remote/root/20230101-1231/workingDir");
 
-    const result = _internal.getRemoteWorkingDir(
+    const result = getRemoteWorkingDir(
       "/project/root",
       "20230101-1231",
       "/project/root/workingDir",
@@ -352,7 +353,7 @@ describe("#getRemoteWorkingDir", ()=>{
   it("should return null if getRemoteRootWorkingDir returns null", ()=>{
     getRemoteRootWorkingDirStub.returns(null);
 
-    const result = _internal.getRemoteWorkingDir(
+    const result = getRemoteWorkingDir(
       "/project/root",
       "20230101-1234",
       "/project/root/workingDir",
@@ -365,35 +366,35 @@ describe("#getRemoteWorkingDir", ()=>{
 
 describe("#isFinishedState", ()=>{
   it("should return true if the status is finished", ()=>{
-    expect(_internal.isFinishedState("finished")).to.be.true;
+    expect(isFinishedState("finished")).to.be.true;
   });
 
   it("should return true if the status is failed", ()=>{
-    expect(_internal.isFinishedState("failed")).to.be.true;
+    expect(isFinishedState("failed")).to.be.true;
   });
 
   it("should return true if the status is unknown", ()=>{
-    expect(_internal.isFinishedState("unknown")).to.be.true;
+    expect(isFinishedState("unknown")).to.be.true;
   });
 
   it("should return false if the status is not finished, failed or unkown", ()=>{
-    expect(_internal.isFinishedState("processing")).to.be.false;
+    expect(isFinishedState("processing")).to.be.false;
   });
 
   it("judgement of the status should be case-sensitive", ()=>{
-    expect(_internal.isFinishedState("Finished")).to.be.false;
+    expect(isFinishedState("Finished")).to.be.false;
   });
 
   it("should return false if the status is empty", ()=>{
-    expect(_internal.isFinishedState("")).to.be.false;
+    expect(isFinishedState("")).to.be.false;
   });
 
   it("should return false if the status is null", ()=>{
-    expect(_internal.isFinishedState(null)).to.be.false;
+    expect(isFinishedState(null)).to.be.false;
   });
 
   it("should return false if the status is undefined", ()=>{
-    expect(_internal.isFinishedState(undefined)).to.be.false;
+    expect(isFinishedState(undefined)).to.be.false;
   });
 });
 
@@ -420,7 +421,7 @@ describe("#isSubComponent", ()=>{
     readJsonGreedyStub
       .withArgs("/componentDir/cmp.wheel.json")
       .resolves({ subComponent: true });
-    const result = await _internal.isSubComponent("/componentDir");
+    const result = await isSubComponent("/componentDir");
     expect(result).to.be.true;
   });
 
@@ -432,7 +433,7 @@ describe("#isSubComponent", ()=>{
     readJsonGreedyStub
       .withArgs("/componentDir/cmp.wheel.json")
       .resolves({ subComponent: false });
-    const result = await _internal.isSubComponent("/componentDir");
+    const result = await isSubComponent("/componentDir");
     expect(result).to.be.false;
   });
 
@@ -444,7 +445,7 @@ describe("#isSubComponent", ()=>{
     readJsonGreedyStub
       .withArgs("/componentDir/cmp.wheel.json")
       .resolves({ subComponent: true });
-    const result = await _internal.isSubComponent("/componentDir");
+    const result = await isSubComponent("/componentDir");
     expect(result).to.be.false;
   });
 
@@ -456,7 +457,7 @@ describe("#isSubComponent", ()=>{
     readJsonGreedyStub
       .withArgs("/invalidDir/cmp.wheel.json")
       .resolves({ subComponent: true });
-    const result = await _internal.isSubComponent("/invalidDir");
+    const result = await isSubComponent("/invalidDir");
     expect(result).to.be.false;
   });
 
@@ -468,7 +469,7 @@ describe("#isSubComponent", ()=>{
     readJsonGreedyStub
       .withArgs("/componentDir/cmp.wheel.json")
       .resolves({ subComponent: true });
-    await expect(_internal.isSubComponent("/componentDir"))
+    await expect(isSubComponent("/componentDir"))
       .to.be.rejectedWith(Error)
       .and.eventually.satisfy((err)=>{ return err.code === "EACCES"; });
   });
@@ -481,7 +482,7 @@ describe("#isSubComponent", ()=>{
     const error = new Error();
     error.code = "ENOENT";
     readJsonGreedyStub.withArgs("/componentDir/cmp.wheel.json").throws(error);
-    const result = await _internal.isSubComponent("/componentDir");
+    const result = await isSubComponent("/componentDir");
     expect(result).to.be.false;
   });
 
@@ -493,7 +494,7 @@ describe("#isSubComponent", ()=>{
     const error = new Error();
     error.code = "EACCES";
     readJsonGreedyStub.withArgs("/componentDir/cmp.wheel.json").throws(error);
-    await expect(_internal.isSubComponent("/componentDir"))
+    await expect(isSubComponent("/componentDir"))
       .to.be.rejectedWith(Error)
       .and.eventually.satisfy((err)=>{ return err.code === "EACCES"; });
   });

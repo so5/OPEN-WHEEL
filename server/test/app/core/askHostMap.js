@@ -6,19 +6,22 @@
 
 "use strict";
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("chai-fs"));
-chai.use(require("chai-as-promised"));
-const sinon = require("sinon");
+import chai, { expect } from "chai";
+import chaiFs from "chai-fs";
+import chaiAsPromised from "chai-as-promised";
+import sinon from "sinon";
+
+//testee
+import { isValidHostMap, askHostMap, _internal } from "../../../app/core/askHostMap.js";
+
+chai.use(chaiFs);
+chai.use(chaiAsPromised);
 
 const dummyRemoteHost = {
   getAll() {
     return [{ name: "a" }, { name: "b" }, { name: "c" }];
   }
 };
-//testee
-const { isValidHostMap, askHostMap, _internal } = require("../../../app/core/askHostMap.js");
 
 describe("hostMapper UT", function () {
   beforeEach(()=>{

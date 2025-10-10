@@ -4,15 +4,11 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { jobScheduler } = require("../db/db");
-const onGetJobSchedulerList = (cb)=>{
+import { jobScheduler } from "../db/db.js";
+
+export const onGetJobSchedulerList = (cb)=>{
   cb(jobScheduler);
 };
-const onGetJobSchedulerLabelList = (cb)=>{
+export const onGetJobSchedulerLabelList = (cb)=>{
   cb(Object.keys(jobScheduler));
-};
-
-module.exports = {
-  onGetJobSchedulerList,
-  onGetJobSchedulerLabelList
 };

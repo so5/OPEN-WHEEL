@@ -4,29 +4,34 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
+import path from "path";
+import fs from "fs-extra";
 
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("sinon-chai"));
-chai.use(require("chai-fs"));
-chai.use(require("chai-json-schema"));
+import chai, { expect } from "chai";
+import sinonChai from "sinon-chai";
+import chaiFs from "chai-fs";
+import chaiJsonSchema from "chai-json-schema";
 
 //testee
-const { runProject } = require("../../../app/core/projectController");
+import { runProject } from "../../../app/core/projectController.js";
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";
 const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 
 //helper functions
-const { projectJsonFilename, componentJsonFilename } = require("../../../app/db/db");
-const { createNewProject, updateComponent, createNewComponent, addInputFile, addFileLink, renameOutputFile } = require("../../../app/core/projectFilesOperator");
+import { projectJsonFilename, componentJsonFilename } from "../../../app/db/db.js";
+import { createNewProject, updateComponent, createNewComponent, addInputFile, addFileLink, renameOutputFile } from "../../../app/core/projectFilesOperator.js";
 
-const { scriptName, pwdCmd, scriptHeader } = require("../../testScript");
+import testScript from "../../testScript.js";
+
+const { scriptName, pwdCmd, scriptHeader } = testScript;
 const scriptPwd = `${scriptHeader}\n${pwdCmd}`;
+
+chai.use(sinonChai);
+chai.use(chaiFs);
+chai.use(chaiJsonSchema);
 
 describe("UT for source component", function () {
   this.timeout(0);

@@ -4,9 +4,9 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { expect } = require("chai");
-const { describe, it } = require("mocha");
-const { getBulkFirstCapture } = require("../../../../app/core/jobManager.js");
+import { expect } from "chai";
+import { describe, it } from "mocha";
+import { getBulkFirstCapture } from "../../../../app/core/jobManager.js";
 
 describe("#getBulkFirstCapture", ()=>{
   it("should return [1, []] if no lines match the pattern", ()=>{

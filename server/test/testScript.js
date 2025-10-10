@@ -27,4 +27,4 @@ const posixHelper = {
   }
 };
 
-module.exports = process.platform === "win32" ? winHelper : posixHelper;
+export default process.platform === "win32" ? winHelper : posixHelper;

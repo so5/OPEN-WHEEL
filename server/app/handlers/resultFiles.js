@@ -4,14 +4,14 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs");
-const { filesJsonFilename } = require("../db/db");
-const { readJsonGreedy } = require("../core/fileUtils");
-const { watchers } = require("../core/global.js");
-const { emitAll } = require("./commUtils.js");
+import path from "path";
+import fs from "fs";
+import { filesJsonFilename } from "../db/db.js";
+import { readJsonGreedy } from "../core/fileUtils.js";
+import { watchers } from "../core/global.js";
+import { emitAll } from "./commUtils.js";
 
-const onGetResultFiles = async (clientID, projectRootDir, dir, cb)=>{
+export const onGetResultFiles = async (clientID, projectRootDir, dir, cb)=>{
   try {
     const filename = path.resolve(dir, filesJsonFilename);
     const fileJson = await readJsonGreedy(filename);
@@ -28,8 +28,4 @@ const onGetResultFiles = async (clientID, projectRootDir, dir, cb)=>{
     return cb(e);
   }
   return cb(true);
-};
-
-module.exports = {
-  onGetResultFiles
 };

@@ -6,9 +6,9 @@
 "use strict";
 
 //setup test framework
-const { expect } = require("chai");
-const sinon = require("sinon");
-const { isLocalComponent, getComponentDefaultName, removeDuplicatedComponent, isInitialComponent, isBehindIfComponent, hasChild, componentFactory, _internal } = require("../../../app/core/workflowComponent.js");
+import { expect } from "chai";
+import sinon from "sinon";
+import { isLocalComponent, getComponentDefaultName, removeDuplicatedComponent, isInitialComponent, isBehindIfComponent, hasChild, componentFactory, _internal } from "../../../app/core/workflowComponent.js";
 
 describe("UT for workflowComponents class", ()=>{
   describe("#isLocalComponent", ()=>{

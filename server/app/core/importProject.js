@@ -3,23 +3,20 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const { promisify } = require("util");
-const path = require("path");
-const fs = require("fs-extra");
-const glob = require("glob");
-const { extract } = require("tar");
-const { createTempd } = require("./tempd.js");
-const { readJsonGreedy } = require("./fileUtils.js");
-const { projectList, projectJsonFilename, componentJsonFilename, suffix } = require("../db/db.js");
-const { gitSetup, gitClone, gitCommit, gitConfig, gitRemoveOrigin } = require("./gitOperator2.js");
-const { setComponentStateR, updateProjectROStatus, getHosts } = require("./projectFilesOperator.js");
-const { askHostMap } = require("./askHostMap.js");
-const { askRewindState } = require("./askRewindState.js");
-const { rewriteHosts } = require("./rewriteHosts.js");
+import path from "path";
+import fs from "fs-extra";
+import { glob } from "glob";
+import { extract } from "tar";
+import { createTempd } from "./tempd.js";
+import { readJsonGreedy } from "./fileUtils.js";
+import { projectList, projectJsonFilename, componentJsonFilename, suffix } from "../db/db.js";
+import { gitSetup, gitClone, gitCommit, gitConfig, gitRemoveOrigin } from "./gitOperator2.js";
+import { setComponentStateR, updateProjectROStatus, getHosts } from "./projectFilesOperator.js";
+import { askHostMap } from "./askHostMap.js";
+import { askRewindState } from "./askRewindState.js";
+import { rewriteHosts } from "./rewriteHosts.js";
 
 const _internal = {
-  promisify,
   path,
   fs,
   glob,
@@ -92,7 +89,7 @@ const _internal = {
     if (state !== "not-started") {
       result.push({ path: "project", state, ID: "projectState" });
     }
-    const componentJsonFiles = await _internal.promisify(_internal.glob)(_internal.path.join(dir, "**", _internal.componentJsonFilename));
+    const componentJsonFiles = await _internal.glob(_internal.path.join(dir, "**", _internal.componentJsonFilename));
     const componentsToBeFixed = await Promise.all(componentJsonFiles
       .map(async (componentJsonFile)=>{
         const { state, ID } = await _internal.readJsonGreedy(componentJsonFile);
@@ -176,7 +173,7 @@ const _internal = {
  * @param {string} parentDir - path to be extracted archive file
  * @returns {Promise} - resolved when project archive is imported
  */
-async function importProjectFromGitRepository(clientID, URL, parentDir) {
+export async function importProjectFromGitRepository(clientID, URL, parentDir) {
   const { name: projectName, dir: src } = await _internal.gitCloneAndReadArchiveMetadata(URL);
   const projectRootDir = _internal.path.resolve(parentDir, projectName + _internal.suffix);
   try {
@@ -190,11 +187,10 @@ async function importProjectFromGitRepository(clientID, URL, parentDir) {
   return projectRootDir;
 }
 
-module.exports = {
-  importProject: _internal.importProject,
-  importProjectFromGitRepository
-};
+export const importProject = _internal.importProject;
 
+let internal;
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
+  internal = _internal;
 }
+export { internal as _internal };

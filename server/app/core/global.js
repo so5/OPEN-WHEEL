@@ -4,19 +4,20 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const debug = require("debug")("wheel");
-const baseURL = process.env.WHEEL_BASE_URL || "/";
-const parentDirs = new Map(); //workflow path which is displayed on graphview
-const eventEmitters = new Map(); //event emitter object which is used to communicate while running project
-const watchers = new Map(); //result file watcher
-const checkWritePermissions = new Map(); //remotehosts to be checked whthere user has write permission or not
+import Debug from "debug";
+const debug = Debug("wheel");
+export const baseURL = process.env.WHEEL_BASE_URL || "/";
+export const parentDirs = new Map(); //workflow path which is displayed on graphview
+export const eventEmitters = new Map(); //event emitter object which is used to communicate while running project
+export const watchers = new Map(); //result file watcher
+export const checkWritePermissions = new Map(); //remotehosts to be checked whthere user has write permission or not
 let sio = null; //Singleton SocketIO instance
 
 /**
  * store SocketIO instance
  * @param {object} io - SocketIO instance
  */
-function setSio(io) {
+export function setSio(io) {
   if (sio !== null) {
     debug("SocketIO instance duplicated!!");
   }
@@ -27,16 +28,6 @@ function setSio(io) {
  * get SocketIO instance
  * @returns {object} - stored SocketIO instance or null if not yet stored
  */
-function getSio() {
+export function getSio() {
   return sio;
 }
-
-module.exports = {
-  parentDirs,
-  eventEmitters,
-  watchers,
-  checkWritePermissions,
-  setSio,
-  getSio,
-  baseURL
-};

@@ -3,10 +3,11 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const util = require("node:util");
-const fs = require("fs-extra");
-const exec = util.promisify(require("node:child_process").exec);
+import { promisify } from "node:util";
+import fs from "fs-extra";
+import { exec as execCallback } from "node:child_process";
+
+const exec = promisify(execCallback);
 
 /**
  * copy directory by rsync and overwrite existing files
@@ -15,7 +16,7 @@ const exec = util.promisify(require("node:child_process").exec);
  * @param {string[]} ignoreFiles - glob pattern which should not be coppied
  * @returns {Promise} - resolved when copy is done
  */
-async function overwriteByRsync(src, dst, ignoreFiles = []) {
+export async function overwriteByRsync(src, dst, ignoreFiles = []) {
   const exclude = ignoreFiles.reduce((a, c)=>{
     if (typeof c !== "string") {
       return a;
@@ -26,6 +27,3 @@ async function overwriteByRsync(src, dst, ignoreFiles = []) {
 
   return exec(`rsync -av ${exclude} ${src}${stats.isDirectory() ? "/" : ""} ${dst}`);
 }
-module.exports = {
-  overwriteByRsync
-};
