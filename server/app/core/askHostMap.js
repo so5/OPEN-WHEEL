@@ -29,7 +29,7 @@ _internal.isValidHostMap = (hostMap, hosts)=>{
   const oldRemotehostLabels = hosts.map((host)=>{
     return host.hostname;
   });
-  return Object.entries(hostMap).every(([oldHost, newHost])=>{
+  return Object.entries(hostMap).some(([oldHost, newHost])=>{
     if (typeof newHost !== "string") {
       _internal.getLogger().error("newHost must be string", newHost);
       return false;
