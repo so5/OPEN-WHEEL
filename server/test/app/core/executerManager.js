@@ -14,7 +14,7 @@ import fs from "fs-extra";
 import { EventEmitter } from "events";
 
 
-import executerManager, { removeExecuters, register, _internal } from "../../../app/core/executerManager.js";
+import { removeExecuters, register, cancel, _internal } from "../../../app/core/executerManager.js";
 
 const { executers } = _internal;
 const testDirRoot = "WHEEL_TEST_TMP";
