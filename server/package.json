@@ -45,7 +45,7 @@
     "express-session": "^1.18.1",
     "file-type": "^16.5.4",
     "fs-extra": "=11.1.0",
-    "glob": "^8.1.0",
+    "glob": "^11.0.3",
     "is-path-inside": "=3.0.3",
     "is-svg": "^4.4.0",
     "just-diff": "^6.0.2",
