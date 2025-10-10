@@ -8,7 +8,7 @@ import path from "path";
 import fs from "fs-extra";
 import { describe, it, before, after } from "mocha";
 import { expect } from "chai";
-import getContents from "../../../../app/core/fileBrowser.js";
+import getContents from "../../../app/core/fileBrowser.js";
 const testDirRoot = "WHEEL_TEST_TMP";
 describe("file Browser UT", ()=>{
   before(async ()=>{

@@ -5,7 +5,7 @@
  */
 import path from "path";
 import fs from "fs-extra";
-import glob from "glob";
+import { glob } from "glob";
 import { extract } from "tar";
 import { createTempd } from "./tempd.js";
 import { readJsonGreedy } from "./fileUtils.js";

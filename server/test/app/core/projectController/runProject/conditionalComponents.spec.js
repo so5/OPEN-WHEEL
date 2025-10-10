@@ -30,8 +30,8 @@ const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 import { projectJsonFilename, componentJsonFilename } from "../../../../../app/db/db.js";
 import { updateComponent, createNewComponent, addInputFile, addOutputFile, addLink, addFileLink, createNewProject } from "../../../../../app/core/projectFilesOperator.js";
 
-import { scriptName, pwdCmd, scriptHeader } from "../../../../testScript.js";
-const scriptPwd = `${scriptHeader}\n${pwdCmd}`;
+import testScript from "../../../../testScript.js";
+const { scriptName, pwdCmd, scriptHeader } = testScript;
 
 describe("#runProject with conditional components", function () {
   this.timeout(0);
