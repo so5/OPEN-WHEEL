@@ -1,24 +1,25 @@
 #!/bin/bash
 TEST_DIR=$(cd $(dirname $0);pwd)
 pushd ${TEST_DIR}
+export WHEEL_CONFIG_DIR=$(mktemp -d tmp.XXXXXXXXXX)
 
-TAG=wheel_release_test #set this image name in compose.yml
 TAG_TEST_SERVER=wheel_release_test_server
 
-#
-# crate config files
-#
-WHEEL_CONFIG_DIR=$(mktemp -d tmp.XXXXXXXXXX)
-export WHEEL_CONFIG_DIR
+REMOTE_HOSTNAME=${TAG_TEST_SERVER}
+REMOTE_PORT=22
+KNOWN_HOSTS=wheel_release_test_server
+NUM_JOB=1
 
+docker stop ${TAG_TEST_SERVER} 2>/dev/null
+echo "prepareing remotehost"
 {
 echo '[{'
 echo '  "name": "testServer",'
-echo '  "host": "'${TAG_TEST_SERVER}'",'
+echo '  "host": "'${REMOTE_HOSTNAME}'",'
 echo '  "path": "/home/testuser",'
 echo '  "username": "testuser",'
-echo '  "numJob": 1,'
-echo '  "port": 22,'
+echo '  "numJob": "'${NUM_JOB}'",'
+echo '  "port": '${REMOTE_PORT}','
 echo '  "id": "dummy-id",'
 echo '  "jobScheduler": "PBSPro",'
 echo '  "renewInterval": 0,'
@@ -29,19 +30,21 @@ echo '  "readyTimeout": 5000'
 echo '}]'
 } > ${WHEEL_CONFIG_DIR}/remotehost.json
 
-
 echo boot up test server
 docker compose up ${TAG_TEST_SERVER} -d --wait --remove-orphans
 docker exec ${TAG_TEST_SERVER} /opt/pbs/bin/qmgr -c "set server job_history_enable=True"
 
-echo remove entry from known_hosts
-ssh-keygen -R 'wheel_release_test_server'
+echo remove entry from known_hosts to avoid error if the entry already exists
+ssh-keygen -R ${KNOWN_HOSTS} 2>/dev/null
 
+echo "start UT"
 if [ x$1 == x-d ];then
   export WHEEL_KEEP_FILES_AFTER_LAST_TEST=1
 fi
+TAG=wheel_release_test #set this image name in compose.yml
 docker compose run -e WHEEL_KEEP_FILES_AFTER_LAST_TEST --build ${TAG}
 rt=$?
+echo "UT finished"
 
 CONTAINER_NAME=$(docker ps -a --filter "ancestor=${TAG}" --format "{{.Names}}")
 
@@ -61,6 +64,6 @@ docker compose down
 rm -fr ${WHEEL_CONFIG_DIR}
 
 echo clean up known_hosts
-ssh-keygen -R '['${REMOTE_HOSTNAME}']:'${REMOTE_PORT} 2>/dev/null
+ssh-keygen -R ${KNOWN_HOSTS} 2>/dev/null
 
 exit ${rt}
