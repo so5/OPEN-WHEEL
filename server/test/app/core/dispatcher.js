@@ -24,7 +24,8 @@ import { eventEmitters } from "../../../app/core/global.js";
 //helper functions
 import { projectJsonFilename, componentJsonFilename } from "../../../app/db/db.js";
 import { createNewProject, updateComponent, createNewComponent, addInputFile, addOutputFile, addLink, addFileLink, renameOutputFile } from "../../../app/core/projectFilesOperator.js";
-import { scriptName, pwdCmd, scriptHeader } from "../../testScript.js";
+import testScript from "../../testScript.js";
+const { scriptName, pwdCmd, scriptHeader } = testScript;
 import { remoteHost } from "../../../app/db/db.js";
 import { addSsh } from "../../../app/core/sshManager.js";
 
