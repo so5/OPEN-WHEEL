@@ -4,17 +4,19 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
+import path from "path";
+import fs from "fs-extra";
 
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-const sinon = require("sinon");
-chai.use(require("sinon-chai"));
-chai.use(require("chai-fs"));
+import chai, { expect } from "chai";
+import sinon from "sinon";
+import sinonChai from "sinon-chai";
+import chaiFs from "chai-fs";
+chai.use(sinonChai);
+chai.use(chaiFs);
+
 //testee
-const {
+import {
   onGetFileList,
   onGetSNDContents,
   onRemoveFile,
@@ -22,14 +24,13 @@ const {
   onDownload,
   onCreateNewFile,
   onCreateNewDir
-} = require("../../../app/handlers/fileManager.js");
+} from "../../../app/handlers/fileManager.js";
 
 //stubs
 const cb = sinon.stub();
 
 //helper function
-const gitOperator2 = require("../../../app/core/gitOperator2");
-const { gitInit } = gitOperator2;
+import { gitInit } from "../../../app/core/gitOperator2.js";
 
 const testDirRoot = path.resolve("./WHEEL_TEST_TMP");
 

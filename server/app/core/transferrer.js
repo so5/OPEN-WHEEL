@@ -3,13 +3,12 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const path = require("path");
-const { addX: actualAddX, replaceCRLF: actualReplaceCRLF } = require("./fileUtils.js");
-const { setTaskState: actualSetTaskState, needDownload: actualNeedDownload, makeDownloadRecipe: actualMakeDownloadRecipe } = require("./execUtils");
-const { getSshHostinfo: actualGetSshHostinfo, getSsh: actualGetSsh } = require("./sshManager.js");
-const { getLogger: actualGetLogger } = require("../logSettings.js");
-const { register: actualRegister } = require("./transferManager.js");
+import path from "path";
+import { addX as actualAddX, replaceCRLF as actualReplaceCRLF } from "./fileUtils.js";
+import { setTaskState as actualSetTaskState, needDownload as actualNeedDownload, makeDownloadRecipe as actualMakeDownloadRecipe } from "./execUtils.js";
+import { getSshHostinfo as actualGetSshHostinfo, getSsh as actualGetSsh } from "./sshManager.js";
+import { getLogger as actualGetLogger } from "../logSettings.js";
+import { register as actualRegister } from "./transferManager.js";
 
 const _internal = {
   addX: actualAddX,
@@ -28,7 +27,7 @@ const _internal = {
  * @param {object} task - component to be executed on remotehost
  * @returns {Promise} - resolved after preparation done
  */
-async function stageIn(task) {
+export async function stageIn(task) {
   await _internal.setTaskState(task, "stage-in");
   const hostinfo = _internal.getSshHostinfo(task.projectRootDir, task.remotehostID);
 
@@ -48,7 +47,7 @@ async function stageIn(task) {
  * @param {object} task - component which have been executed on remotehost
  * @returns {Promise} - resolved after file transfer done
  */
-async function stageOut(task) {
+export async function stageOut(task) {
   const taskState = task.state;
   if (taskState !== "finished") {
     return;
@@ -121,11 +120,8 @@ async function stageOut(task) {
   await _internal.setTaskState(task, taskState);
 }
 
-module.exports = {
-  stageIn,
-  stageOut
-};
-
+let internal;
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
+  internal = _internal;
 }
+export { internal as _internal };

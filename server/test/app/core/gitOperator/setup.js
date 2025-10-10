@@ -4,15 +4,19 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const sinon = require("sinon");
-const fs = require("fs-extra");
-const path = require("path");
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("chai-fs"));
-chai.use(require("chai-as-promised"));
-chai.use(require("sinon-chai"));
-const { gitInit, _internal } = require("../../../../app/core/gitOperator2.js");
+import sinon from "sinon";
+import fs from "fs-extra";
+import path from "path";
+import chai, { expect } from "chai";
+import chaiFs from "chai-fs";
+import chaiAsPromised from "chai-as-promised";
+import sinonChai from "sinon-chai";
+import { gitInit, _internal } from "../../../../app/core/gitOperator2.js";
+
+chai.use(chaiFs);
+chai.use(chaiAsPromised);
+chai.use(sinonChai);
+
 describe("gitOperator2-setup", ()=>{
   describe("#gitPromise", ()=>{
     let spawnStub;

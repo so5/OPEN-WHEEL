@@ -1,10 +1,10 @@
-const { defineConfig } = require("cypress");
-const SSH = require("simple-ssh");
-const { removeDirectory } = require("cypress-delete-downloads-folder");
-const fs = require("fs-extra");
-const tar = require("tar");
+import { defineConfig } from "cypress";
+import SSH from "simple-ssh";
+import { removeDirectory } from "cypress-delete-downloads-folder";
+import fs from "fs-extra";
+import tar from "tar";
 
-module.exports = defineConfig({
+export default defineConfig({
   waitForAnimations: true,
   trashAssetsBeforeRuns: false,
   requestTimeout: 3000,

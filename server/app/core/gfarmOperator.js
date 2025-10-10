@@ -3,11 +3,10 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const path = require("path");
-const { getLogger } = require("../logSettings");
-const { getSsh, getSshHostinfo } = require("./sshManager.js");
-const { getJWTServerPassphrase } = require("../core/jwtServerPassphraseManager.js");
+import path from "path";
+import { getLogger } from "../logSettings.js";
+import { getSsh, getSshHostinfo } from "./sshManager.js";
+import { getJWTServerPassphrase } from "../core/jwtServerPassphraseManager.js";
 
 const _internal = {
   path,
@@ -49,7 +48,7 @@ function formatGfarmURL(target) {
   return `gfarm://${_internal.path.resolve(target)}`;
 }
 
-async function checkJWTAgent(projectRootDir, hostID) {
+export async function checkJWTAgent(projectRootDir, hostID) {
   const ssh = await _internal.getSsh(projectRootDir, hostID);
   let result = false;
   await ssh.exec("jwt-agent --status", 60, (data)=>{
@@ -63,7 +62,7 @@ async function checkJWTAgent(projectRootDir, hostID) {
   return result;
 }
 
-async function startJWTAgent(projectRootDir, hostID, passphrase) {
+export async function startJWTAgent(projectRootDir, hostID, passphrase) {
   if (await checkJWTAgent(projectRootDir, hostID)) {
     return false;
   }
@@ -75,7 +74,7 @@ async function startJWTAgent(projectRootDir, hostID, passphrase) {
   ], null, 60);
 }
 
-async function stopJWTAgent(projectRootDir, hostID, timeout = 60) {
+export async function stopJWTAgent(projectRootDir, hostID, timeout = 60) {
   if (!await checkJWTAgent(projectRootDir, hostID)) {
     return false;
   }
@@ -92,7 +91,7 @@ async function stopJWTAgent(projectRootDir, hostID, timeout = 60) {
  * @param {number} timeout - timeout in secconds must be positive number
  * @returns {string} - output from gfcp command
  */
-async function gfcp(projectRootDir, hostID, src, dst, toGfarm, timeout = 600) {
+export async function gfcp(projectRootDir, hostID, src, dst, toGfarm, timeout = 600) {
   await startJWTAgent(projectRootDir, hostID);
   let srcPath = src;
   let dstPath = dst;
@@ -114,7 +113,7 @@ async function gfcp(projectRootDir, hostID, src, dst, toGfarm, timeout = 600) {
  * @param {number} timeout - timeout in secconds must be positive number
  * @returns {string} - output from gfpcopy command
  */
-async function gfpcopy(projectRootDir, hostID, src, dst, toGfarm, timeout = 60) {
+export async function gfpcopy(projectRootDir, hostID, src, dst, toGfarm, timeout = 60) {
   await startJWTAgent(projectRootDir, hostID);
   const srcPath = toGfarm ? src : formatGfarmURL(src); ;
   const dstPath = toGfarm ? formatGfarmURL(dst) : dst;
@@ -130,7 +129,7 @@ async function gfpcopy(projectRootDir, hostID, src, dst, toGfarm, timeout = 60) 
  * @param {number} timeout - timeout in secconds must be positive number
  * @returns {string} - output from gfptar command
  */
-async function gfptarCreate(projectRootDir, hostID, src, target, timeout = 60) {
+export async function gfptarCreate(projectRootDir, hostID, src, target, timeout = 60) {
   await startJWTAgent(projectRootDir, hostID, timeout);
   const archivePath = formatGfarmURL(target);
   return execOnCSGW(projectRootDir, hostID, timeout, `cd ${src} && shopt -s dotglob nullglob && gfptar -v -c ${archivePath} *`);
@@ -145,7 +144,7 @@ async function gfptarCreate(projectRootDir, hostID, src, target, timeout = 60) {
  * @param {number} timeout - timeout in secconds must be positive number
  * @returns {string} - output from gfptar command
  */
-async function gfptarExtract(projectRootDir, hostID, target, dst, timeout = 60) {
+export async function gfptarExtract(projectRootDir, hostID, target, dst, timeout = 60) {
   await startJWTAgent(projectRootDir, hostID);
   const archivePath = formatGfarmURL(target);
   return execOnCSGW(projectRootDir, hostID, timeout, "gfptar -v -x", dst, archivePath);
@@ -159,7 +158,7 @@ async function gfptarExtract(projectRootDir, hostID, target, dst, timeout = 60) 
  * @param {number} timeout - timeout in secconds must be positive number
  * @returns {string} - files in gfarm-tar archive
  */
-async function gfptarList(projectRootDir, hostID, target, timeout = 60) {
+export async function gfptarList(projectRootDir, hostID, target, timeout = 60) {
   await startJWTAgent(projectRootDir, hostID);
   const archivePath = formatGfarmURL(target);
   const result = await execOnCSGW(projectRootDir, hostID, timeout, "gfptar -t", archivePath);
@@ -180,7 +179,7 @@ async function gfptarList(projectRootDir, hostID, target, timeout = 60) {
  * @param {number} timeout - timeout in secconds must be positive number
  * @returns {string[]} - output from gfls command
  */
-async function gfls(projectRootDir, hostID, target, opt = "-l", timeout = 60) {
+export async function gfls(projectRootDir, hostID, target, opt = "-l", timeout = 60) {
   await startJWTAgent(projectRootDir, hostID);
   const pathOnGfarm = formatGfarmURL(target);
   try {
@@ -200,7 +199,7 @@ async function gfls(projectRootDir, hostID, target, opt = "-l", timeout = 60) {
  * @param {number} timeout - timeout in secconds must be positive number
  * @returns {string} - output from gfrm command
  */
-async function gfrm(projectRootDir, hostID, target, timeout = 60) {
+export async function gfrm(projectRootDir, hostID, target, timeout = 60) {
   await startJWTAgent(projectRootDir, hostID);
   const pathOnGfarm = formatGfarmURL(target);
   try {
@@ -220,7 +219,7 @@ async function gfrm(projectRootDir, hostID, target, timeout = 60) {
  * @param {number} timeout - timeout in secconds must be positive number
  * @returns {string} - output from gfmkdir command
  */
-async function gfmkdir(projectRootDir, hostID, target, timeout = 60) {
+export async function gfmkdir(projectRootDir, hostID, target, timeout = 60) {
   await startJWTAgent(projectRootDir, hostID);
   const pathOnGfarm = formatGfarmURL(target);
   return execOnCSGW(projectRootDir, hostID, timeout, "gfmkdir -p", pathOnGfarm);
@@ -235,33 +234,19 @@ async function gfmkdir(projectRootDir, hostID, target, timeout = 60) {
  * @param {number} timeout - timeout in secconds must be positive number
  * @returns {string} - output from gfmkdir command
  */
-async function gfmv(projectRootDir, hostID, target, newName, timeout = 60) {
+export async function gfmv(projectRootDir, hostID, target, newName, timeout = 60) {
   await startJWTAgent(projectRootDir, hostID);
   const src = formatGfarmURL(target);
   const dst = formatGfarmURL(newName);
   return execOnCSGW(projectRootDir, hostID, timeout, "gfmv -f", src, dst);
 }
 
-_internal.execOnCSGW = execOnCSGW;
-_internal.formatGfarmURL = formatGfarmURL;
-_internal.checkJWTAgent = checkJWTAgent;
-_internal.startJWTAgent = startJWTAgent;
-
-module.exports = {
-  checkJWTAgent,
-  startJWTAgent,
-  stopJWTAgent,
-  gfcp,
-  gfpcopy,
-  gfptarCreate,
-  gfptarExtract,
-  gfptarList,
-  gfls,
-  gfrm,
-  gfmkdir,
-  gfmv
-};
-
+let internal;
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
+  _internal.execOnCSGW = execOnCSGW;
+  _internal.formatGfarmURL = formatGfarmURL;
+  _internal.checkJWTAgent = checkJWTAgent;
+  _internal.startJWTAgent = startJWTAgent;
+  internal = _internal;
 }
+export { internal as _internal };

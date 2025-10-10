@@ -3,9 +3,8 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See Licensethe project root for the license information.
  */
-"use strict";
-const { version } = require("../db/version.json");
-const { getLogger } = require("../logSettings");
+import { version } from "../db/version.json" with { type: "json" };
+import { getLogger } from "../logSettings.js";
 
 /**
  * print version and environment variables
@@ -31,6 +30,6 @@ function aboutWheel(projectRootDir) {
   logger.info(`WHEEL_ENABLE_WEB_API = ${process.env.WHEEL_ENABLE_WEB_API}`);
 }
 
-module.exports = {
+export {
   aboutWheel
 };

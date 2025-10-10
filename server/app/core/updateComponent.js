@@ -3,19 +3,18 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const fs = require("fs-extra");
-const path = require("path");
-const { diff } = require("just-diff");
-const { diffApply } = require("just-diff-apply");
-const Ajv = require("ajv");
+import fs from "fs-extra";
+import path from "path";
+import { diff } from "just-diff";
+import { diffApply } from "just-diff-apply";
+import Ajv from "ajv";
 
-const { gitRm } = require("./gitOperator2");
-const { isValidName, isValidInputFilename, isValidOutputFilename } = require("../lib/utility");
-const { updateComponentPath } = require("./projectFilesOperator.js");
-const { getComponentDir, readComponentJson, writeComponentJson, writeComponentJsonByID } = require("./componentJsonIO.js");
-const getSchema = require("../db/jsonSchemas.js");
-const { getLogger } = require("../logSettings.js");
+import { gitRm } from "./gitOperator2.js";
+import { isValidName, isValidInputFilename, isValidOutputFilename } from "../lib/utility.js";
+import { updateComponentPath } from "./projectFilesOperator.js";
+import { getComponentDir, readComponentJson, writeComponentJson, writeComponentJsonByID } from "./componentJsonIO.js";
+import getSchema from "../db/jsonSchemas.js";
+import { getLogger } from "../logSettings.js";
 
 const _internal = {
   fs,
@@ -132,9 +131,9 @@ async function removeInputFileCounterpart(projectRootDir, componentJson, index) 
   const promises = [];
   for (const counterPart of componentJson.inputFiles[index].src) {
     if (counterPart.srcNode === "parent" || counterPart.srcNode === componentJson.parent) {
-      promises.push(_internal.removeInputFileLinkFromParent(projectRootDir, counterPart.srcName, componentJson.ID, name));
+      promises.push(removeInputFileLinkFromParent(projectRootDir, counterPart.srcName, componentJson.ID, name));
     } else {
-      promises.push(_internal.removeInputFileLinkFromSiblings(projectRootDir, counterPart.srcNode, counterPart.srcName, componentJson.ID, name));
+      promises.push(removeInputFileLinkFromSiblings(projectRootDir, counterPart.srcNode, counterPart.srcName, componentJson.ID, name));
     }
   }
   return Promise.all(promises);
@@ -151,9 +150,9 @@ async function removeOutputFileCounterpart(projectRootDir, componentJson, index)
   const name = componentJson.outputFiles[index].name;
   for (const counterPart of componentJson.outputFiles[index].dst) {
     if (counterPart.dstNode === "parent" || counterPart.dstNode === componentJson.parent) {
-      promises.push(_internal.removeOutputFileLinkToParent(projectRootDir, componentJson.ID, name, counterPart.dstName));
+      promises.push(removeOutputFileLinkToParent(projectRootDir, componentJson.ID, name, counterPart.dstName));
     } else {
-      promises.push(_internal.removeOutputFileLinkToSiblings(projectRootDir, componentJson.ID, name, counterPart.dstNode, counterPart.dstName));
+      promises.push(removeOutputFileLinkToSiblings(projectRootDir, componentJson.ID, name, counterPart.dstNode, counterPart.dstName));
     }
   }
   return Promise.all(promises);
@@ -271,7 +270,7 @@ async function renameComponentDir(projectRootDir, ID, newName) {
  * @param {object} updated - new component JSON data
  * @returns {boolean} - component is renamed or not
  */
-async function updateComponent(projectRootDir, ID, updated) {
+export async function updateComponent(projectRootDir, ID, updated) {
   const logger = _internal.getLogger(projectRootDir);
 
   const ajv = new _internal.Ajv({
@@ -390,7 +389,7 @@ async function updateComponent(projectRootDir, ID, updated) {
  * @param {string} ID - component ID
  * @param {object} pos - new position of component
  */
-async function updateComponentPos(projectRootDir, ID, pos) {
+export async function updateComponentPos(projectRootDir, ID, pos) {
   const logger = _internal.getLogger(projectRootDir);
   const ajv = new _internal.Ajv({
     allErrors: true,
@@ -429,8 +428,8 @@ _internal.renameOutputFileCounterpart = renameOutputFileCounterpart;
 _internal.renameComponentDir = renameComponentDir;
 _internal.updateComponentPos = updateComponentPos;
 
-module.exports = {
-  updateComponent,
-  updateComponentPos,
-  _internal
-};
+let internal;
+if (process.env.NODE_ENV === "test") {
+  internal = _internal;
+}
+export { internal as _internal };

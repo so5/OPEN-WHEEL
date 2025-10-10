@@ -4,19 +4,19 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
+import path from "path";
+import fs from "fs-extra";
 
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-const sinon = require("sinon");
-chai.use(require("sinon-chai"));
-chai.use(require("chai-fs"));
-chai.use(require("chai-json-schema"));
+import chai, { expect } from "chai";
+import sinon from "sinon";
+import sinonChai from "sinon-chai";
+import chaiFs from "chai-fs";
+import chaiJsonSchema from "chai-json-schema";
+
 
 //testee
-const { exec } = require("../../../app/core/executer.js");
+import { exec } from "../../../app/core/executer.js";
 
 //test data
 const testDirRoot = "WHEEL_TEST_TMP";
@@ -24,15 +24,20 @@ const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 const remoteHome = "/home/testuser";
 
 //helper functions
-const { componentJsonFilename, statusFilename, jobManagerJsonFilename } = require("../../../app/db/db");
-const { createNewProject, updateComponent, createNewComponent } = require("../../../app/core/projectFilesOperator");
-const { replacePathsep } = require("../../../app/core/pathUtils");
+import { componentJsonFilename, statusFilename, jobManagerJsonFilename, remoteHost } from "../../../app/db/db.js";
+import { createNewProject, updateComponent, createNewComponent } from "../../../app/core/projectFilesOperator.js";
+import { replacePathsep } from "../../../app/core/pathUtils.js";
 
-const { scriptName, pwdCmd, scriptHeader, exit } = require("../../testScript");
+import testScript from "../../testScript.js";
+import { createSsh } from "../../../app/core/sshManager.js";
+
+const { scriptName, pwdCmd, scriptHeader, exit } = testScript;
 const scriptPwd = `${scriptHeader}\n${pwdCmd}`;
 
-const { remoteHost } = require("../../../app/db/db");
-const { createSsh } = require("../../../app/core/sshManager");
+chai.use(sinonChai);
+chai.use(chaiFs);
+chai.use(chaiJsonSchema);
+
 
 describe("UT for executer class", function () {
   this.timeout(0);

@@ -138,6 +138,7 @@ export default [
   {
     files: ["client/**/*.js", "client/**/*.vue"],
     languageOptions: {
+      sourceType: "module",
       globals: {
         ...globals.browser
       }
@@ -146,29 +147,24 @@ export default [
   {
     files: ["client/src/**/*.vue"],
     languageOptions: {
-      parser: vueParser
+      parser: vueParser,
+      sourceType: "module",
     },
     plugins: {
       vue
     }
   },
   {
-    files: ["server/app/**/*.js", "server/bin/*.js", "common/*.cjs"],
+    files: ["server/app/**/*.js", "server/bin/*.js", "common/*.js"],
     plugins: {
       node
     },
     languageOptions: {
+      sourceType: "module",
       globals: {
         ...globals.nodeBuiltin,
         ...globals.node
-      },
-      sourceType: "commonjs"
-    },
-    rules: {
-      "node/exports-style": [
-        "error",
-        "module.exports"
-      ]
+      }
     }
   },
   {
@@ -178,7 +174,6 @@ export default [
       chaiFriendly
     },
     languageOptions: {
-      sourceType: "commonjs",
       globals: {
         ...globals.nodeBuiltin,
         ...globals.node,
@@ -192,7 +187,6 @@ export default [
       chaiFriendly
     },
     languageOptions: {
-      sourceType: "module",
       globals: {
         ...globals.nodeBuiltin,
         ...globals.node,
@@ -209,7 +203,6 @@ export default [
       chaiFriendly
     },
     languageOptions: {
-      sourceType: "commonjs",
       globals: {
         ...globals.nodeBuiltin,
         ...globals.node,

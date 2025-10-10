@@ -3,61 +3,51 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
+import { getSsh, getSshHostinfo } from "./sshManager.js";
+import { emitAll } from "../handlers/commUtils.js";
 
-const jwtdb = new Map();
-
-/**
- * set JWT-agent passphrase
- * @param {string} projectRootDir - project's root path
- * @param {string} URL - JWT server's URL
- * @param {string} user - username on JWT server
- * @param {string} JWTServerPassphrase - passphrase for JWT server
- */
-function setJWTServerPassphrase(projectRootDir, URL, user, JWTServerPassphrase) {
-  const id = `${URL}_${user}`;
-  if (!jwtdb.has(projectRootDir)) {
-    jwtdb.set(projectRootDir, new Map());
-  }
-  jwtdb.get(projectRootDir).set(id, JWTServerPassphrase);
-}
-
-/**
- * get JWTServer passphrase
- * @param {string} projectRootDir - project's root path
- * @param {string} URL - JWT server's URL
- * @param {string} user - username on JWT server
- * @returns {string } - passphrase
- */
-function getJWTServerPassphrase(projectRootDir, URL, user) {
-  const id = `${URL}_${user}`;
-  if (!jwtdb.has(projectRootDir) || !jwtdb.get(projectRootDir).has(id)) {
-    const err = new Error("hostinfo is not registerd for the project");
-    err.projectRootDir = projectRootDir;
-    err.id = id;
-    throw err;
-  }
-
-  return jwtdb.get(projectRootDir).get(id);
-}
-
-/**
- * remove all entry linked project
- * @param {string} projectRootDir - project's root path
- */
-function removeAllJWTServerPassphrase(projectRootDir) {
-  const target = jwtdb.get(projectRootDir);
-  if (typeof target === "undefined") {
-    //if jwt-agent is already running on csgw before project started
-    //jwtdb does not have password map for this project
-    //so, just return in such case
-    return;
-  }
-  target.clear();
-}
-
-module.exports = {
-  setJWTServerPassphrase,
-  getJWTServerPassphrase,
-  removeAllJWTServerPassphrase
+const _internal = {
+  getSsh,
+  getSshHostinfo,
+  emitAll,
+  passphrase: new Map()
 };
+
+_internal.askPassphrase = (clientID, JWTServerURL)=>{
+  return new Promise((resolve, reject)=>{
+    _internal.emitAll(clientID, "askPassword", JWTServerURL, "passphrase", JWTServerURL, (data)=>{
+      if (data === null) {
+        reject(new Error("user canceled passphrase prompt"));
+      }
+      resolve(data);
+    });
+  });
+};
+
+export async function getJWTServerPassphrase(projectRootDir, hostID, clientID) {
+  const hostinfo = _internal.getSshHostinfo(projectRootDir, hostID);
+  const { JWTServerURL } = hostinfo;
+  if (!JWTServerURL) {
+    throw new Error("JWT server is not available for this host");
+  }
+
+  if (_internal.passphrase.has(JWTServerURL)) {
+    return _internal.passphrase.get(JWTServerURL);
+  }
+  const passphrase = await _internal.askPassphrase(clientID, JWTServerURL);
+  _internal.passphrase.set(JWTServerURL, passphrase);
+  return passphrase;
+}
+export function clearPassphrase(url) {
+  if (url) {
+    _internal.passphrase.delete(url);
+  } else {
+    _internal.passphrase.clear();
+  }
+}
+
+let internal;
+if (process.env.NODE_ENV === "test") {
+  internal = _internal;
+}
+export { internal as _internal };

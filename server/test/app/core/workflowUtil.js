@@ -164,8 +164,7 @@ describe("#getChildren", ()=>{
   });
 
   it("should return an empty array if no child components are found", async ()=>{
-    getComponentDirStub.resolves("/mock/project/component");
-    globStub.callsArgWith(1, null, []);
+    globStub.resolves([]);
 
     const result = await getChildren("/mock/project", "validID", false);
 
@@ -177,7 +176,7 @@ describe("#getChildren", ()=>{
     const child1Path = "/mock/project/component/child1/cmp.wheel.json";
     const child2Path = "/mock/project/component/child2/cmp.wheel.json";
     getComponentDirStub.resolves("/mock/project/component");
-    globStub.callsArgWith(1, null, [child1Path, child2Path]);
+    globStub.resolves([child1Path, child2Path]);
 
     const child1Json = { ID: "child1", subComponent: false };
     const child2Json = { ID: "child2", subComponent: true };
@@ -192,7 +191,7 @@ describe("#getChildren", ()=>{
 
   it("should handle the case where parentID is a directory path", async ()=>{
     const childPath = "/mock/project/parent/child/cmp.wheel.json";
-    globStub.callsArgWith(1, null, [childPath]);
+    globStub.resolves([childPath]);
     const childJson = { ID: "child", subComponent: false };
     readJsonGreedyStub.resolves(childJson);
 
@@ -214,7 +213,7 @@ describe("#getChildren", ()=>{
 
   it("should return an empty array if no children are found by glob", async ()=>{
     _internal.getComponentDir.resolves("/path/to/component");
-    globStub.callsArgWith(1, null, []);
+    globStub.resolves([]);
 
     const result = await getChildren("/projRoot", "someParent");
     expect(result).to.be.an("array").that.is.empty;
@@ -225,7 +224,7 @@ describe("#getChildren", ()=>{
 
   it("should filter out subComponent objects and return the rest", async ()=>{
     _internal.getComponentDir.resolves("/my/component");
-    globStub.callsArgWith(1, null, [
+    globStub.resolves([
       "/my/component/child1/component.json",
       "/my/component/child2/component.json",
       "/my/component/child3/component.json"

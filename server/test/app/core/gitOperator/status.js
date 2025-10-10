@@ -4,12 +4,15 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const sinon = require("sinon");
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("chai-fs"));
-chai.use(require("chai-as-promised"));
-const { gitStatus, gitClean, getUnsavedFiles, _internal } = require("../../../../app/core/gitOperator2.js");
+import sinon from "sinon";
+import chai, { expect } from "chai";
+import chaiFs from "chai-fs";
+import chaiAsPromised from "chai-as-promised";
+import { gitStatus, gitClean, getUnsavedFiles, _internal } from "../../../../app/core/gitOperator2.js";
+
+chai.use(chaiFs);
+chai.use(chaiAsPromised);
+
 describe("gitOperator2-status", ()=>{
   describe("#gitStatus", ()=>{
     const rootDir = "/repo";

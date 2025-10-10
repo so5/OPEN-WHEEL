@@ -6,21 +6,28 @@
 
 "use strict";
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("chai-fs"));
-chai.use(require("chai-as-promised"));
-const sinon = require("sinon");
-chai.use(require("sinon-chai"));
+import chai, { expect } from "chai";
+import chaiFs from "chai-fs";
+import chaiAsPromised from "chai-as-promised";
+import sinon from "sinon";
+import sinonChai from "sinon-chai";
 
-const path = require("node:path");
-const util = require("node:util");
-const exec = util.promisify(require("node:child_process").exec);
-const fs = require("fs-extra");
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
+import { exec as execCB } from "node:child_process";
+const exec = promisify(execCB);
+import fs from "fs-extra";
 
 //testee
-const { importProject, _internal } = require("../../../app/core/importProject.js");
+import { importProject, _internal } from "../../../app/core/importProject.js";
 
+chai.use(chaiFs);
+chai.use(chaiAsPromised);
+chai.use(sinonChai);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const dummyProjectList = [];
 
 //test data

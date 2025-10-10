@@ -6,14 +6,15 @@
 "use strict";
 
 //setup test framework
-const sinon = require("sinon");
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("chai-fs"));
-const { jobScheduler } = require("../../../app/db/db");
+import sinon from "sinon";
+import chai, { expect } from "chai";
+import chaiFs from "chai-fs";
+import { jobScheduler } from "../../../app/db/db.js";
 
 //testee
-const { cancelDispatchedTasks, killTask, killLocalProcess, cancelRemoteJob, _internal } = require("../../../app/core/taskUtil.js");
+import { cancelDispatchedTasks, killTask, _internal } from "../../../app/core/taskUtil.js";
+
+chai.use(chaiFs);
 
 describe("UT for taskUtil class", function () {
   describe("#cancelDispatchedTasks", ()=>{
@@ -125,17 +126,17 @@ describe("UT for taskUtil class", function () {
       sinon.restore();
     });
     it("should call kill() on the task handler if it is not already killed", async ()=>{
-      await killLocalProcess(task);
+      await _internal.killLocalProcess(task);
       sinon.assert.calledOnce(task.handler.kill);
     });
     it("should not call kill() if the task handler is already killed", async ()=>{
       task.handler.killed = true;
-      await killLocalProcess(task);
+      await _internal.killLocalProcess(task);
       sinon.assert.notCalled(task.handler.kill);
     });
     it("should not throw an error if handler is undefined", async ()=>{
       task.handler = undefined;
-      await expect(killLocalProcess(task)).to.not.be.rejected;
+      await expect(_internal.killLocalProcess(task)).to.not.be.rejected;
     });
   });
   describe("#cancelRemoteJob", ()=>{
@@ -165,7 +166,7 @@ describe("UT for taskUtil class", function () {
       sinon.restore();
     });
     it("should execute the cancel command on SSH when jobID is present", async ()=>{
-      await cancelRemoteJob(task);
+      await _internal.cancelRemoteJob(task);
       sinon.assert.calledOnce(sshStub.exec);
       sinon.assert.calledWith(sshStub.exec, "scancel 12345", 60, sinon.match.func);
       sinon.assert.calledTwice(loggerStub.debug);
@@ -174,14 +175,14 @@ describe("UT for taskUtil class", function () {
     });
     it("should log a debug message and return if jobID is missing", async ()=>{
       task.jobID = null;
-      await cancelRemoteJob(task);
+      await _internal.cancelRemoteJob(task);
       sinon.assert.calledOnce(loggerStub.debug);
       sinon.assert.calledWith(loggerStub.debug, "try to cancel testTask but it have not been submitted.");
       sinon.assert.notCalled(sshStub.exec);
     });
     it("should handle SSH execution errors gracefully", async ()=>{
       sshStub.exec.rejects(new Error("SSH execution failed"));
-      await expect(cancelRemoteJob(task)).to.be.rejectedWith("SSH execution failed");
+      await expect(_internal.cancelRemoteJob(task)).to.be.rejectedWith("SSH execution failed");
       sinon.assert.calledOnce(loggerStub.debug);
       sinon.assert.calledWith(loggerStub.debug, "cancel job: scancel 12345");
     });

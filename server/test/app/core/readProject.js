@@ -4,22 +4,24 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const fs = require("fs-extra");
-const path = require("path");
-const { promisify } = require("util");
-const { execFile } = require("child_process");
+import fs from "fs-extra";
+import path from "path";
+import { promisify } from "util";
+import { execFile } from "child_process";
 const asyncExecFile = promisify(execFile);
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("chai-fs"));
-chai.use(require("chai-as-promised"));
-const sinon = require("sinon");
+import chai, { expect } from "chai";
+import chaiFs from "chai-fs";
+import chaiAsPromised from "chai-as-promised";
+import sinon from "sinon";
 
 //helper
-const { updateComponent, createNewComponent, createNewProject, readProject, _internal } = require("../../../app/core/projectFilesOperator.js");
-const { gitAdd, gitRm, gitStatus, gitCommit } = require("../../../app/core/gitOperator2.js");
-const { componentJsonFilename, projectJsonFilename } = require("../../../app/db/db.js");
+import { updateComponent, createNewComponent, createNewProject, readProject, _internal } from "../../../app/core/projectFilesOperator.js";
+import { gitAdd, gitRm, gitStatus, gitCommit } from "../../../app/core/gitOperator2.js";
+import { componentJsonFilename, projectJsonFilename } from "../../../app/db/db.js";
+
+chai.use(chaiFs);
+chai.use(chaiAsPromised);
 
 //test data
 const testDirRoot = path.resolve("./", "WHEEL_TEST_TMP");

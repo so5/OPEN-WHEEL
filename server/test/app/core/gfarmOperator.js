@@ -4,19 +4,22 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const SshClientWrapper = require("ssh-client-wrapper");
-const path = require("path");
+import SshClientWrapper from "ssh-client-wrapper";
+import path from "path";
 
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-const sinon = require("sinon");
-chai.use(require("sinon-chai"));
-chai.use(require("chai-fs"));
-chai.use(require("chai-json-schema"));
-chai.use(require("chai-as-promised"));
+import chai, { expect } from "chai";
+import sinon from "sinon";
+import sinonChai from "sinon-chai";
+import chaiFs from "chai-fs";
+import chaiJsonSchema from "chai-json-schema";
+import chaiAsPromised from "chai-as-promised";
+chai.use(sinonChai);
+chai.use(chaiFs);
+chai.use(chaiJsonSchema);
+chai.use(chaiAsPromised);
 
-const { checkJWTAgent, startJWTAgent, stopJWTAgent, gfcp, gfpcopy, gfptarCreate, gfptarExtract, gfptarList, gfls, gfrm, gfmkdir, _internal } = require("../../../app/core/gfarmOperator.js");
+import { checkJWTAgent, startJWTAgent, stopJWTAgent, gfcp, gfpcopy, gfptarCreate, gfptarExtract, gfptarList, gfls, gfrm, gfmkdir, _internal } from "../../../app/core/gfarmOperator.js";
 
 function checkEnv() {
   return ["WHEEL_GFARMTEST_HOST",

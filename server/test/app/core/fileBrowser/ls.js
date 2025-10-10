@@ -4,12 +4,14 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const chai = require("chai");
-const { expect } = require("chai");
-chai.use(require("chai-fs"));
-const sinon = require("sinon");
-const { ls, _internal } = require("../../../../app/core/fileBrowser");
+import { describe, it, beforeEach, afterEach } from "mocha";
+import chai, { expect } from "chai";
+import chaiFs from "chai-fs";
+import sinon from "sinon";
+import { ls, _internal } from "../../../../app/core/fileBrowser.js";
+
+chai.use(chaiFs);
+
 describe("#ls", ()=>{
   let readdirStub;
   let lstatStub;

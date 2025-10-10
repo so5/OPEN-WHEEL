@@ -5,15 +5,12 @@
  */
 "use strict";
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-chai.use(require("chai-as-promised"));
-const sinon = require("sinon");
-const fs = require("fs-extra");
-const componentJsonIO = require("../../../app/core/componentJsonIO.js");
+import chai, { expect } from "chai";
+import chaiAsPromised from "chai-as-promised";
+import sinon from "sinon";
 
 //testee
-const loopUtils = require("../../../app/core/loopUtils.js");
+import * as loopUtils from "../../../app/core/loopUtils.js";
 
 const {
   forTripCount,
@@ -31,6 +28,8 @@ const {
   foreachKeepLoopInstance,
   foreachSearchLatestFinishedIndex
 } = loopUtils;
+
+chai.use(chaiAsPromised);
 
 describe("#getInstanceDirectoryName", ()=>{
   it("should build name using name & index", ()=>{

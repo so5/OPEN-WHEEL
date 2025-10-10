@@ -4,25 +4,25 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const fs = require("fs-extra");
-const path = require("path");
+import fs from "fs-extra";
+import path from "path";
 
 //setup test framework
-const chai = require("chai");
-const expect = chai.expect;
-const sinon = require("sinon");
-chai.use(require("sinon-chai"));
+import chai, { expect } from "chai";
+import sinon from "sinon";
+import sinonChai from "sinon-chai";
 
-const projectFilesOperator = require("../../../app/core/projectFilesOperator.js");
+import * as projectFilesOperator from "../../../app/core/projectFilesOperator.js";
 const { createNewProject } = projectFilesOperator;
 const originalFs = projectFilesOperator._internal.fs;
-const senders = require("../../../app/handlers/senders.js");
+import * as senders from "../../../app/handlers/senders.js";
 
 //testee
-const projectController = require("../../../app/handlers/projectController.js");
-const { onProjectOperation } = projectController;
-const { _internal } = projectController;
+import * as projectController from "../../../app/handlers/projectController.js";
+const { onProjectOperation, _internal } = projectController;
 const queues = _internal.projectOperationQueues;
+
+chai.use(sinonChai);
 
 const ack = sinon.stub();
 async function sleep(time) {

@@ -5,10 +5,10 @@
  */
 "use strict";
 
-const { expect } = require("chai");
-const { describe, it } = require("mocha");
-const sinon = require("sinon");
-const transferManager = require("../../../app/core/transferManager");
+import { expect } from "chai";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import sinon from "sinon";
+import * as transferManager from "../../../app/core/transferManager.js";
 
 const { getKey, register, removeTransferrers, _internal } = transferManager;
 

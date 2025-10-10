@@ -3,13 +3,12 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const fs = require("fs-extra");
-const path = require("path");
-const { getLogger } = require("../logSettings.js");
-const { rsyncExcludeOptionOfWheelSystemFiles } = require("../db/db");
-const { getSsh, getSshHostinfo } = require("./sshManager.js");
-const { gfpcopy, gfptarExtract } = require("./gfarmOperator.js");
+import fs from "fs-extra";
+import path from "path";
+import { getLogger } from "../logSettings.js";
+import { rsyncExcludeOptionOfWheelSystemFiles } from "../db/db.js";
+import { getSsh, getSshHostinfo } from "./sshManager.js";
+import { gfpcopy, gfptarExtract } from "./gfarmOperator.js";
 
 const _internal = {
   fs,
@@ -28,7 +27,7 @@ const _internal = {
  * @param {string} dst - absolute path of dst path
  * @param {boolean} forceCopy - use copy instead of symlink
  */
-async function deliverFile(src, dst, forceCopy = false) {
+export async function deliverFile(src, dst, forceCopy = false) {
   const stats = await _internal.fs.lstat(src);
   const type = stats.isDirectory() ? "dir" : "file";
   try {
@@ -54,7 +53,7 @@ async function deliverFile(src, dst, forceCopy = false) {
  * @param {object} recipe - deliver recipe which has src, dstination and more information
  * @returns {object} - result object
  */
-async function deliverFilesOnRemote(recipe) {
+export async function deliverFilesOnRemote(recipe) {
   const logger = _internal.getLogger(recipe.projectRootDir);
   if (!recipe.onSameRemote) {
     logger.warn("deliverFilesOnRemote must be called with onSameRemote flag");
@@ -83,7 +82,7 @@ async function deliverFilesOnRemote(recipe) {
  * @param {object} recipe - deliver recipe which has src, dstination and more information
  * @returns {object} - result object
  */
-async function deliverFilesFromRemote(recipe) {
+export async function deliverFilesFromRemote(recipe) {
   const logger = _internal.getLogger(recipe.projectRootDir);
   if (!recipe.remoteToLocal) {
     logger.warn("deliverFilesFromRemote must be called with remoteToLocal flag");
@@ -100,7 +99,7 @@ async function deliverFilesFromRemote(recipe) {
  * @param {object} recipe - deliver recipe which has src, dstination and more information
  * @returns {object} - result object
  */
-async function deliverFilesFromHPCISS(recipe) {
+export async function deliverFilesFromHPCISS(recipe) {
   const withTar = recipe.fromHPCISStar;
   const ssh = _internal.getSsh(recipe.projectRootDir, recipe.srcRemotehostID);
   const hostinfo = _internal.getSshHostinfo(recipe.projectRootDir, recipe.srcRemotehostID);
@@ -131,16 +130,10 @@ async function deliverFilesFromHPCISS(recipe) {
   return result;
 }
 
-_internal.deliverFilesOnRemote = deliverFilesOnRemote;
-_internal.deliverFilesFromRemote = deliverFilesFromRemote;
-
-module.exports = {
-  deliverFile,
-  deliverFilesOnRemote,
-  deliverFilesFromRemote,
-  deliverFilesFromHPCISS
-};
-
+let internal;
 if (process.env.NODE_ENV === "test") {
-  module.exports._internal = _internal;
+  _internal.deliverFilesOnRemote = deliverFilesOnRemote;
+  _internal.deliverFilesFromRemote = deliverFilesFromRemote;
+  internal = _internal;
 }
+export { internal as _internal };
