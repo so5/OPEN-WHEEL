@@ -30,7 +30,8 @@ const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
 import { projectJsonFilename, componentJsonFilename } from "../../../../../app/db/db.js";
 import { updateComponent, createNewComponent, createNewProject } from "../../../../../app/core/projectFilesOperator.js";
 
-import { scriptName, pwdCmd, scriptHeader } from "../../../../testScript.js";
+import testScript from "../../../../testScript.js";
+const { scriptName, pwdCmd, scriptHeader } = testScript;
 const scriptPwd = `${scriptHeader}\n${pwdCmd}`;
 
 describe("#runProject with nested components", function () {

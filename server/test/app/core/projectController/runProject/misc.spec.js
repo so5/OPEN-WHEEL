@@ -32,7 +32,8 @@ import { projectJsonFilename, componentJsonFilename } from "../../../../../app/d
 import { renameOutputFile, updateComponent, createNewComponent, addInputFile, addFileLink, createNewProject } from "../../../../../app/core/projectFilesOperator.js";
 import { gitAdd, gitCommit } from "../../../../../app/core/gitOperator2.js";
 
-import { scriptName, pwdCmd, scriptHeader } from "../../../../testScript.js";
+import testScript from "../../../../testScript.js";
+const { scriptName, pwdCmd, scriptHeader } = testScript;
 const scriptPwd = `${scriptHeader}\n${pwdCmd}`;
 
 describe("#runProject with miscellaneous features", function () {

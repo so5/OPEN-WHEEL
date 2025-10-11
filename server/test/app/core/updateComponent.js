@@ -12,7 +12,7 @@ import chaiJsonSchema from "chai-json-schema";
 import deepEqualInAnyOrder from "deep-equal-in-any-order";
 import chaiAsPromised from "chai-as-promised";
 
-import { _internal } from "../../../../app/core/updateComponent.js";
+import { _internal } from "../../../app/core/updateComponent.js";
 
 chai.use(sinonChai);
 chai.use(chaiFs);

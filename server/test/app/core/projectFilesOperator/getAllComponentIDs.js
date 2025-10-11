@@ -3,12 +3,11 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-const { expect } = require("chai");
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const sinon = require("sinon");
-const path = require("path");
-const projectFilesOperator = require("../../../../app/core/projectFilesOperator.js");
+import { expect } from "chai";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import sinon from "sinon";
+import path from "path";
+import * as projectFilesOperator from "../../../../app/core/projectFilesOperator.js";
 
 describe("#getAllComponentIDs", ()=>{
   let readJsonGreedyStub;

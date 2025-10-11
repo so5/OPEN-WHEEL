@@ -135,7 +135,7 @@ export function removeSsh(projectRootDir) {
  * @param {string | null} JWTServerURL - URL of JWT server if requesting JWT-server passphrase this arg must be specified
  * @returns {Promise} - resolve when get password from browser, rejected if user cancel password input
  */
-_internal.askPassword = (clientID, hostname, mode, JWTServerURL = null)=>{
+const askPassword = (clientID, hostname, mode, JWTServerURL = null)=>{
   return new Promise((resolve, reject)=>{
     _internal.emitAll(clientID, "askPassword", hostname, mode, JWTServerURL, (data)=>{
       if (data === null) {
@@ -172,7 +172,7 @@ export async function createSsh(projectRootDir, remoteHostName, hostinfo, client
         }
       }
       //pw will be used after canConnect
-      pw = await _internal.askPassword(clientID, remoteHostName, "password", null);
+      pw = await askPassword(clientID, remoteHostName, "password", null);
       return pw;
     };
   } else {
@@ -187,7 +187,7 @@ export async function createSsh(projectRootDir, remoteHostName, hostinfo, client
         return ph;
       }
     }
-    ph = await _internal.askPassword(clientID, remoteHostName, "passphrase ", null);
+    ph = await askPassword(clientID, remoteHostName, "passphrase ", null);
     return ph;
   };
   if (hostinfo.renewInterval) {
@@ -235,4 +235,4 @@ let internal;
 if (process.env.NODE_ENV === "test") {
   internal = _internal;
 }
-export { internal as _internal };
+export { internal as _internal, askPassword };

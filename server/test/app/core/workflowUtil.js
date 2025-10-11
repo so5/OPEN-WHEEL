@@ -3,12 +3,10 @@
  * Copyright (c) Research Institute for Information Technology(RIIT), Kyushu University. All rights reserved.
  * See License in the project root for the license information.
  */
-"use strict";
-
-const { expect } = require("chai");
-const { describe, it, beforeEach, afterEach } = require("mocha");
-const sinon = require("sinon");
-const { getThreeGenerationFamily, getChildren, _internal } = require("../../../app/core/workflowUtil.js");
+import { expect } from "chai";
+import { describe, it, beforeEach, afterEach } from "mocha";
+import sinon from "sinon";
+import { getThreeGenerationFamily, getChildren, _internal } from "../../../app/core/workflowUtil.js";
 
 describe("#getThreeGenerationFamily", ()=>{
   beforeEach(()=>{
@@ -135,6 +133,7 @@ describe("#getThreeGenerationFamily", ()=>{
   });
 });
 
+import path from "path";
 describe("#getChildren", ()=>{
   let getComponentDirStub;
   let readJsonGreedyStub;
@@ -142,7 +141,7 @@ describe("#getChildren", ()=>{
   const componentJsonFilename = "component.json";
 
   beforeEach(()=>{
-    sinon.stub(_internal, "path").value(require("path"));
+    sinon.stub(_internal, "path").value(path);
     sinon.stub(_internal, "componentJsonFilename").value(componentJsonFilename);
     getComponentDirStub = sinon.stub(_internal, "getComponentDir");
     readJsonGreedyStub = sinon.stub(_internal, "readJsonGreedy");
@@ -218,7 +217,7 @@ describe("#getChildren", ()=>{
     const result = await getChildren("/projRoot", "someParent");
     expect(result).to.be.an("array").that.is.empty;
 
-    const expectedGlobPath = require("path").join("/path/to/component", "*", componentJsonFilename);
+    const expectedGlobPath = path.join("/path/to/component", "*", componentJsonFilename);
     expect(globStub.calledOnceWith(expectedGlobPath)).to.be.true;
   });
 
@@ -239,7 +238,7 @@ describe("#getChildren", ()=>{
     expect(result).to.deep.include({ ID: "child1", subComponent: false });
     expect(result).to.deep.include({ ID: "child3" });
 
-    const expectedGlobPath = require("path").join("/my/component", "*", componentJsonFilename);
+    const expectedGlobPath = path.join("/my/component", "*", componentJsonFilename);
     expect(globStub.calledOnceWith(expectedGlobPath)).to.be.true;
 
     expect(_internal.readJsonGreedy.callCount).to.equal(3);

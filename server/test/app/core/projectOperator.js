@@ -18,7 +18,7 @@ const originalFs = projectFilesOperator._internal.fs;
 import * as senders from "../../../app/handlers/senders.js";
 
 //testee
-import * as projectController from "../../../app/handlers/projectController.js";
+import projectController from "../../../app/handlers/projectController.js";
 const { onProjectOperation, _internal } = projectController;
 const queues = _internal.projectOperationQueues;
 
