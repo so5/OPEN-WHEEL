@@ -4,13 +4,13 @@
  * See License in the project root for the license information.
  */
 "use strict";
-const path = require("path");
-const fs = require("fs-extra");
-const crypto = require("crypto");
-const docopt = require("@eyalsh/docopt").default;
+import path from "path";
+import fs from "fs-extra";
+import crypto from "crypto";
+import { default as docopt } from "@eyalsh/docopt";
 
-const { userDBFilename, userDBDir } = require("../app/db/db.js");
-const { initialize, addUser, delUser, listUser } = require("../app/core/auth.js");
+import { userDBFilename, userDBDir } from "../app/db/db.js";
+import { initialize, addUser, delUser, listUser } from "../app/core/auth.js";
 
 const toolVersion = "1.0";
 
