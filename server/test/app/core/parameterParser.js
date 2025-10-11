@@ -149,7 +149,7 @@ describe("UT for parameterParser", ()=>{
       ];
       const result = await getParamSpacev2(paramSpace, testDir);
       expect(result).to.deep.equal([
-        { target: "fileParam", files: ["*.txt"], type: "file", list: ["file1.txt", "file2.txt"] }
+        { target: "fileParam", files: ["*.txt"], type: "file", list: ["file2.txt", "file1.txt"] }
       ]);
     });
     it("should filter out invalid parameters", async function () {
