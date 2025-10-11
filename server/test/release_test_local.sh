@@ -5,10 +5,7 @@ export WHEEL_CONFIG_DIR=$(mktemp -d tmp.XXXXXXXXXX)
 
 TAG_TEST_SERVER=wheel_release_test_server
 
-REMOTE_HOSTNAME=127.0.0.1
-REMOTE_PORT=4000
-KNOWN_HOSTS='['${REMOTE_HOSTNAME}']:'${REMOTE_PORT}
-NUM_JOB=5
+source test_setting_local.txt
 
 docker stop ${TAG_TEST_SERVER} 2>/dev/null
 echo "prepareing remotehost"
