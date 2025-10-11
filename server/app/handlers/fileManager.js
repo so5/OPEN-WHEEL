@@ -6,8 +6,8 @@
 "use strict";
 import path from "path";
 import fs from "fs-extra";
-import glob from "glob";
-import minimatch from "minimatch";
+import * as glob from "glob";
+import * as minimatch from "minimatch";
 import klaw from "klaw";
 import isPathInside from "is-path-inside";
 import { zip } from "zip-a-folder";

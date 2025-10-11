@@ -33,4 +33,4 @@ docker compose up ${TAG_TEST_SERVER} -d --wait --remove-orphans
 docker exec ${TAG_TEST_SERVER} /opt/pbs/bin/qmgr -c "set server job_history_enable=True"
 
 echo remove entry from known_hosts to avoid error if the entry already exists
-ssh-keygen -R ${KNOWN_HOSTS} 2>/dev/null
+ssh-keygen -R ${KNOWN_HOSTS} 2>/dev/null || true
