@@ -37,7 +37,6 @@ export async function getChildren(projectRootDir, parentID, isParentDir) {
   });
 }
 
-
 /**
  * return component,  its children, and grandsons
  * @param {string} projectRootDir - project's root path

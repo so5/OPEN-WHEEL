@@ -28,8 +28,6 @@ import { writeJsonWrapper } from "../lib/utility.js";
 import { checkJWTAgent, startJWTAgent } from "../core/gfarmOperator.js";
 import allowedOperations from "../../../common/allowedOperations.js";
 
-
-
 const _internal = {
   projectOperationQueues: new Map(),
   updateProjectState: async (projectRootDir, state)=>{

@@ -14,7 +14,6 @@ import sinonChai from "sinon-chai";
 import chaiFs from "chai-fs";
 import chaiJsonSchema from "chai-json-schema";
 
-
 //testee
 import { exec } from "../../../app/core/executer.js";
 
@@ -37,7 +36,6 @@ const scriptPwd = `${scriptHeader}\n${pwdCmd}`;
 chai.use(sinonChai);
 chai.use(chaiFs);
 chai.use(chaiJsonSchema);
-
 
 describe("UT for executer class", function () {
   this.timeout(0);

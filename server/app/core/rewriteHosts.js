@@ -9,8 +9,6 @@ import { readJsonGreedy } from "./fileUtils.js";
 import { componentJsonFilename } from "../db/db.js";
 import { writeComponentJson } from "./componentJsonIO.js";
 
-
-
 /**
  * rewrite all component's host property
  * @param {string} projectRootDir - project's root path

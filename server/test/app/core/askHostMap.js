@@ -23,7 +23,6 @@ const dummyRemoteHost = {
   }
 };
 
-
 describe("hostMapper UT", function () {
   beforeEach(()=>{
     sinon.stub(_internal, "emitAll");

@@ -39,13 +39,11 @@ import remotehost from "./routes/remotehost.js";
 import login from "./routes/login.js";
 import viewer from "./routes/viewer.js";
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const { IpFilter } = ipfilter;
 const SQLiteStore = connectSqlite3(session);
 const { ensureLoggedIn } = connectEnsureLogin;
-
 
 const secret = "wheel";
 const sessionDBFilename = "session.db";
@@ -56,7 +54,7 @@ const logger = getLogger();
 process.on("unhandledRejection", logger.debug.bind(logger));
 process.on("uncaughtException", logger.debug.bind(logger));
 
-// check for essential commands
+//check for essential commands
 (async ()=>{
   if (!await checkAllCommands()) {
     process.exit(1);

@@ -14,7 +14,6 @@ import sinonChai from "sinon-chai";
 import chaiFs from "chai-fs";
 import chaiJsonSchema from "chai-json-schema";
 
-
 //testee
 import { runProject } from "../../../app/core/projectController.js";
 

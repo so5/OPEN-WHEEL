@@ -13,7 +13,6 @@ import sinon from "sinon";
 import fs from "fs-extra";
 import { EventEmitter } from "events";
 
-
 import { removeExecuters, register, cancel, _internal } from "../../../app/core/executerManager.js";
 
 const { executers } = _internal;
@@ -22,7 +21,6 @@ let loggerMock;
 
 chai.use(sinonChai);
 chai.use(chaiAsPromised);
-
 
 describe("UT for executerManager class", function () {
   afterEach(function () {

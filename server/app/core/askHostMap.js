@@ -14,7 +14,6 @@ const _internal = {
   getLogger
 };
 
-
 /**
  * determine hostMap is valid
  * @param {object} hostMap - old and new remotehost label map

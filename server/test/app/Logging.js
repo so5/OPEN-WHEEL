@@ -31,7 +31,6 @@ chai.use((_chai, _)=>{
 });
 const projectRootDir = path.resolve("hoge");
 
-
 describe("Unit test for log4js's helper functions", ()=>{
   let logger;
   const settings = logSettings;

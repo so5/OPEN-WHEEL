@@ -49,8 +49,6 @@ import { makeCmd } from "./psUtils.js";
 import { overwriteByRsync } from "./rsync.js";
 import { gfcp, gfrm, gfpcopy, gfptarCreate } from "./gfarmOperator.js";
 
-
-
 const _internal = {
   fs,
   path,

@@ -20,8 +20,6 @@ import { getLogger as actualGetLogger } from "../logSettings.js";
 import { getSsh } from "./sshManager.js";
 import { getChildren as getChildrenFromUtil } from "./workflowUtil.js";
 
-
-
 function isSurrounded(token) {
   return token.startsWith("{") && token.endsWith("}");
 }

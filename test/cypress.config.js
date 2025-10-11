@@ -15,21 +15,21 @@ export default defineConfig({
   component: {
     devServer: {
       framework: "vue",
-      bundler: "vite",
-    },
+      bundler: "vite"
+    }
   },
 
   e2e: {
     env: {
       browserPermissions: {
-        clipboard: "allow",
+        clipboard: "allow"
       },
       WHEEL_TEST_REMOTEHOST: "testServer",
       WHEEL_TEST_REMOTE_PASSWORD: "passw0rd",
       WHEEL_TEST_HOSTNAME: "localhost",
       WHEEL_TEST_PORT: 8000,
       WHEEL_TEST_USER: "testuser",
-      WHEEL_PATH: "/root",
+      WHEEL_PATH: "/root"
     },
     numTestsKeptInMemory: 1,
     experimentalMemoryManagement: true,
@@ -43,7 +43,7 @@ export default defineConfig({
           return null;
         },
         sshExecuteCmd({ sshconn, command }) {
-          return new Promise((resolve) => {
+          return new Promise((resolve)=>{
             let ssh = new SSH(sshconn);
 
             ssh.exec(command, {
@@ -54,9 +54,9 @@ export default defineConfig({
               err: function (stderr) {
                 console.log("stderr: " + stderr);
                 resolve(stderr);
-              },
-            }).on("ready", () => { console.log("READY"); })
-              .on("error", (err) => {
+              }
+            }).on("ready", ()=>{ console.log("READY"); })
+              .on("error", (err)=>{
                 console.log("ERROR");
                 console.log(err);
               })
@@ -69,8 +69,8 @@ export default defineConfig({
         },
         async fileExists(filePath) {
           return fs.pathExists(filePath);
-        },
+        }
       });
-    },
-  },
+    }
+  }
 });

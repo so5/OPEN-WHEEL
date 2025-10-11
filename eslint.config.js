@@ -148,7 +148,7 @@ export default [
     files: ["client/src/**/*.vue"],
     languageOptions: {
       parser: vueParser,
-      sourceType: "module",
+      sourceType: "module"
     },
     plugins: {
       vue

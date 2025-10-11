@@ -6,7 +6,7 @@ const appConfigDir = path.resolve(process.cwd(), "app/config");
 
 process.env.NODE_ENV = "test";
 
-// for logSettings.js
+//for logSettings.js
 fs.mkdirSync(serverConfigDir, { recursive: true });
 fs.writeJsonSync(path.resolve(serverConfigDir, "log.json"), {
   appenders: {
@@ -22,7 +22,7 @@ fs.writeJsonSync(path.resolve(serverConfigDir, "log.json"), {
   }
 });
 
-// for db.js
+//for db.js
 fs.mkdirSync(appConfigDir, { recursive: true });
 fs.writeJsonSync(path.resolve(appConfigDir, "remotehost.json"), []);
 fs.writeJsonSync(path.resolve(appConfigDir, "server.json"), {});

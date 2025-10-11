@@ -94,7 +94,6 @@ _internal.readComponentJson = async function (componentDir) {
 };
 export const readComponentJson = _internal.readComponentJson;
 
-
 /**
  * write componentJson by ID
  * @param {string} projectRootDir - project's root path
