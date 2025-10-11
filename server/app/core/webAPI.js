@@ -7,12 +7,12 @@ import axios from "axios";
 import querystring from "querystring";
 import crypto from "crypto";
 import { credentialFilename } from "../db/db.js";
+import { JSONFilePreset } from "lowdb/node";
 
 const authDB = new Map();
 
 let credentials;
 (async ()=>{
-  const { JSONFilePreset } = await import("lowdb/node");
   credentials = await JSONFilePreset(credentialFilename, {});
 })();
 

@@ -21,6 +21,17 @@ chai.use(chaiJsonSchema);
 chai.use(deepEqualInAnyOrder);
 chai.use(chaiAsPromised);
 import { createNewProject } from "../../../../app/core/projectFilesOperator.js";
+import {
+  ok,
+  notConnected,
+  previousNext,
+  inputOutput,
+  both,
+  withTail,
+  branched,
+  double,
+  noComponents
+} from "../../../testFiles/cycleTestData.js";
 
 //testee
 import rewire from "rewire";
@@ -266,7 +277,9 @@ describe("graph validation UT", function () {
       ];
       const result = getNextComponents(components, components[0]);
       expect(result).to.be.an("array").with.lengthOf(3);
-      const sortedResult = result.sort((a, b)=>{ return a.ID.localeCompare(b.ID); });
+      const sortedResult = result.sort((a, b)=>{
+        return a.ID.localeCompare(b.ID);
+      });
       expect(sortedResult[0]).to.deep.include({ ID: "comp2" });
       expect(sortedResult[1]).to.deep.include({ ID: "comp3" });
       expect(sortedResult[2]).to.deep.include({ ID: "comp4" });
@@ -362,18 +375,6 @@ describe("graph validation UT", function () {
   });
 
   describe("test cycle graph checker", ()=>{
-    const testFileDir = path.resolve(__dirname, "../../../testFiles");
-    const {
-      ok,
-      notConnected,
-      previousNext,
-      inputOutput,
-      both,
-      withTail,
-      branched,
-      double,
-      noComponents
-    } = await import(path.resolve(testFileDir, "cycleTestData.js"));
     it("should return empty array if no cycle graph detected", async ()=>{
       expect(await getCycleGraph("dummy", ok)).to.be.empty;
     });

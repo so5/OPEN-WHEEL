@@ -6,6 +6,7 @@
 "use strict";
 import path from "path";
 import fs from "fs-extra";
+import { zip } from "zip-a-folder";
 import { readComponentJsonByID } from "../core/componentJsonIO.js";
 import { remoteHost } from "../db/db.js";
 import { getLogger } from "../logSettings.js";
@@ -143,7 +144,6 @@ export async function onGetRemoteSNDContents(projectRootDir) {
   getLogger(projectRootDir).error(projectRootDir, "onGetRemoteSNDContents should not be called any more");
 }
 export async function onRemoteDownload(projectRootDir, target, host, cb) {
-  const { zip } = await import("zip-a-folder");
   try {
     const { dir, root: downloadRootDir } = await createTempd(projectRootDir, "download");
     const tmpDir = await fs.mkdtemp(`${dir}/`);

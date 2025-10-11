@@ -5,6 +5,7 @@
  */
 import fs from "fs-extra";
 import isSvg from "is-svg";
+import FileType from "file-type";
 
 export const viewerSupportedTypes = ["apng", "avif", "gif", "jpg", "png", "webp", "tif", "bmp", "svg"];
 
@@ -14,7 +15,6 @@ export const viewerSupportedTypes = ["apng", "avif", "gif", "jpg", "png", "webp"
  * @returns {object} - name, extention and mime Content-type
  */
 export async function getFiletype(filename) {
-  const FileType = await import("file-type");
   let rt;
   const buffer = await fs.readFile(filename);
   if (isSvg(buffer.toString())) {
