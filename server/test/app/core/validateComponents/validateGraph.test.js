@@ -34,16 +34,15 @@ import {
 } from "../../../testFiles/cycleTestData.js";
 
 //testee
-import rewire from "rewire";
-const validateComponents = rewire("../../../../app/core/validateComponents.js");
-const {
+import {
+  validateComponents,
   getCycleGraph,
   isCycleGraph,
   getNextComponents,
   getComponentIDsInCycle,
   checkComponentDependency,
   _internal
-} = validateComponents;
+} from "../../../../app/core/validateComponents.js";
 
 const testDirRoot = "WHEEL_TEST_TMP";
 const projectRootDir = path.resolve(testDirRoot, "testProject.wheel");
