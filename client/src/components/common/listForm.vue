@@ -76,6 +76,7 @@
     >
       <v-text-field
         v-model.lazy="inputField"
+        :autofocus="autofocus"
         :rules="newItemValidator"
         :disabled="disabled"
         variant="outlined"
@@ -139,6 +140,10 @@ export default {
     inputColumn: {
       type: Boolean,
       default: true
+    },
+    autofocus: {
+      type: Boolean,
+      default: false
     },
     selectable: {
       type: Boolean,
