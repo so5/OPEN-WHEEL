@@ -176,10 +176,18 @@ describe("components", ()=>{
       const OUTPUT_LABEL_CY = "[data-cy=\"component_property-output_files-label\"]";
       cy.get(CLICK_AREA_CY).scrollIntoView()
         .click();
-      cy.get(INPUT_LABEL_CY).should("be.visible")
-        .and("contain.text", "input file");
-      cy.get(OUTPUT_LABEL_CY).should("be.visible")
-        .and("contain.text", "output file");
+      //the expansion-panel enter animation applies overflow:hidden while running,
+      //so retry the scroll+visibility check together until the animation settles
+      cy.get(INPUT_LABEL_CY).should(($el)=>{
+        $el[0].scrollIntoView({ behavior: "instant" });
+        expect(Cypress.dom.isVisible($el[0]), "input files label should be visible after scroll").to.be.true;
+      });
+      cy.get(INPUT_LABEL_CY).should("contain.text", "input file");
+      cy.get(OUTPUT_LABEL_CY).should(($el)=>{
+        $el[0].scrollIntoView({ behavior: "instant" });
+        expect(Cypress.dom.isVisible($el[0]), "output files label should be visible after scroll").to.be.true;
+      });
+      cy.get(OUTPUT_LABEL_CY).should("contain.text", "output file");
     });
 
     /**
