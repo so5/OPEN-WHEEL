@@ -212,7 +212,9 @@ async function loadWheelConfig(filename) {
     rcFile: false,
     globalRc: false,
     defaults: { ...packageDefaults, ...dotWheelConfig },
-    overrides: { ...envDirConfig, ...extractWheelEnvOverrides() }
+    //WHEEL_CONFIG_DIR/{filename} is documented as the highest-priority override, so it must
+    //win over individual WHEEL_* env vars (e.g. WHEEL_PORT baked into server/test/compose.yml)
+    overrides: { ...extractWheelEnvOverrides(), ...envDirConfig }
   });
   return config;
 }
