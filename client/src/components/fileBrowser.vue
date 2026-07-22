@@ -71,6 +71,7 @@
             :disabled="isSND"
             v-bind="props"
             icon="mdi-upload"
+            data-cy="file_browser-upload-btn"
             @click="showUploadDialog"
           />
         </template>
