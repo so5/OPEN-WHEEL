@@ -211,10 +211,11 @@ async function loadWheelConfig(filename) {
     name: "wheel",
     rcFile: false,
     globalRc: false,
-    defaults: { ...packageDefaults, ...dotWheelConfig },
-    //WHEEL_CONFIG_DIR/{filename} is documented as the highest-priority override, so it must
-    //win over individual WHEEL_* env vars (e.g. WHEEL_PORT baked into server/test/compose.yml)
-    overrides: { ...extractWheelEnvOverrides(), ...envDirConfig }
+    //c12 always lets `overrides` win over `defaults`, so individual WHEEL_* env vars (e.g. the
+    //WHEEL_PORT baked into server/test/compose.yml) must live in `defaults`, ranked above the
+    //package defaults but below ~/.wheel/{filename}, to match the documented priority order.
+    defaults: { ...packageDefaults, ...extractWheelEnvOverrides(), ...dotWheelConfig },
+    overrides: envDirConfig
   });
   return config;
 }
