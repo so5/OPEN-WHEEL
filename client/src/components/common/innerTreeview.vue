@@ -16,7 +16,15 @@
           <template #prepend>
             <v-icon
               v-bind="props"
+              :icon="getExpandIcon(isOpen)"
+              data-cy="inner_treeview-expand-icon"
+              @click.stop="() => { if (!isOpen) { onClickNodeIcon(item); } }"
+            />
+            <v-icon
+              v-if="getNodeIcon(isOpen, item)"
+              v-bind="props"
               :icon="getNodeIcon(isOpen, item)"
+              data-cy="inner_treeview-node-icon"
               @click.stop="() => { if (!isOpen) { onClickNodeIcon(item); } }"
             />
           </template>
@@ -98,6 +106,12 @@
 </template>
 <script>
 
+//always-shown expand/collapse indicator for directory-like (expandable) nodes.
+//kept separate from getNodeIcon so callers can add their own icon (e.g. folder icon)
+//alongside this indicator instead of replacing it.
+const nodeOpenIcon = "mdi-menu-down";
+const nodeCloseIcon = "mdi-menu-right";
+
 export default {
   name: "InnerTreeview",
   props: {
@@ -136,6 +150,9 @@ export default {
   },
   emits: ["update:active"],
   methods: {
+    getExpandIcon(isOpen) {
+      return isOpen ? nodeOpenIcon : nodeCloseIcon;
+    },
     async onClickNodeIcon(item) {
       if (!this.loadChildren) {
         return false;
