@@ -661,6 +661,7 @@ describe("components", ()=>{
       //directory has no contents yet: the ▶(closed) expand icon must still be shown next to the directory icon
       cy.contains("[data-cy=\"file_browser-treeview-treeview\"] .v-list-item", "test-a")
         .find("[data-cy=\"inner_treeview-expand-icon\"]")
+        .scrollIntoView()
         .should("be.visible")
         .and("have.class", "mdi-menu-right");
       cy.get("[data-cy=\"file_browser-treeview-treeview\"]").contains("test-a")
@@ -671,6 +672,7 @@ describe("components", ()=>{
       //directory now has a file inside it: the expand icon must still be shown next to the directory icon
       cy.contains("[data-cy=\"file_browser-treeview-treeview\"] .v-list-item", "test-a")
         .find("[data-cy=\"inner_treeview-expand-icon\"]")
+        .scrollIntoView()
         .should("be.visible");
     });
 
