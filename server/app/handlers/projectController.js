@@ -311,8 +311,9 @@ async function onRunProject(clientID, projectRootDir, ack) {
           //completion (unblocked by stopProject()) already concludes and stages the correct,
           //more specific outcome ("failed"/"unknown"). Forcing "stopped" here used to race
           //with and clobber that correct state, leaving prj.wheel.json incorrectly staged
-          //(issue #1000).
-          await stopProject(projectRootDir);
+          //(issue #1000). pass the failing task's state through so the dispatcher records it
+          //before being torn down, instead of racing the "taskCompleted" event for it.
+          await stopProject(projectRootDir, task.state);
         }
       }).catch((err)=>{
         //never let this chain reject - it is awaited from the finally block below purely to
