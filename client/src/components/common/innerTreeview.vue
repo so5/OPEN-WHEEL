@@ -14,19 +14,21 @@
           :class="{'text-primary font-weight-bold selected-item': activatable && active !== null && active[itemKey] === item[itemKey]}"
         >
           <template #prepend>
-            <v-icon
+            <span
               v-bind="props"
-              :icon="getExpandIcon(isOpen)"
-              data-cy="inner_treeview-expand-icon"
+              class="d-inline-flex align-center"
               @click.stop="() => { if (!isOpen) { onClickNodeIcon(item); } }"
-            />
-            <v-icon
-              v-if="getNodeIcon(isOpen, item)"
-              v-bind="props"
-              :icon="getNodeIcon(isOpen, item)"
-              data-cy="inner_treeview-node-icon"
-              @click.stop="() => { if (!isOpen) { onClickNodeIcon(item); } }"
-            />
+            >
+              <v-icon
+                :icon="getExpandIcon(isOpen)"
+                data-cy="inner_treeview-expand-icon"
+              />
+              <v-icon
+                v-if="getNodeIcon(isOpen, item)"
+                :icon="getNodeIcon(isOpen, item)"
+                data-cy="inner_treeview-node-icon"
+              />
+            </span>
           </template>
           <div @click="(e) => { if (!isOpen) { props.onClick(e); onClickNodeIcon(item); } onActiveted(item); }">
             <slot
