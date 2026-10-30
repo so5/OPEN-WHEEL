@@ -206,7 +206,7 @@ async function runChecker(task) {
   }
 }
 async function needsRetry(task, checkerRt) {
-  if ((typeof task.retry === "undefined" || task.retryCondition === null)
+  if ((typeof task.retry === "undefined" || task.retry === null)
     && (typeof task.retryCondition === "undefined" || task.retryCondition === null)) {
     return false;
   }
