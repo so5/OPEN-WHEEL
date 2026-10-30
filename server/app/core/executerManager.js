@@ -134,7 +134,7 @@ async function decideFinishState(task) {
  * @returns {boolean} -
  */
 async function needsRetry(task) {
-  if ((typeof task.retry === "undefined" || task.retryCondition === null)
+  if ((typeof task.retry === "undefined" || task.retry === null)
     && (typeof task.retryCondition === "undefined" || task.retryCondition === null)) {
     return false;
   }
