@@ -347,6 +347,16 @@ describe("UT for executerManager class", function () {
       const result = await needsRetry(taskWithRetry);
       expect(result).to.be.true;
     });
+    it("should return true if retry is a positive integer and retryCondition is null (component default)", async function () {
+      const taskWithRetry = { ...mockTask, retry: 3, retryCondition: null };
+      const result = await needsRetry(taskWithRetry);
+      expect(result).to.be.true;
+    });
+    it("should return false if both retry and retryCondition are null (component default)", async function () {
+      const task = { ...mockTask, retry: null, retryCondition: null };
+      const result = await needsRetry(task);
+      expect(result).to.be.false;
+    });
     it("should return false if retry is not a positive integer", async function () {
       const taskWithInvalidRetry = { ...mockTask, retry: -1 };
       const result = await needsRetry(taskWithInvalidRetry);
